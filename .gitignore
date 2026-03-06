@@ -15,8 +15,10 @@ __pycache__/
 *.pyd
 
 # Dados locais (nao versionar o banco de dados gerado)
+sisfig.db
 controle_desempenho.xlsx
 relatorio_*.xlsx
+*.csv
 
 # IDEs
 .vscode/
