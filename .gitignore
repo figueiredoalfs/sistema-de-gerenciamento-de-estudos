@@ -1,0 +1,35 @@
+# Ambiente virtual
+venv/
+.venv/
+env/
+.env/
+
+# Variaveis de ambiente
+.env
+*.env
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Dados locais (nao versionar o banco de dados gerado)
+controle_desempenho.xlsx
+relatorio_*.xlsx
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Distribuicao / build
+dist/
+build/
+*.egg-info/
