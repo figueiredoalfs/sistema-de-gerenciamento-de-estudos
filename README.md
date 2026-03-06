@@ -1,4 +1,4 @@
-# SISFIG — Sistema de Acompanhamento de Desempenho
+# AprovAI — Sistema de Acompanhamento de Desempenho
 
 Aplicacao web local para registro e analise de baterias de questoes de concursos.
 Construida com Streamlit + SQLite. Roda 100% offline, sem necessidade de internet.

@@ -10,7 +10,27 @@ from database import ler_lancamentos
 
 
 def render():
-    st.title("Evolucao Mensal por Materia")
+    st.html("""
+        <div style="
+            background: linear-gradient(135deg, #061020 0%, #0d1b2a 100%);
+            border-radius: 10px;
+            padding: 18px 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 3px solid #00b4a6;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+        ">
+            <span style="font-size:1.4rem;">&#128200;</span>
+            <span style="
+                color:#ffffff;
+                font-weight:800;
+                font-size:1.3rem;
+                letter-spacing:0.12em;
+                margin-left:10px;
+                text-transform:uppercase;
+            ">EVOLUCAO MENSAL POR MATERIA</span>
+        </div>
+    """)
 
     df = ler_lancamentos()
 
@@ -66,6 +86,12 @@ def render():
         yaxis_range=[0, 108],
         legend_title="Materia",
         hovermode="x unified",
+        paper_bgcolor="#0d1b2a",
+        plot_bgcolor="#0a1628",
+        font=dict(color="#c8d6e5"),
+        xaxis=dict(gridcolor="#1a3050", linecolor="#1a3050", title_font=dict(color="#7a9ab8")),
+        yaxis=dict(gridcolor="#1a3050", linecolor="#1a3050", title_font=dict(color="#7a9ab8")),
+        legend=dict(bgcolor="#0d1b2a", bordercolor="#1a3050", borderwidth=1, font=dict(color="#c8d6e5")),
     )
 
     st.plotly_chart(fig, use_container_width=True)

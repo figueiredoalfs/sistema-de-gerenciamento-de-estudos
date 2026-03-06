@@ -11,7 +11,27 @@ PAGE_SIZE = 20
 
 
 def render():
-    st.title("Historico de Baterias")
+    st.html("""
+        <div style="
+            background: linear-gradient(135deg, #061020 0%, #0d1b2a 100%);
+            border-radius: 10px;
+            padding: 18px 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 3px solid #00b4a6;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+        ">
+            <span style="font-size:1.4rem;">&#128203;</span>
+            <span style="
+                color:#ffffff;
+                font-weight:800;
+                font-size:1.3rem;
+                letter-spacing:0.12em;
+                margin-left:10px;
+                text-transform:uppercase;
+            ">HISTORICO DE BATERIAS</span>
+        </div>
+    """)
 
     df_l_all = ler_lancamentos()
     df_e     = ler_erros()
