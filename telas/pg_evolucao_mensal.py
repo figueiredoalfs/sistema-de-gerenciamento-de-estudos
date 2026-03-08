@@ -32,7 +32,7 @@ def render():
         </div>
     """)
 
-    df = ler_lancamentos()
+    df = ler_lancamentos(st.session_state.usuario["id"])
 
     if df.empty:
         st.info("Sem dados para exibir o grafico.")

@@ -30,10 +30,10 @@ def render():
                 nova_mat = nova_mat.strip()
                 if not nova_mat:
                     st.error("Informe o nome da materia.")
-                elif nova_mat in get_materias():
+                elif nova_mat in get_materias(st.session_state.usuario["id"]):
                     st.warning(f"A materia '{nova_mat}' ja existe.")
                 else:
-                    inserir_materia(nova_mat)
+                    inserir_materia(nova_mat, st.session_state.usuario["id"])
                     # Seleciona automaticamente a materia recem-criada
                     st.session_state.mat_selecionada = nova_mat
                     st.rerun()
@@ -41,7 +41,7 @@ def render():
         st.divider()
 
         # Lista de materias com botao de selecionar e de excluir
-        materias = get_materias()
+        materias = get_materias(st.session_state.usuario["id"])
         if not materias:
             st.info("Nenhuma materia cadastrada.")
         else:
@@ -58,7 +58,7 @@ def render():
                     st.session_state.mat_selecionada = mat
                     st.rerun()
                 if c2.button("✕", key=f"del_mat_{mat}", help=f"Remover {mat}"):
-                    remover_materia(mat)
+                    remover_materia(mat, st.session_state.usuario["id"])
                     if st.session_state.get("mat_selecionada") == mat:
                         st.session_state.pop("mat_selecionada", None)
                     st.rerun()
@@ -82,16 +82,16 @@ def render():
                     novo_ass = novo_ass.strip()
                     if not novo_ass:
                         st.error("Informe o nome do assunto.")
-                    elif novo_ass in get_assuntos(mat_ativa):
+                    elif novo_ass in get_assuntos(mat_ativa, st.session_state.usuario["id"]):
                         st.warning(f"O assunto '{novo_ass}' ja existe para esta materia.")
                     else:
-                        inserir_assunto(mat_ativa, novo_ass)
+                        inserir_assunto(mat_ativa, novo_ass, st.session_state.usuario["id"])
                         st.rerun()
 
             st.divider()
 
             # Lista de assuntos com botao de excluir
-            assuntos = get_assuntos(mat_ativa)
+            assuntos = get_assuntos(mat_ativa, st.session_state.usuario["id"])
             if not assuntos:
                 st.info("Nenhum assunto cadastrado para esta materia.")
             else:
@@ -99,5 +99,5 @@ def render():
                     c1, c2 = st.columns([5, 1])
                     c1.write(ass)
                     if c2.button("✕", key=f"del_ass_{mat_ativa}_{ass}", help=f"Remover '{ass}'"):
-                        remover_assunto(mat_ativa, ass)
+                        remover_assunto(mat_ativa, ass, st.session_state.usuario["id"])
                         st.rerun()

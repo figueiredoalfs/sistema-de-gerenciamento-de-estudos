@@ -76,7 +76,7 @@ def _tabela_dark(df: pd.DataFrame, cols: list, col_destaque: str = None):
 
 
 def render():
-    df = ler_erros()
+    df = ler_erros(st.session_state.usuario["id"])
 
     # Header
     st.html("""

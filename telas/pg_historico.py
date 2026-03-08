@@ -33,8 +33,8 @@ def render():
         </div>
     """)
 
-    df_l_all = ler_lancamentos()
-    df_e     = ler_erros()
+    df_l_all = ler_lancamentos(st.session_state.usuario["id"])
+    df_e     = ler_erros(st.session_state.usuario["id"])
 
     # ── Filtro de periodo ──────────────────────────────────────────────────────
     meses_map = {

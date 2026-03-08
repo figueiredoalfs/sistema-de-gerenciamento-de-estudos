@@ -81,8 +81,8 @@ def render() -> bool:
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
         if st.button("Entrar", use_container_width=True, type="primary"):
-            if not email or not senha:
-                st.error("Preencha e-mail e senha.")
+            if not email:
+                st.error("Preencha o e-mail.")
             else:
                 usuario = verificar_login(email, senha)
                 if usuario:

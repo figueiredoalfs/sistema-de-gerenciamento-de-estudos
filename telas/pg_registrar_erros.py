@@ -81,7 +81,7 @@ def render():
             "data":        datetime.now().strftime("%d/%m/%Y"),
             "observacao":  obs.strip(),
             "providencia": prov.strip(),
-        })
+        }, st.session_state.usuario["id"])
         return True
 
     if col1.button("+ Adicionar Outro Topico", use_container_width=True):

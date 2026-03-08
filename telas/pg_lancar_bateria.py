@@ -14,7 +14,7 @@ from database import gerar_proximo_id, inserir_lancamentos, get_materias, get_as
 def _inicializar_estado():
     """Inicializa as variaveis de estado da bateria em andamento."""
     if "bat_id" not in st.session_state:
-        st.session_state.bat_id      = gerar_proximo_id()
+        st.session_state.bat_id      = gerar_proximo_id(st.session_state.usuario["id"])
         st.session_state.bat_data    = datetime.now().strftime("%d/%m/%Y")
         st.session_state.bat_fonte   = ""
         st.session_state.bat_itens   = []   # lista de dicts por materia
@@ -71,7 +71,7 @@ def render():
     st.subheader("Adicionar Materia / Disciplina")
     fc = st.session_state.form_cnt
 
-    materias_cad = get_materias()
+    materias_cad = get_materias(st.session_state.usuario["id"])
     col_m, col_a, col_t, col_s = st.columns([2, 1, 1, 2])
 
     mat_sel = col_m.selectbox(
@@ -86,7 +86,7 @@ def render():
         "Total", min_value=1, value=10, step=1, key=f"form_tot_{fc}"
     )
 
-    assuntos_cad = get_assuntos(mat_sel) if mat_sel else []
+    assuntos_cad = get_assuntos(mat_sel, st.session_state.usuario["id"]) if mat_sel else []
     sub_sel = col_s.selectbox(
         "Subtopico / Assunto",
         options=[""] + assuntos_cad,
@@ -134,7 +134,7 @@ def render():
                     "subtopico":  item["subtopico"],
                     "percentual": perc,
                 })
-            inserir_lancamentos(registros)
+            inserir_lancamentos(registros, st.session_state.usuario["id"])
 
             mats = ", ".join(dict.fromkeys(i["materia"] for i in st.session_state.bat_itens))
 

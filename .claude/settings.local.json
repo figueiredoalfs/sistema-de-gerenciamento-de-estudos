@@ -11,7 +11,10 @@
       "Bash(curl -s http://localhost:8000/)",
       "Bash(pip install email-validator)",
       "Bash(pip install email-validator -q)",
-      "Bash(python -c \"from app.main import app; print\\(''OK''\\)\")"
+      "Bash(python -c \"from app.main import app; print\\(''OK''\\)\")",
+      "Bash(python -c \":*)",
+      "Bash(grep -n \"inserir_lancamentos\\\\|inserir_erro\\\\|ler_lancamentos\\\\|ler_erros\\\\|inserir_materia\\\\|inserir_assunto\\\\|get_materias\\\\|get_assuntos\\\\|remover_\" c:/Users/figue/Desktop/SISFIG/telas/*.py c:/Users/figue/Desktop/SISFIG/app.py)",
+      "Bash(python -c \"import streamlit; print\\(streamlit.__version__\\)\")"
     ]
   }
 }

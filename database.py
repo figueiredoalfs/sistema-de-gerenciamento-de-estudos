@@ -54,7 +54,7 @@ def get_perfil(usuario_id: int) -> dict:
             """SELECT id, nome, email, role,
                       telefone, cpf, data_nascimento,
                       cep, endereco, numero, complemento, bairro, cidade, estado,
-                      plano
+                      plano, area_estudo, horas_dia, dias_semana, perfil_estudo, data_prova
                FROM usuarios WHERE id = ?""",
             (usuario_id,),
         ).fetchone()
@@ -68,7 +68,7 @@ def salvar_perfil(usuario_id: int, dados: dict) -> bool:
     campos_permitidos = {
         "nome", "telefone", "cpf", "data_nascimento",
         "cep", "endereco", "numero", "complemento", "bairro", "cidade", "estado",
-        "plano",
+        "plano", "area_estudo", "horas_dia", "dias_semana", "perfil_estudo", "data_prova",
     }
     updates = {k: v for k, v in dados.items() if k in campos_permitidos}
     if not updates:
@@ -164,6 +164,11 @@ def inicializar_banco():
             ("cidade",          "TEXT DEFAULT ''"),
             ("estado",          "TEXT DEFAULT ''"),
             ("plano",           "TEXT DEFAULT 'gratuito'"),
+            ("area_estudo",     "TEXT DEFAULT ''"),
+            ("horas_dia",       "REAL DEFAULT 3.0"),
+            ("dias_semana",     "INTEGER DEFAULT 5"),
+            ("perfil_estudo",   "TEXT DEFAULT 'zero'"),
+            ("data_prova",      "TEXT DEFAULT ''"),
         ]
         colunas_existentes = {row[1] for row in conn.execute("PRAGMA table_info(usuarios)").fetchall()}
         for col, tipo in colunas_perfil:
@@ -179,7 +184,8 @@ def inicializar_banco():
                 total       INTEGER DEFAULT 0,
                 fonte       TEXT,
                 subtopico   TEXT,
-                percentual  REAL DEFAULT 0
+                percentual  REAL DEFAULT 0,
+                usuario_id  INTEGER
             );
 
             CREATE TABLE IF NOT EXISTS erros (
@@ -190,24 +196,32 @@ def inicializar_banco():
                 qtd_erros   INTEGER DEFAULT 1,
                 data        TEXT,
                 observacao  TEXT,
-                providencia TEXT
+                providencia TEXT,
+                usuario_id  INTEGER
             );
 
             CREATE TABLE IF NOT EXISTS cadastros (
-                id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                materia TEXT NOT NULL,
-                assunto TEXT DEFAULT ''
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                materia    TEXT NOT NULL,
+                assunto    TEXT DEFAULT '',
+                usuario_id INTEGER
             );
         """)
+
+        # Adiciona usuario_id nas tabelas existentes (migracao incremental)
+        for tabela in ("lancamentos", "erros", "cadastros"):
+            cols = {r[1] for r in conn.execute(f"PRAGMA table_info({tabela})").fetchall()}
+            if "usuario_id" not in cols:
+                conn.execute(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER")
 
 
 # ─── LANCAMENTOS ──────────────────────────────────────────────────────────────
 
-def gerar_proximo_id() -> str:
-    """Gera o proximo ID de bateria no formato B001, B002, ..."""
+def gerar_proximo_id(usuario_id: int) -> str:
+    """Gera o proximo ID de bateria do usuario no formato B001, B002, ..."""
     with conectar() as conn:
         rows = conn.execute(
-            "SELECT id_bateria FROM lancamentos"
+            "SELECT id_bateria FROM lancamentos WHERE usuario_id = ?", (usuario_id,)
         ).fetchall()
     nums = []
     for row in rows:
@@ -218,76 +232,67 @@ def gerar_proximo_id() -> str:
     return f"B{(max(nums) + 1):03d}" if nums else "B001"
 
 
-def inserir_lancamentos(registros: list):
-    """
-    Insere uma lista de lancamentos de uma vez (ao finalizar a bateria).
-    Cada item deve ser um dict com: id_bateria, materia, data, acertos,
-    total, fonte, subtopico, percentual.
-    """
+def inserir_lancamentos(registros: list, usuario_id: int):
+    """Insere lancamentos do usuario. Cada item: id_bateria, materia, data,
+    acertos, total, fonte, subtopico, percentual."""
+    for r in registros:
+        r["usuario_id"] = usuario_id
     with conectar() as conn:
         conn.executemany(
             """INSERT INTO lancamentos
-               (id_bateria, materia, data, acertos, total, fonte, subtopico, percentual)
+               (id_bateria, materia, data, acertos, total, fonte, subtopico, percentual, usuario_id)
                VALUES (:id_bateria, :materia, :data, :acertos, :total,
-                       :fonte, :subtopico, :percentual)""",
+                       :fonte, :subtopico, :percentual, :usuario_id)""",
             registros,
         )
 
 
-def inserir_erro(dados: dict):
-    """Insere um registro de erro."""
+def inserir_erro(dados: dict, usuario_id: int):
+    """Insere um registro de erro do usuario."""
+    dados["usuario_id"] = usuario_id
     with conectar() as conn:
         conn.execute(
             """INSERT INTO erros
-               (id_bateria, materia, topico, qtd_erros, data, observacao, providencia)
+               (id_bateria, materia, topico, qtd_erros, data, observacao, providencia, usuario_id)
                VALUES (:id_bateria, :materia, :topico, :qtd_erros,
-                       :data, :observacao, :providencia)""",
+                       :data, :observacao, :providencia, :usuario_id)""",
             dados,
         )
 
 
-def ler_lancamentos() -> pd.DataFrame:
-    """Retorna todos os lancamentos como DataFrame com nomes de colunas padrao."""
+def ler_lancamentos(usuario_id: int) -> pd.DataFrame:
+    """Retorna lancamentos do usuario como DataFrame."""
     with conectar() as conn:
         df = pd.read_sql_query(
             """SELECT id_bateria, materia, data, acertos, total,
                       fonte, subtopico, percentual
-               FROM lancamentos""",
-            conn,
+               FROM lancamentos WHERE usuario_id = ?""",
+            conn, params=(usuario_id,),
         )
     df.rename(columns={
-        "id_bateria": "ID Bateria",
-        "materia":    "Materia",
-        "data":       "Data",
-        "acertos":    "Acertos",
-        "total":      "Total",
-        "fonte":      "Fonte",
-        "subtopico":  "Subtopico",
-        "percentual": "Percentual",
+        "id_bateria": "ID Bateria", "materia": "Materia", "data": "Data",
+        "acertos": "Acertos", "total": "Total", "fonte": "Fonte",
+        "subtopico": "Subtopico", "percentual": "Percentual",
     }, inplace=True)
-    df["Acertos"]   = pd.to_numeric(df["Acertos"],   errors="coerce").fillna(0).astype(int)
-    df["Total"]     = pd.to_numeric(df["Total"],     errors="coerce").fillna(0).astype(int)
-    df["Percentual"]= pd.to_numeric(df["Percentual"],errors="coerce").fillna(0)
+    df["Acertos"]    = pd.to_numeric(df["Acertos"],    errors="coerce").fillna(0).astype(int)
+    df["Total"]      = pd.to_numeric(df["Total"],      errors="coerce").fillna(0).astype(int)
+    df["Percentual"] = pd.to_numeric(df["Percentual"], errors="coerce").fillna(0)
     return df
 
 
-def ler_erros() -> pd.DataFrame:
-    """Retorna todos os erros como DataFrame com nomes de colunas padrao."""
+def ler_erros(usuario_id: int) -> pd.DataFrame:
+    """Retorna erros do usuario como DataFrame."""
     with conectar() as conn:
         df = pd.read_sql_query(
             """SELECT id_bateria, materia, topico, qtd_erros,
                       data, observacao, providencia
-               FROM erros""",
-            conn,
+               FROM erros WHERE usuario_id = ?""",
+            conn, params=(usuario_id,),
         )
     df.rename(columns={
-        "id_bateria":  "ID Bateria",
-        "materia":     "Materia",
-        "topico":      "Topico",
-        "qtd_erros":   "Qtd Erros",
-        "data":        "Data",
-        "observacao":  "Observacao",
-        "providencia": "Providencia",
+        "id_bateria": "ID Bateria", "materia": "Materia", "topico": "Topico",
+        "qtd_erros": "Qtd Erros", "data": "Data",
+        "observacao": "Observacao", "providencia": "Providencia",
     }, inplace=True)
     df["Qtd Erros"] = pd.to_numeric(df["Qtd Erros"], errors="coerce").fillna(0).astype(int)
     return df
@@ -295,55 +300,68 @@ def ler_erros() -> pd.DataFrame:
 
 # ─── CADASTROS ────────────────────────────────────────────────────────────────
 
-def get_materias() -> list:
-    """Retorna lista de materias unicas cadastradas, em ordem alfabetica."""
+def get_materias(usuario_id: int) -> list:
+    """Retorna materias do usuario em ordem alfabetica."""
     with conectar() as conn:
         rows = conn.execute(
-            "SELECT DISTINCT materia FROM cadastros ORDER BY materia"
+            "SELECT DISTINCT materia FROM cadastros WHERE usuario_id = ? ORDER BY materia",
+            (usuario_id,),
         ).fetchall()
     return [r["materia"] for r in rows]
 
 
-def get_assuntos(materia: str) -> list:
-    """Retorna lista de assuntos de uma materia (exclui entradas vazias)."""
+def get_assuntos(materia: str, usuario_id: int) -> list:
+    """Retorna assuntos de uma materia do usuario."""
     with conectar() as conn:
         rows = conn.execute(
             """SELECT assunto FROM cadastros
-               WHERE materia = ? AND assunto != ''
+               WHERE materia = ? AND assunto != '' AND usuario_id = ?
                ORDER BY assunto""",
-            (materia,),
+            (materia, usuario_id),
         ).fetchall()
     return [r["assunto"] for r in rows]
 
 
-def inserir_materia(materia: str):
-    """Cria uma materia sem assunto (linha sentinela para garantir aparicao na lista)."""
+def inserir_materia(materia: str, usuario_id: int):
+    """Cria uma materia do usuario."""
     with conectar() as conn:
         conn.execute(
-            "INSERT INTO cadastros (materia, assunto) VALUES (?, '')",
-            (materia,),
+            "INSERT INTO cadastros (materia, assunto, usuario_id) VALUES (?, '', ?)",
+            (materia, usuario_id),
         )
 
 
-def inserir_assunto(materia: str, assunto: str):
-    """Adiciona um assunto a uma materia existente."""
+def inserir_assunto(materia: str, assunto: str, usuario_id: int):
+    """Adiciona assunto a uma materia do usuario."""
     with conectar() as conn:
         conn.execute(
-            "INSERT INTO cadastros (materia, assunto) VALUES (?, ?)",
-            (materia, assunto),
+            "INSERT INTO cadastros (materia, assunto, usuario_id) VALUES (?, ?, ?)",
+            (materia, assunto, usuario_id),
         )
 
 
-def remover_assunto(materia: str, assunto: str):
-    """Remove um assunto especifico de uma materia."""
+def remover_assunto(materia: str, assunto: str, usuario_id: int):
+    """Remove um assunto da materia do usuario."""
     with conectar() as conn:
         conn.execute(
-            "DELETE FROM cadastros WHERE materia = ? AND assunto = ?",
-            (materia, assunto),
+            "DELETE FROM cadastros WHERE materia = ? AND assunto = ? AND usuario_id = ?",
+            (materia, assunto, usuario_id),
         )
 
 
-def remover_materia(materia: str):
-    """Remove uma materia e todos os seus assuntos."""
+def remover_materia(materia: str, usuario_id: int):
+    """Remove uma materia e todos os seus assuntos do usuario."""
     with conectar() as conn:
-        conn.execute("DELETE FROM cadastros WHERE materia = ?", (materia,))
+        conn.execute(
+            "DELETE FROM cadastros WHERE materia = ? AND usuario_id = ?",
+            (materia, usuario_id),
+        )
+
+
+def resetar_usuario(usuario_id: int):
+    """Apaga todos os dados do usuario e retorna ao estado de novo usuario."""
+    with conectar() as conn:
+        conn.execute("DELETE FROM lancamentos WHERE usuario_id = ?", (usuario_id,))
+        conn.execute("DELETE FROM erros       WHERE usuario_id = ?", (usuario_id,))
+        conn.execute("DELETE FROM cadastros   WHERE usuario_id = ?", (usuario_id,))
+        conn.execute("UPDATE usuarios SET plano = 'gratuito' WHERE id = ?", (usuario_id,))

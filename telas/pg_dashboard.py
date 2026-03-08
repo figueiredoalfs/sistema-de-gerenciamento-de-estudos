@@ -109,8 +109,8 @@ def _dark_header(titulo: str, subtitulo: str = ""):
 
 
 def render():
-    df_l_all = ler_lancamentos()
-    df_e_all = ler_erros()
+    df_l_all = ler_lancamentos(st.session_state.usuario["id"])
+    df_e_all = ler_erros(st.session_state.usuario["id"])
 
     _dark_header("Painel de Desempenho")
 

@@ -39,6 +39,21 @@ from telas.pg_evolucao_mensal import render as pg_grafico
 from telas.pg_cadastro        import render as pg_cadastro
 from telas.pg_analise_erros   import render as pg_analise_erros
 from telas.pg_perfil          import render as pg_perfil
+from telas.pg_onboarding     import render as pg_onboarding
+from telas.pg_plano          import render as pg_plano
+
+# ── Onboarding: redireciona novos usuarios ────────────────────────────────────
+if not st.session_state.get("onboarding_concluido"):
+    from database import get_perfil as _get_perfil
+    _perfil_db = _get_perfil(st.session_state.usuario["id"])
+    if _perfil_db.get("plano") == "ativo":
+        # Ja concluiu o onboarding anteriormente
+        st.session_state.onboarding_concluido = True
+    else:
+        # Novo usuario — inicia onboarding
+        if "ob_tela" not in st.session_state:
+            st.session_state.ob_tela = 1
+        st.session_state.pagina = "onboarding"
 
 # ── Inicializa o estado de navegacao ─────────────────────────────────────────
 if "pagina" not in st.session_state:
@@ -73,6 +88,7 @@ with st.sidebar:
     st.divider()
 
     menu = [
+        ("plano",          "Meu Plano"),
         ("dashboard",      "Desempenho"),
         ("lancar",         "Lancar Bateria"),
         ("historico",      "Historico"),
@@ -105,6 +121,23 @@ with st.sidebar:
     )
     if st.button("Sair", key="btn_logout", use_container_width=True):
         st.session_state.clear()
+        st.rerun()
+
+    # Botao de reset (provisorio — remover em producao)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        '<p style="color:#3a4a5a;font-size:0.68rem;text-align:center;">— DEV —</p>',
+        unsafe_allow_html=True,
+    )
+    if st.button("Resetar Dados do Usuario", key="btn_reset_usuario", use_container_width=True):
+        from database import resetar_usuario
+        resetar_usuario(st.session_state.usuario["id"])
+        # Limpa flags de onboarding e redireciona
+        for k in list(st.session_state.keys()):
+            if k.startswith("ob_") or k == "onboarding_concluido":
+                del st.session_state[k]
+        st.session_state.ob_tela = 1
+        st.session_state.pagina  = "onboarding"
         st.rerun()
 
 # ── Topbar superior direito (popover perfil + logoff) ────────────────────────
@@ -150,3 +183,7 @@ elif pagina == "cadastro":
     pg_cadastro()
 elif pagina == "perfil":
     pg_perfil()
+elif pagina == "onboarding":
+    pg_onboarding()
+elif pagina == "plano":
+    pg_plano()

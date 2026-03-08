@@ -30,7 +30,7 @@ def render():
         </div>
     """)
 
-    df = ler_erros()
+    df = ler_erros(st.session_state.usuario["id"])
 
     if df.empty:
         st.info("Nenhum erro registrado ainda.")
