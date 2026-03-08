@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -:*)",
+      "Bash(c:/Users/figue/Desktop/SISFIG/.env:*)",
+      "Bash(pip install alembic sqlalchemy pydantic-settings python-jose passlib[bcrypt] fastapi uvicorn python-multipart)",
+      "Bash(python -m alembic init alembic)",
+      "Bash(python -m alembic revision --autogenerate -m \"initial_schema_com_campos_fsrs\")",
+      "Bash(python -m alembic upgrade head)",
+      "Bash(timeout 8 python -m uvicorn app.main:app --port 8000)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(pip install email-validator)",
+      "Bash(pip install email-validator -q)",
+      "Bash(python -c \"from app.main import app; print\\(''OK''\\)\")"
+    ]
+  }
+}
