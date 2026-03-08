@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(python -m streamlit --version)",
+      "Bash(python -c \"import streamlit, os; print\\(os.path.dirname\\(streamlit.__file__\\)\\)\")",
+      "WebSearch"
+    ]
+  }
+}

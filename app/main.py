@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
-from app.routers import auth, onboarding
+from app.routers import auth, onboarding, bateria, erro_critico
 
 # Importar todos os models para o Alembic detectar
 import app.models  # noqa: F401
@@ -24,6 +24,8 @@ app.add_middleware(
 # Routers
 app.include_router(auth.router)
 app.include_router(onboarding.router)
+app.include_router(bateria.router)
+app.include_router(erro_critico.router)
 
 
 @app.get("/", tags=["health"])

@@ -38,6 +38,15 @@ NIVEL_POR_TEMPO = {
     ">6m": "expert",
 }
 
+# Percentual estimado por nível (âncora para a calibração adaptativa)
+# Fase 1: 5 questões no nível âncora → ajuste em Fase 2 e 3
+PERCENTUAL_POR_NIVEL = {
+    "basico": 25.0,        # nível 1-2
+    "intermediario": 50.0, # nível 2-3
+    "avancado": 70.0,      # nível 3-4
+    "expert": 85.0,        # nível 4-5
+}
+
 # Sessões por peso do tópico
 SESSOES_ALTO = [
     ("teoria_pdf", 50),
@@ -69,6 +78,59 @@ def _sessoes_para_peso(peso: float):
 
 def _estimar_nivel(tempo: str) -> str:
     return NIVEL_POR_TEMPO.get(tempo, "intermediario")
+
+
+def _registrar_nivel_inicial_perfilb(
+    tempo_por_materia: Dict[str, str], aluno_id: str, db: Session
+) -> Dict[str, str]:
+    """
+    Persiste Proficiencia seed para cada matéria declarada no Perfil B.
+    fonte='calibracao', percentual estimado pelo tempo declarado.
+    Âncora usada na Fase 1 da calibração adaptativa (15q em 3 fases).
+    """
+    nivel_inicial: Dict[str, str] = {}
+    for materia, tempo in tempo_por_materia.items():
+        nivel = _estimar_nivel(tempo)
+        percentual = PERCENTUAL_POR_NIVEL[nivel]
+        nivel_inicial[materia] = nivel
+
+        # Busca tópicos que correspondam à matéria (nível 0 = matéria raiz)
+        topicos_mat = (
+            db.query(Topico)
+            .filter(Topico.ativo == True, Topico.nome.ilike(f"%{materia}%"))
+            .all()
+        )
+
+        if topicos_mat:
+            for topico in topicos_mat:
+                prof = Proficiencia(
+                    id=str(uuid.uuid4()),
+                    aluno_id=aluno_id,
+                    topico_id=topico.id,
+                    materia=materia,
+                    acertos=0,
+                    total=0,
+                    percentual=percentual,
+                    fonte="calibracao",
+                    peso_fonte=PESO_POR_FONTE["calibracao"],
+                )
+                db.add(prof)
+        else:
+            # Sem tópico cadastrado ainda — salva só com matéria
+            prof = Proficiencia(
+                id=str(uuid.uuid4()),
+                aluno_id=aluno_id,
+                topico_id=None,
+                materia=materia,
+                acertos=0,
+                total=0,
+                percentual=percentual,
+                fonte="calibracao",
+                peso_fonte=PESO_POR_FONTE["calibracao"],
+            )
+            db.add(prof)
+
+    return nivel_inicial
 
 
 def _importar_csv(dados_csv: list, aluno_id: str, db: Session) -> int:
@@ -160,8 +222,9 @@ def onboarding(
     # ── 3. Perfil B — nível inicial por matéria ───────────────────────────
     nivel_inicial: Dict[str, str] = {}
     if body.perfil == "tempo_por_materia" and body.tempo_por_materia:
-        for materia, tempo in body.tempo_por_materia.items():
-            nivel_inicial[materia] = _estimar_nivel(tempo)
+        nivel_inicial = _registrar_nivel_inicial_perfilb(
+            body.tempo_por_materia, aluno.id, db
+        )
 
     # ── 3. Perfil C — importar CSV ────────────────────────────────────────
     if body.perfil == "csv" and body.dados_csv:

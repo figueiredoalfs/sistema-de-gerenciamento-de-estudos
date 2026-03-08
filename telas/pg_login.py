@@ -7,6 +7,7 @@ import os
 import base64
 import streamlit as st
 from database import verificar_login
+from api_client import api_login
 
 
 def render() -> bool:
@@ -88,6 +89,10 @@ def render() -> bool:
                 if usuario:
                     st.session_state.usuario = usuario
                     st.session_state.autenticado = True
+                    # Obtém JWT do FastAPI para chamadas à API (migração suave)
+                    token = api_login(email, senha, nome=usuario.get("nome", ""))
+                    if token:
+                        st.session_state.api_token = token
                     st.rerun()
                 else:
                     st.error("E-mail ou senha incorretos.")

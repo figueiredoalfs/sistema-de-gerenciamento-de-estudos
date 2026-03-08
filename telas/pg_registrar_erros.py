@@ -7,6 +7,7 @@ Acessada automaticamente apos "Finalizar Bateria".
 import streamlit as st
 from datetime import datetime
 from database import inserir_erro
+from api_client import api_registrar_erro
 
 
 def render():
@@ -82,6 +83,15 @@ def render():
             "observacao":  obs.strip(),
             "providencia": prov.strip(),
         }, st.session_state.usuario["id"])
+        # Também registra no FastAPI se disponível
+        api_bateria_id = st.session_state.get("api_bateria_id", id_bateria)
+        api_registrar_erro(
+            materia=mat_err.strip(),
+            topico_texto=topico.strip(),
+            qtd_erros=int(qtd),
+            observacao=obs.strip(),
+            id_bateria=api_bateria_id,
+        )
         return True
 
     if col1.button("+ Adicionar Outro Topico", use_container_width=True):

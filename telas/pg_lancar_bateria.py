@@ -9,6 +9,7 @@ no banco ao clicar em "Finalizar Bateria" — sem registros intermediarios.
 import streamlit as st
 from datetime import datetime
 from database import gerar_proximo_id, inserir_lancamentos, get_materias, get_assuntos
+from api_client import api_registrar_bateria
 
 
 def _inicializar_estado():
@@ -120,7 +121,7 @@ def render():
             data  = st.session_state.bat_data
             fonte = st.session_state.bat_fonte
 
-            # Monta a lista de registros e grava tudo de uma vez
+            # Monta a lista de registros
             registros = []
             for item in st.session_state.bat_itens:
                 perc = round(item["acertos"] / item["total"] * 100, 1) if item["total"] > 0 else 0.0
@@ -134,7 +135,20 @@ def render():
                     "subtopico":  item["subtopico"],
                     "percentual": perc,
                 })
+            # Grava no banco antigo (sisfig.db)
             inserir_lancamentos(registros, st.session_state.usuario["id"])
+            # Grava também no FastAPI (dev.db) se disponível
+            itens_api = [
+                {"materia": r["materia"], "subtopico": r["subtopico"],
+                 "acertos": r["acertos"], "total": r["total"], "fonte": fonte}
+                for r in registros
+            ]
+            resultado_api = api_registrar_bateria(itens_api, fonte_padrao=fonte)
+            if resultado_api:
+                # Usa o bateria_id do FastAPI para vinculo de erros
+                st.session_state.api_bateria_id = resultado_api.get("bateria_id", id_b)
+            else:
+                st.session_state.api_bateria_id = id_b
 
             mats = ", ".join(dict.fromkeys(i["materia"] for i in st.session_state.bat_itens))
 
