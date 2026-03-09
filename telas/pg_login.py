@@ -89,10 +89,10 @@ def render() -> bool:
                 if usuario:
                     st.session_state.usuario = usuario
                     st.session_state.autenticado = True
-                    # Obtém JWT do FastAPI para chamadas à API (migração suave)
-                    token = api_login(email, senha, nome=usuario.get("nome", ""))
-                    if token:
-                        st.session_state.api_token = token
+                    # Guarda credenciais para buscar JWT na próxima renderização
+                    # (evita bloquear a transição da tela de login)
+                    st.session_state._jwt_email = email
+                    st.session_state._jwt_senha = senha
                     st.rerun()
                 else:
                     st.error("E-mail ou senha incorretos.")

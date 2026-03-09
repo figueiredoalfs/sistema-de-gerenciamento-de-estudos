@@ -25,9 +25,43 @@ inicializar_banco()
 
 # ── Autenticacao ──────────────────────────────────────────────────────────────
 if not st.session_state.get("autenticado"):
+    # Reseta qualquer CSS residual da sessão anterior antes de mostrar o login
+    st.markdown(
+        "<style>.stApp{background:none!important}</style>",
+        unsafe_allow_html=True,
+    )
     from telas.pg_login import render as pg_login
     pg_login()
     st.stop()
+
+# ── Busca JWT em background (não bloqueia o render da tela) ──────────────────
+# Resultado guardado em dict de módulo; consumido no próximo render.
+import threading as _threading
+_jwt_results: dict = {}  # user_id -> token
+
+_uid_atual = st.session_state.get("usuario", {}).get("id", "")
+
+# Inicia thread se há credenciais pendentes
+if "api_token" not in st.session_state and "_jwt_email" in st.session_state:
+    _email_bg = st.session_state.pop("_jwt_email")
+    _senha_bg = st.session_state.pop("_jwt_senha")
+    _nome_bg  = st.session_state.usuario.get("nome", "")
+
+    def _fetch_jwt_bg(uid, email, senha, nome):
+        from api_client import api_login as _al
+        token = _al(email, senha, nome=nome)
+        if token:
+            _jwt_results[uid] = token
+
+    _threading.Thread(
+        target=_fetch_jwt_bg,
+        args=(_uid_atual, _email_bg, _senha_bg, _nome_bg),
+        daemon=True,
+    ).start()
+
+# Consome resultado da thread (disponível a partir da próxima interação)
+if "api_token" not in st.session_state and _uid_atual in _jwt_results:
+    st.session_state.api_token = _jwt_results.pop(_uid_atual)
 
 # ── Importa as telas ─────────────────────────────────────────────────────────
 from telas.pg_dashboard       import render as pg_dashboard
@@ -138,6 +172,14 @@ with st.sidebar:
                 del st.session_state[k]
         st.session_state.ob_tela = 1
         st.session_state.pagina  = "onboarding"
+        st.rerun()
+
+    if st.button("Copiar Dados do Admin", key="btn_copiar_admin", use_container_width=True):
+        from database import copiar_dados_admin
+        from telas.pg_dashboard import _fetch_lancamentos
+        total = copiar_dados_admin(st.session_state.usuario["id"])
+        _fetch_lancamentos.clear()  # invalida cache para refletir a cópia
+        st.toast(f"✅ {total} lançamentos copiados do admin!", icon="📋")
         st.rerun()
 
 # ── Topbar superior direito (popover perfil + logoff) ────────────────────────

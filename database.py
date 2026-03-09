@@ -641,3 +641,49 @@ def resetar_usuario(usuario_id: int):
         conn.execute("DELETE FROM erros       WHERE usuario_id = ?", (usuario_id,))
         conn.execute("DELETE FROM cadastros   WHERE usuario_id = ?", (usuario_id,))
         conn.execute("UPDATE usuarios SET plano = 'gratuito' WHERE id = ?", (usuario_id,))
+
+
+def copiar_dados_admin(usuario_id: int) -> int:
+    """
+    Copia todos os lancamentos, erros e cadastros do admin para o usuario_id.
+    Os dados do admin nao sao alterados — apenas duplicados com novo usuario_id.
+    Retorna o numero de lancamentos copiados.
+    """
+    with conectar() as conn:
+        admin = conn.execute(
+            "SELECT id FROM usuarios WHERE role = 'admin' LIMIT 1"
+        ).fetchone()
+        if not admin:
+            return 0
+        admin_id = admin["id"]
+
+        # Copia lancamentos (inclui legados com usuario_id NULL)
+        conn.execute(
+            """INSERT INTO lancamentos
+               (id_bateria, materia, data, acertos, total, fonte, subtopico, percentual, usuario_id)
+               SELECT id_bateria, materia, data, acertos, total, fonte, subtopico, percentual, ?
+               FROM lancamentos WHERE usuario_id = ? OR usuario_id IS NULL""",
+            (usuario_id, admin_id),
+        )
+
+        # Copia erros (inclui legados com usuario_id NULL)
+        conn.execute(
+            """INSERT INTO erros
+               (id_bateria, materia, topico, qtd_erros, data, observacao, providencia, usuario_id)
+               SELECT id_bateria, materia, topico, qtd_erros, data, observacao, providencia, ?
+               FROM erros WHERE usuario_id = ? OR usuario_id IS NULL""",
+            (usuario_id, admin_id),
+        )
+
+        # Copia cadastros (inclui legados com usuario_id NULL)
+        conn.execute(
+            """INSERT INTO cadastros (materia, assunto, usuario_id)
+               SELECT materia, assunto, ?
+               FROM cadastros WHERE usuario_id = ? OR usuario_id IS NULL""",
+            (usuario_id, admin_id),
+        )
+
+        total = conn.execute(
+            "SELECT COUNT(*) FROM lancamentos WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()[0]
+    return total

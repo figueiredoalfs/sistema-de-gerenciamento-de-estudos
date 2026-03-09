@@ -179,6 +179,33 @@ def api_listar_erros(status: str = None, materia: str = None) -> list:
     return []
 
 
+def api_obter_desempenho(mes: int = None, ano: int = None, fontes: list = None) -> dict | None:
+    """
+    Retorna métricas de desempenho do aluno logado.
+    Campos: total_questoes, total_acertos, perc_geral, por_materia (lista).
+    Retorna None se a API estiver offline.
+    """
+    params = {}
+    if mes:
+        params["mes"] = mes
+    if ano:
+        params["ano"] = ano
+    if fontes:
+        params["fonte"] = fontes
+    try:
+        r = requests.get(
+            f"{API_BASE}/desempenho",
+            params=params,
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
 def api_atualizar_status_erro(erro_id: str, novo_status: str) -> bool:
     """Atualiza status de um erro crítico. Retorna True se ok."""
     try:

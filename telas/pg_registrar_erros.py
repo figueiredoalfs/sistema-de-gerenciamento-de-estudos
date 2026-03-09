@@ -4,10 +4,16 @@ Tela para registrar erros de uma bateria recem-finalizada.
 Acessada automaticamente apos "Finalizar Bateria".
 """
 
+import threading
 import streamlit as st
 from datetime import datetime
 from database import inserir_erro
 from api_client import api_registrar_erro
+
+
+def _api_erro_bg(**kwargs):
+    """Envia erro ao FastAPI em background — não bloqueia o rerun."""
+    threading.Thread(target=api_registrar_erro, kwargs=kwargs, daemon=True).start()
 
 
 def render():
@@ -83,9 +89,9 @@ def render():
             "observacao":  obs.strip(),
             "providencia": prov.strip(),
         }, st.session_state.usuario["id"])
-        # Também registra no FastAPI se disponível
+        # Registra no FastAPI em background (não bloqueia o rerun)
         api_bateria_id = st.session_state.get("api_bateria_id", id_bateria)
-        api_registrar_erro(
+        _api_erro_bg(
             materia=mat_err.strip(),
             topico_texto=topico.strip(),
             qtd_erros=int(qtd),
