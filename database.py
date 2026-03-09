@@ -289,11 +289,14 @@ def verificar_login(email: str, senha: str) -> dict | None:
     """
     with conectar() as conn:
         row = conn.execute(
-            "SELECT id, nome, email, senha_hash, role FROM usuarios WHERE email = ?",
+            "SELECT id, nome, email, senha_hash, role, email_confirmado FROM usuarios WHERE email = ?",
             (email.strip().lower(),),
         ).fetchone()
     if row and row["senha_hash"] == _hash_senha(senha, row["email"]):
-        return {"id": row["id"], "nome": row["nome"], "email": row["email"], "role": row["role"]}
+        return {
+            "id": row["id"], "nome": row["nome"], "email": row["email"], "role": row["role"],
+            "email_confirmado": bool(row["email_confirmado"] if row["email_confirmado"] is not None else 1),
+        }
     return None
 
 
@@ -438,6 +441,16 @@ def inicializar_banco():
         for col, tipo in colunas_perfil:
             if col not in colunas_existentes:
                 conn.execute(f"ALTER TABLE usuarios ADD COLUMN {col} {tipo}")
+
+        # Colunas para confirmação de e-mail (ativada via EMAIL_CONFIRMACAO=true no Railway)
+        cols_confirmacao = [
+            ("email_confirmado",  "INTEGER DEFAULT 1"),   # 1=confirmado; legados e dev ficam confirmados
+            ("token_confirmacao", "TEXT DEFAULT NULL"),
+        ]
+        for col, tipo in cols_confirmacao:
+            if col not in colunas_existentes:
+                conn.execute(f"ALTER TABLE usuarios ADD COLUMN {col} {tipo}")
+
         conn.executescript("""
 
             CREATE TABLE IF NOT EXISTS lancamentos (
