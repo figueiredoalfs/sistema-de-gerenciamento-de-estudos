@@ -526,6 +526,8 @@ def inicializar_banco():
             conn.execute("ALTER TABLE erros ADD COLUMN tipo_erro TEXT DEFAULT 'nao_sabia'")
         if "status" not in cols_erros:
             conn.execute("ALTER TABLE erros ADD COLUMN status TEXT DEFAULT 'pendente'")
+        if "subtopico_erro" not in cols_erros:
+            conn.execute("ALTER TABLE erros ADD COLUMN subtopico_erro TEXT DEFAULT ''")
 
         # Adiciona plataformas_ativas em usuarios (migracao incremental)
         cols_usr = {r[1] for r in conn.execute("PRAGMA table_info(usuarios)").fetchall()}
@@ -572,11 +574,13 @@ def inserir_erro(dados: dict, usuario_id: int):
     dados["usuario_id"] = usuario_id
     dados.setdefault("tipo_erro", "nao_sabia")
     dados.setdefault("status", "pendente")
+    dados.setdefault("subtopico_erro", "")
     with conectar() as conn:
         conn.execute(
             """INSERT INTO erros
-               (id_bateria, materia, topico, qtd_erros, data, tipo_erro, status, usuario_id)
-               VALUES (:id_bateria, :materia, :topico, :qtd_erros,
+               (id_bateria, materia, topico, subtopico_erro, qtd_erros,
+                data, tipo_erro, status, usuario_id)
+               VALUES (:id_bateria, :materia, :topico, :subtopico_erro, :qtd_erros,
                        :data, :tipo_erro, :status, :usuario_id)""",
             dados,
         )
@@ -615,48 +619,36 @@ def ler_erros(usuario_id: int) -> pd.DataFrame:
     """Retorna erros do usuario como DataFrame."""
     with conectar() as conn:
         df = pd.read_sql_query(
-            """SELECT id, id_bateria, materia, topico, qtd_erros,
-                      data, tipo_erro, status
+            """SELECT id, id_bateria, materia, topico, subtopico_erro,
+                      qtd_erros, data, tipo_erro, status
                FROM erros WHERE usuario_id = ?""",
             conn, params=(usuario_id,),
         )
     df.rename(columns={
         "id": "ID", "id_bateria": "ID Bateria", "materia": "Materia",
-        "topico": "Topico", "qtd_erros": "Qtd Erros", "data": "Data",
+        "topico": "Topico", "subtopico_erro": "Subtopico",
+        "qtd_erros": "Qtd Erros", "data": "Data",
         "tipo_erro": "Tipo Erro", "status": "Status",
     }, inplace=True)
     df["Qtd Erros"] = pd.to_numeric(df["Qtd Erros"], errors="coerce").fillna(0).astype(int)
     df["Status"]    = df["Status"].fillna("pendente")
     df["Tipo Erro"] = df["Tipo Erro"].fillna("nao_sabia")
+    df["Subtopico"] = df["Subtopico"].fillna("")
     return df
 
 
 # ─── CADASTROS ────────────────────────────────────────────────────────────────
 
-_MATERIAS_POR_AREA = {
-    "fiscal":   ["Direito Tributário", "Contabilidade", "Direito Administrativo",
-                 "Língua Portuguesa", "Raciocínio Lógico", "Legislação Específica"],
-    "juridica": ["Direito Constitucional", "Direito Civil", "Direito Penal",
-                 "Direito Administrativo", "Língua Portuguesa", "Direito Processual Civil"],
-    "policial": ["Direito Penal", "Direito Processual Penal", "Direito Constitucional",
-                 "Língua Portuguesa", "Raciocínio Lógico", "Conhecimentos Gerais"],
-    "ti":       ["Algoritmos e Estruturas de Dados", "Banco de Dados", "Redes de Computadores",
-                 "Segurança da Informação", "Engenharia de Software", "Língua Portuguesa"],
-    "saude":    ["Conhecimentos Específicos", "Legislação SUS", "Ética Profissional",
-                 "Língua Portuguesa", "Raciocínio Lógico", "Atualidades"],
-    "outro":    ["Língua Portuguesa", "Raciocínio Lógico", "Conhecimentos Gerais",
-                 "Direito Administrativo", "Informática", "Atualidades"],
-}
-
-
 def get_materias_plano(usuario_id: int) -> list:
-    """Retorna matérias do plano ativo do usuário (baseado na área de estudo)."""
+    """Retorna matérias do plano ativo do usuário (baseado na área de estudo).
+    Usa a hierarquia canônica de config_materias.py."""
+    from config_materias import MATERIAS_POR_AREA as _MAP
     with conectar() as conn:
         row = conn.execute(
             "SELECT area_estudo FROM usuarios WHERE id = ?", (usuario_id,)
         ).fetchone()
     area = (row["area_estudo"] or "outro") if row else "outro"
-    return _MATERIAS_POR_AREA.get(area, _MATERIAS_POR_AREA["outro"])
+    return _MAP.get(area, _MAP["outro"])
 
 
 def get_materias(usuario_id: int) -> list:

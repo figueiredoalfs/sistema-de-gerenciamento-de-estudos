@@ -13,10 +13,11 @@ import streamlit as st
 from datetime import date
 from database import (
     gerar_proximo_id, inserir_lancamentos, inserir_erro,
-    get_materias_plano, get_assuntos, get_plataformas_ativas,
+    get_materias_plano, get_plataformas_ativas,
 )
 from api_client import api_registrar_bateria, api_registrar_erro
 from config_fontes import fontes_disponiveis
+from config_materias import get_topicos, get_subtopicos
 import threading
 
 TIPOS_ERRO = {
@@ -104,21 +105,24 @@ def _gravar_erros(id_b, data_str):
     for mi, item in enumerate(itens_com_erros):
         n = st.session_state.bat_err_cnt.get(mi, item["total"] - item["acertos"])
         for li in range(n):
-            topico_key = f"err_{mi}_{li}_top"
-            tipo_key   = f"err_{mi}_{li}_tipo"
-            topico = st.session_state.get(topico_key, "")
-            tipo_d = st.session_state.get(tipo_key, TIPOS_DISPLAY[0])
+            topico_key   = f"err_{mi}_{li}_top"
+            subtop_key   = f"err_{mi}_{li}_sub"
+            tipo_key     = f"err_{mi}_{li}_tipo"
+            topico   = st.session_state.get(topico_key, "")
+            subtop   = st.session_state.get(subtop_key, "")
+            tipo_d   = st.session_state.get(tipo_key, TIPOS_DISPLAY[0])
             if not topico or topico == "— selecione o tópico —":
                 continue
             tipo_val = TIPOS_ERRO.get(tipo_d, "nao_sabia")
             dados = {
-                "id_bateria": id_b,
-                "materia":    item["materia"],
-                "topico":     topico,
-                "qtd_erros":  1,
-                "data":       data_str,
-                "tipo_erro":  tipo_val,
-                "status":     "pendente",
+                "id_bateria":    id_b,
+                "materia":       item["materia"],
+                "topico":        topico,
+                "subtopico_erro": subtop if subtop and subtop != "— opcional —" else "",
+                "qtd_erros":     1,
+                "data":          data_str,
+                "tipo_erro":     tipo_val,
+                "status":        "pendente",
             }
             inserir_erro(dados, uid)
             threading.Thread(
@@ -206,9 +210,9 @@ def _render_form():
     materias = get_materias_plano(uid)
 
     col_m, col_s, col_a, col_t = st.columns([2, 2, 1, 1])
-    mat_sel = col_m.selectbox("Matéria", [""] + materias, key=f"fm_{fc}")
-    assuntos = get_assuntos(mat_sel, uid) if mat_sel else []
-    sub_sel  = col_s.selectbox("Subtópico", [""] + assuntos, key=f"fs_{fc}")
+    mat_sel  = col_m.selectbox("Matéria", [""] + materias, key=f"fm_{fc}")
+    topicos  = get_topicos(mat_sel) if mat_sel else []
+    sub_sel  = col_s.selectbox("Tópico", [""] + topicos, key=f"fs_{fc}")
     acertos  = col_a.number_input("Acertos", min_value=0, value=0, step=1, key=f"fa_{fc}")
     total    = col_t.number_input("Total",   min_value=1, value=10, step=1, key=f"ft_{fc}")
 
@@ -313,53 +317,56 @@ def _render_erros():
         with st.container():
             for li in range(n_erros):
                 topico_key = f"err_{mi}_{li}_top"
+                subtop_key = f"err_{mi}_{li}_sub"
                 tipo_key   = f"err_{mi}_{li}_tipo"
+                lbl = li == 0  # exibe labels só na primeira linha
+
+                col_num, col_top, col_sub, col_tipo = st.columns([0.4, 2, 2, 1.8])
+
+                col_num.markdown(
+                    f'<div style="color:#e74c3c;font-weight:700;font-size:0.85rem;'
+                    f'padding-top:30px;">#{li+1}</div>',
+                    unsafe_allow_html=True,
+                )
 
                 if topico_fixo:
-                    # Subtópico já definido — grava direto, só pede motivo
+                    # Tópico vem do lançamento → fixo, só escolhe subtópico e motivo
                     st.session_state[topico_key] = topico_fixo
-                    col_num, col_top, col_tipo = st.columns([0.5, 3, 2])
-                    col_num.markdown(
-                        f'<div style="color:#e74c3c;font-weight:700;font-size:0.85rem;'
-                        f'padding-top:{"32px" if li==0 else "8px"};">#{li+1}</div>',
-                        unsafe_allow_html=True,
-                    )
                     col_top.markdown(
-                        f'<div style="{"padding-top:28px;" if li>0 else "padding-top:4px;"}'
-                        f'color:#d0e4f0;font-size:0.9rem;font-weight:600;">'
-                        f'{"Tópico" if li==0 else ""}<br>{topico_fixo}</div>',
+                        f'<div style="padding-top:{"4px" if lbl else "28px"};">'
+                        f'{"<small style=color:#8ab0c8>Tópico</small><br>" if lbl else ""}'
+                        f'<span style="color:#d0e4f0;font-weight:600;">{topico_fixo}</span></div>',
                         unsafe_allow_html=True,
                     )
-                    col_tipo.radio(
-                        "Motivo" if li == 0 else " ",
-                        TIPOS_DISPLAY,
-                        key=tipo_key,
-                        horizontal=True,
-                        label_visibility="visible" if li == 0 else "hidden",
-                    )
+                    subtopicos = get_subtopicos(item["materia"], topico_fixo)
                 else:
-                    # Sem subtópico — mostra selectbox com tópicos da matéria
-                    col_num, col_top, col_tipo = st.columns([0.5, 3, 2])
-                    col_num.markdown(
-                        f'<div style="color:#e74c3c;font-weight:700;font-size:0.85rem;'
-                        f'padding-top:32px;">#{li+1}</div>',
-                        unsafe_allow_html=True,
-                    )
+                    # Sem tópico → usuário seleciona da hierarquia
                     topico_val = col_top.selectbox(
-                        "Tópico" if li == 0 else " ",
+                        "Tópico" if lbl else " ",
                         opcoes_topico,
                         key=topico_key,
-                        label_visibility="visible" if li == 0 else "hidden",
-                    )
-                    col_tipo.radio(
-                        "Motivo" if li == 0 else " ",
-                        TIPOS_DISPLAY,
-                        key=tipo_key,
-                        horizontal=True,
-                        label_visibility="visible" if li == 0 else "hidden",
+                        label_visibility="visible" if lbl else "hidden",
                     )
                     if topico_val == "— selecione o tópico —":
                         todos_preenchidos = False
+                    subtopicos = get_subtopicos(item["materia"], topico_val) if topico_val and topico_val != "— selecione o tópico —" else []
+
+                # Subtópico (nível 3) — opcional
+                opcoes_sub = ["— opcional —"] + subtopicos
+                col_sub.selectbox(
+                    "Subtópico" if lbl else " ",
+                    opcoes_sub,
+                    key=subtop_key,
+                    label_visibility="visible" if lbl else "hidden",
+                )
+
+                col_tipo.radio(
+                    "Motivo" if lbl else " ",
+                    TIPOS_DISPLAY,
+                    key=tipo_key,
+                    horizontal=True,
+                    label_visibility="visible" if lbl else "hidden",
+                )
 
         st.html('<div style="background:#1a3050;height:1px;margin:8px 0 4px 0;"></div>')
 
