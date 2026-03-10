@@ -16,7 +16,9 @@
       "Bash(grep -n \"inserir_lancamentos\\\\|inserir_erro\\\\|ler_lancamentos\\\\|ler_erros\\\\|inserir_materia\\\\|inserir_assunto\\\\|get_materias\\\\|get_assuntos\\\\|remover_\" c:/Users/figue/Desktop/SISFIG/telas/*.py c:/Users/figue/Desktop/SISFIG/app.py)",
       "Bash(python -c \"import streamlit; print\\(streamlit.__version__\\)\")",
       "Bash(python -c \"from app.routers.onboarding import router, _registrar_nivel_inicial_perfilb, PERCENTUAL_POR_NIVEL; print\\(''OK''\\)\")",
-      "Bash(python -c \"from app.main import app; print\\(''OK — routers:'', [r.path for r in app.routes if hasattr\\(r,''path''\\)]\\)\")"
+      "Bash(python -c \"from app.main import app; print\\(''OK — routers:'', [r.path for r in app.routes if hasattr\\(r,''path''\\)]\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''telas/pg_lancar_bateria.py'', doraise=True\\); print\\(''OK''\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''telas/pg_onboarding.py'', doraise=True\\); print\\(''OK''\\)\")"
     ]
   }
 }

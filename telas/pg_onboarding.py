@@ -1,12 +1,13 @@
 """
 telas/pg_onboarding.py
-Fluxo de onboarding do AprovAI — 5 telas, < 3 minutos.
+Fluxo de onboarding do AprovAI — 6 telas, < 3 minutos.
 
 Tela 1: seleção de área (1 clique)
 Tela 2: edital disponível? + upload PDF + data da prova
 Tela 3: já vem estudando? → 3 perfis (A/B/C)
-Tela 4: horas/dia + dias/semana
-Tela 5: cronograma gerado — aluno vê valor imediato
+Tela 4: quais tipos de plataforma você usa? (multiselect por grupo)
+Tela 5: horas/dia + dias/semana
+Tela 6: cronograma gerado — aluno vê valor imediato
 """
 
 import io
@@ -14,7 +15,8 @@ import json
 import datetime
 import streamlit as st
 import streamlit.components.v1 as components
-from database import salvar_perfil
+from database import salvar_perfil, salvar_plataformas_ativas
+from config_fontes import GRUPOS_OPCIONAIS, GRUPOS_FONTE, PLATAFORMAS_DEFAULT
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -52,7 +54,7 @@ TEMPOS = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _step_indicator(atual: int, total: int = 5):
+def _step_indicator(atual: int, total: int = 6):
     pontos = ""
     for i in range(1, total + 1):
         if i < atual:
@@ -172,7 +174,7 @@ def _tela3():
     perfis = [
         ("zero",              c1, "🌱", "Estou começando do zero",       "Montaremos o plano completo a partir do início"),
         ("tempo_por_materia", c2, "📚", "Já estudo há algum tempo",       "Informe quanto tempo por matéria e calibramos o nível"),
-        ("csv",               c3, "📥", "Tenho histórico no Qconcursos",  "Importe seu CSV e usamos seus dados reais"),
+        ("csv",               c3, "📥", "Tenho histórico em banco de questões",  "Importe seu CSV (TEC, Qconcursos, Gran...) e usamos seus dados reais"),
     ]
 
     for chave, col, emoji, titulo, desc in perfis:
@@ -206,10 +208,16 @@ def _tela3():
                 tempos_sel[mat] = TEMPOS[[t[1] for t in TEMPOS].index(sel)][0]
         st.session_state.ob_tempos = tempos_sel
 
-    # Perfil C — CSV
+    # Perfil C — CSV genérico
     if op == "csv":
-        st.markdown("<br>**Importe o CSV exportado do Qconcursos ou TEC Concursos:**", unsafe_allow_html=True)
-        csv_file = st.file_uploader("Arquivo CSV", type=["csv"], key="ob_csv", label_visibility="collapsed")
+        st.markdown(
+            "<br>**Importe o CSV exportado do seu banco de questões:**<br>"
+            "<span style='font-size:0.82rem;color:#8ab0c8;'>"
+            "Formatos aceitos: TEC Concursos, Qconcursos, Gran, Direção Concursos</span>",
+            unsafe_allow_html=True,
+        )
+        csv_file = st.file_uploader("Arquivo CSV", type=["csv"], key="ob_csv",
+                                    label_visibility="collapsed")
         if csv_file:
             st.success(f"Arquivo: {csv_file.name}")
             st.session_state.ob_csv_nome = csv_file.name
@@ -229,10 +237,62 @@ def _tela3():
                 st.rerun()
 
 
-# ── Tela 4 — Disponibilidade ──────────────────────────────────────────────────
+# ── Tela 4 — Plataformas de estudo ───────────────────────────────────────────
 
 def _tela4():
     _step_indicator(4)
+    _card_titulo(
+        "🖥️", "Quais plataformas você usa?",
+        "Isso personaliza suas opções ao lançar baterias de questões",
+    )
+
+    selecionadas = set(st.session_state.get("ob_plataformas", PLATAFORMAS_DEFAULT))
+
+    st.markdown(
+        '<p style="color:#8ab0c8;font-size:0.84rem;text-align:center;margin-bottom:16px;">'
+        'Clique para selecionar. Você pode alterar depois no seu perfil.</p>',
+        unsafe_allow_html=True,
+    )
+
+    col1, col2 = st.columns(2)
+    cols = [col1, col2]
+
+    for i, slug in enumerate(GRUPOS_OPCIONAIS):
+        info  = GRUPOS_FONTE[slug]
+        ativo = slug in selecionadas
+        css   = "plat-btn-ativo" if ativo else "plat-btn"
+
+        with cols[i % 2]:
+            st.markdown(f'<div class="{css}"></div>', unsafe_allow_html=True)
+            if st.button(
+                f"{info['icon']}\n{info['label']}\n{info['descricao']}",
+                key=f"ob_plat_{slug}",
+                use_container_width=True,
+            ):
+                if ativo:
+                    selecionadas.discard(slug)
+                else:
+                    selecionadas.add(slug)
+                st.session_state.ob_plataformas = list(selecionadas)
+                st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_v, col_n = st.columns([1, 1])
+    with col_v:
+        if st.button("← Voltar", key="ob_t4_voltar", use_container_width=True):
+            st.session_state.ob_tela = 3
+            st.rerun()
+    with col_n:
+        if st.button("Continuar →", key="ob_t4_avancar", use_container_width=True, type="primary"):
+            st.session_state.ob_plataformas = list(selecionadas)
+            st.session_state.ob_tela = 5
+            st.rerun()
+
+
+# ── Tela 5 — Disponibilidade ──────────────────────────────────────────────────
+
+def _tela5_disp():
+    _step_indicator(5)
     _card_titulo("⏰", "Qual é a sua disponibilidade?", "Seja realista — o sistema se adapta a você")
 
     col1, col2 = st.columns(2)
@@ -281,19 +341,19 @@ def _tela4():
     st.markdown("<br>", unsafe_allow_html=True)
     col_v, col_n = st.columns([1, 1])
     with col_v:
-        if st.button("← Voltar", key="ob_t4_voltar", use_container_width=True):
-            st.session_state.ob_tela = 3
+        if st.button("← Voltar", key="ob_t5_voltar", use_container_width=True):
+            st.session_state.ob_tela = 4
             st.rerun()
     with col_n:
-        if st.button("Gerar meu plano →", key="ob_t4_avancar", use_container_width=True, type="primary"):
-            st.session_state.ob_tela = 5
+        if st.button("Gerar meu plano →", key="ob_t5_avancar", use_container_width=True, type="primary"):
+            st.session_state.ob_tela = 6
             st.rerun()
 
 
-# ── Tela 5 — Cronograma gerado ────────────────────────────────────────────────
+# ── Tela 6 — Cronograma gerado ────────────────────────────────────────────────
 
-def _tela5():
-    _step_indicator(5)
+def _tela6():
+    _step_indicator(6)
     _card_titulo("🎉", "Seu plano está pronto!", "Aqui está a sua primeira semana de estudos")
 
     area    = st.session_state.get("ob_area", "outro")
@@ -312,6 +372,8 @@ def _tela5():
         "perfil_estudo":  perfil,
         "data_prova":     str(st.session_state.get("ob_data_prova", "")),
     })
+    plataformas = st.session_state.get("ob_plataformas", PLATAFORMAS_DEFAULT)
+    salvar_plataformas_ativas(usuario_id, plataformas)
     st.session_state.ob_concluido = True
 
     # Gera preview da semana (simulado visual — sem backend real ainda)
@@ -370,30 +432,45 @@ def render():
                                          padding-top: 2rem !important; }
     .stApp                             { background: linear-gradient(160deg,#0a1520 0%,#0f1e2a 100%) !important; }
 
-    /* :has() para Chrome 105+ */
-    .element-container:has(.area-btn,.ob-card,.perfil-btn)
+    /* :has() para Chrome 105+ — todos os tipos de card */
+    .element-container:has(.area-btn,.ob-card,.perfil-btn,.plat-btn)
         + .element-container [data-testid="stButton"] button,
-    .element-container:has(.area-btn-ativo,.ob-card-ativo,.perfil-btn-ativo)
+    .element-container:has(.area-btn-ativo,.ob-card-ativo,.perfil-btn-ativo,.plat-btn-ativo)
         + .element-container [data-testid="stButton"] button {
-        min-height: 360px !important; height: auto !important;
-        border-radius: 20px !important; white-space: pre-wrap !important;
-        padding: 32px 20px !important; line-height: 1.8 !important;
-        font-size: 1rem !important; font-weight: 600 !important;
+        height: auto !important;
+        border-radius: 16px !important; white-space: pre-wrap !important;
+        padding: 20px 16px !important; line-height: 1.6 !important;
+        font-size: 0.95rem !important; font-weight: 600 !important;
     }
     .element-container:has(.area-btn,.ob-card,.perfil-btn)
         + .element-container [data-testid="stButton"] button {
+        min-height: 280px !important;
         border: 1.5px solid #1e4a6a !important;
         background: #19293a !important; color: #e8f4ff !important;
     }
     .element-container:has(.area-btn-ativo,.ob-card-ativo,.perfil-btn-ativo)
         + .element-container [data-testid="stButton"] button {
+        min-height: 280px !important;
+        border: 2px solid #00b4a6 !important;
+        background: #0d2535 !important; color: #00b4a6 !important;
+    }
+    /* Cards de plataforma: compactos */
+    .element-container:has(.plat-btn)
+        + .element-container [data-testid="stButton"] button {
+        min-height: 110px !important;
+        border: 1.5px solid #1e4a6a !important;
+        background: #162535 !important; color: #e8f4ff !important;
+    }
+    .element-container:has(.plat-btn-ativo)
+        + .element-container [data-testid="stButton"] button {
+        min-height: 110px !important;
         border: 2px solid #00b4a6 !important;
         background: #0d2535 !important; color: #00b4a6 !important;
     }
 
     /* Botoes de navegacao (Voltar / Continuar) — altura normal */
-    .element-container:has(.area-btn,.ob-card,.perfil-btn) ~ * [data-testid="stButton"] button,
-    .element-container:has(.area-btn-ativo,.ob-card-ativo,.perfil-btn-ativo) ~ * [data-testid="stButton"] button {
+    .element-container:has(.area-btn,.ob-card,.perfil-btn,.plat-btn) ~ * [data-testid="stButton"] button,
+    .element-container:has(.area-btn-ativo,.ob-card-ativo,.perfil-btn-ativo,.plat-btn-ativo) ~ * [data-testid="stButton"] button {
         min-height: unset !important;
     }
     </style>
@@ -420,22 +497,44 @@ def render():
             var desc   = lines.slice(2).join(' ').replace(/\u2713.*/, '').trim();
             var ativo  = txt.indexOf('\u2713') !== -1;
 
-            btn.innerHTML =
-                '<div style="display:flex;flex-direction:column;align-items:center;' +
-                'justify-content:flex-start;height:100%;padding:28px 16px 24px;">' +
-                  '<div style="font-size:3.4rem;line-height:1;margin-bottom:28px;">' + emoji + '</div>' +
-                  '<div style="font-size:1.05rem;font-weight:700;text-align:center;margin-bottom:10px;">' + titulo + '</div>' +
-                  (desc ? '<div style="font-size:0.82rem;text-align:center;opacity:0.6;line-height:1.45;">' + desc + '</div>' : '') +
-                '</div>';
+            // Detecta card compacto (plataformas): descrição curta ou ausente
+            var isCompact = desc.length < 50;
 
-            Object.assign(btn.style, {
-                minHeight: '320px', height: 'auto',
-                borderRadius: '20px', padding: '0',
-                whiteSpace: 'normal', lineHeight: '1',
-                background: ativo ? '#0d2535' : '#19293a',
-                color:      ativo ? '#00b4a6' : '#e8f4ff',
-                border:     ativo ? '2px solid #00b4a6' : '1.5px solid #1e4a6a'
-            });
+            if (isCompact) {
+                // Card compacto — layout horizontal com ícone menor
+                btn.innerHTML =
+                    '<div style="display:flex;flex-direction:column;align-items:center;' +
+                    'justify-content:center;height:100%;padding:14px 12px;gap:6px;">' +
+                      '<div style="font-size:2rem;line-height:1;">' + emoji + '</div>' +
+                      '<div style="font-size:0.9rem;font-weight:700;text-align:center;">' + titulo + '</div>' +
+                      (desc ? '<div style="font-size:0.74rem;text-align:center;opacity:0.65;line-height:1.35;">' + desc + '</div>' : '') +
+                      (ativo ? '<div style="font-size:0.7rem;font-weight:800;color:#00b4a6;margin-top:2px;">✓ Ativo</div>' : '') +
+                    '</div>';
+                Object.assign(btn.style, {
+                    height: 'auto', borderRadius: '14px', padding: '0',
+                    whiteSpace: 'normal', lineHeight: '1',
+                    background: ativo ? '#0d2535' : '#162535',
+                    color:      ativo ? '#00b4a6' : '#d0e4f0',
+                    border:     ativo ? '2px solid #00b4a6' : '1.5px solid #1e3a5c'
+                });
+            } else {
+                // Card padrão — layout vertical com ícone grande
+                btn.innerHTML =
+                    '<div style="display:flex;flex-direction:column;align-items:center;' +
+                    'justify-content:flex-start;height:100%;padding:28px 16px 24px;">' +
+                      '<div style="font-size:3.4rem;line-height:1;margin-bottom:28px;">' + emoji + '</div>' +
+                      '<div style="font-size:1.05rem;font-weight:700;text-align:center;margin-bottom:10px;">' + titulo + '</div>' +
+                      (desc ? '<div style="font-size:0.82rem;text-align:center;opacity:0.6;line-height:1.45;">' + desc + '</div>' : '') +
+                    '</div>';
+                Object.assign(btn.style, {
+                    minHeight: '280px', height: 'auto',
+                    borderRadius: '20px', padding: '0',
+                    whiteSpace: 'normal', lineHeight: '1',
+                    background: ativo ? '#0d2535' : '#19293a',
+                    color:      ativo ? '#00b4a6' : '#e8f4ff',
+                    border:     ativo ? '2px solid #00b4a6' : '1.5px solid #1e4a6a'
+                });
+            }
             DONE.add(btn);
         }
 
@@ -469,6 +568,8 @@ def render():
     elif tela == 4:
         _tela4()
     elif tela == 5:
-        _tela5()
+        _tela5_disp()
+    elif tela == 6:
+        _tela6()
 
     st.markdown("</div>", unsafe_allow_html=True)

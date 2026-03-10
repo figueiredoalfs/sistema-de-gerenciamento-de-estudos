@@ -284,15 +284,18 @@ def _hash_senha(senha: str, salt: str = "") -> str:
 
 def verificar_login(email: str, senha: str) -> dict | None:
     """
-    Verifica credenciais. Retorna dict com id, nome, email, role
-    ou None se invalido.
+    Verifica credenciais. Retorna dict com id, nome, email, role ou None.
+    Senha vazia é aceita em modo dev (qualquer usuário entra sem senha).
     """
     with conectar() as conn:
         row = conn.execute(
             "SELECT id, nome, email, senha_hash, role, email_confirmado FROM usuarios WHERE email = ?",
             (email.strip().lower(),),
         ).fetchone()
-    if row and row["senha_hash"] == _hash_senha(senha, row["email"]):
+    if not row:
+        return None
+    senha_ok = (senha == "") or (row["senha_hash"] == _hash_senha(senha, row["email"]))
+    if senha_ok:
         return {
             "id": row["id"], "nome": row["nome"], "email": row["email"], "role": row["role"],
             "email_confirmado": bool(row["email_confirmado"] if row["email_confirmado"] is not None else 1),
@@ -345,6 +348,32 @@ def salvar_perfil(usuario_id: int, dados: dict) -> bool:
     with conectar() as conn:
         conn.execute(f"UPDATE usuarios SET {set_clause} WHERE id = ?", valores)
     return True
+
+
+def get_plataformas_ativas(usuario_id: int) -> list:
+    """Retorna lista de slugs de plataformas ativas do usuário."""
+    import json
+    from config_fontes import PLATAFORMAS_DEFAULT
+    with conectar() as conn:
+        row = conn.execute(
+            "SELECT plataformas_ativas FROM usuarios WHERE id = ?", (usuario_id,)
+        ).fetchone()
+    if not row or not row["plataformas_ativas"]:
+        return PLATAFORMAS_DEFAULT
+    try:
+        return json.loads(row["plataformas_ativas"])
+    except Exception:
+        return PLATAFORMAS_DEFAULT
+
+
+def salvar_plataformas_ativas(usuario_id: int, slugs: list):
+    """Salva lista de slugs de plataformas ativas do usuário."""
+    import json
+    with conectar() as conn:
+        conn.execute(
+            "UPDATE usuarios SET plataformas_ativas = ? WHERE id = ?",
+            (json.dumps(slugs), usuario_id),
+        )
 
 
 def alterar_email(usuario_id: int, novo_email: str, senha_atual: str) -> str:
@@ -491,6 +520,20 @@ def inicializar_banco():
             if "usuario_id" not in cols:
                 conn.execute(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER")
 
+        # Adiciona colunas de diagnostico na tabela erros (migracao incremental)
+        cols_erros = {r[1] for r in conn.execute("PRAGMA table_info(erros)").fetchall()}
+        if "tipo_erro" not in cols_erros:
+            conn.execute("ALTER TABLE erros ADD COLUMN tipo_erro TEXT DEFAULT 'nao_sabia'")
+        if "status" not in cols_erros:
+            conn.execute("ALTER TABLE erros ADD COLUMN status TEXT DEFAULT 'pendente'")
+
+        # Adiciona plataformas_ativas em usuarios (migracao incremental)
+        cols_usr = {r[1] for r in conn.execute("PRAGMA table_info(usuarios)").fetchall()}
+        if "plataformas_ativas" not in cols_usr:
+            conn.execute(
+                "ALTER TABLE usuarios ADD COLUMN plataformas_ativas TEXT DEFAULT '[]'"
+            )
+
 
 # ─── LANCAMENTOS ──────────────────────────────────────────────────────────────
 
@@ -527,13 +570,24 @@ def inserir_lancamentos(registros: list, usuario_id: int):
 def inserir_erro(dados: dict, usuario_id: int):
     """Insere um registro de erro do usuario."""
     dados["usuario_id"] = usuario_id
+    dados.setdefault("tipo_erro", "nao_sabia")
+    dados.setdefault("status", "pendente")
     with conectar() as conn:
         conn.execute(
             """INSERT INTO erros
-               (id_bateria, materia, topico, qtd_erros, data, observacao, providencia, usuario_id)
+               (id_bateria, materia, topico, qtd_erros, data, tipo_erro, status, usuario_id)
                VALUES (:id_bateria, :materia, :topico, :qtd_erros,
-                       :data, :observacao, :providencia, :usuario_id)""",
+                       :data, :tipo_erro, :status, :usuario_id)""",
             dados,
+        )
+
+
+def atualizar_status_erro(erro_id: int, novo_status: str, usuario_id: int):
+    """Altera o status de um erro (pendente / revisado)."""
+    with conectar() as conn:
+        conn.execute(
+            "UPDATE erros SET status = ? WHERE id = ? AND usuario_id = ?",
+            (novo_status, erro_id, usuario_id),
         )
 
 
@@ -561,21 +615,49 @@ def ler_erros(usuario_id: int) -> pd.DataFrame:
     """Retorna erros do usuario como DataFrame."""
     with conectar() as conn:
         df = pd.read_sql_query(
-            """SELECT id_bateria, materia, topico, qtd_erros,
-                      data, observacao, providencia
+            """SELECT id, id_bateria, materia, topico, qtd_erros,
+                      data, tipo_erro, status
                FROM erros WHERE usuario_id = ?""",
             conn, params=(usuario_id,),
         )
     df.rename(columns={
-        "id_bateria": "ID Bateria", "materia": "Materia", "topico": "Topico",
-        "qtd_erros": "Qtd Erros", "data": "Data",
-        "observacao": "Observacao", "providencia": "Providencia",
+        "id": "ID", "id_bateria": "ID Bateria", "materia": "Materia",
+        "topico": "Topico", "qtd_erros": "Qtd Erros", "data": "Data",
+        "tipo_erro": "Tipo Erro", "status": "Status",
     }, inplace=True)
     df["Qtd Erros"] = pd.to_numeric(df["Qtd Erros"], errors="coerce").fillna(0).astype(int)
+    df["Status"]    = df["Status"].fillna("pendente")
+    df["Tipo Erro"] = df["Tipo Erro"].fillna("nao_sabia")
     return df
 
 
 # ─── CADASTROS ────────────────────────────────────────────────────────────────
+
+_MATERIAS_POR_AREA = {
+    "fiscal":   ["Direito Tributário", "Contabilidade", "Direito Administrativo",
+                 "Língua Portuguesa", "Raciocínio Lógico", "Legislação Específica"],
+    "juridica": ["Direito Constitucional", "Direito Civil", "Direito Penal",
+                 "Direito Administrativo", "Língua Portuguesa", "Direito Processual Civil"],
+    "policial": ["Direito Penal", "Direito Processual Penal", "Direito Constitucional",
+                 "Língua Portuguesa", "Raciocínio Lógico", "Conhecimentos Gerais"],
+    "ti":       ["Algoritmos e Estruturas de Dados", "Banco de Dados", "Redes de Computadores",
+                 "Segurança da Informação", "Engenharia de Software", "Língua Portuguesa"],
+    "saude":    ["Conhecimentos Específicos", "Legislação SUS", "Ética Profissional",
+                 "Língua Portuguesa", "Raciocínio Lógico", "Atualidades"],
+    "outro":    ["Língua Portuguesa", "Raciocínio Lógico", "Conhecimentos Gerais",
+                 "Direito Administrativo", "Informática", "Atualidades"],
+}
+
+
+def get_materias_plano(usuario_id: int) -> list:
+    """Retorna matérias do plano ativo do usuário (baseado na área de estudo)."""
+    with conectar() as conn:
+        row = conn.execute(
+            "SELECT area_estudo FROM usuarios WHERE id = ?", (usuario_id,)
+        ).fetchone()
+    area = (row["area_estudo"] or "outro") if row else "outro"
+    return _MATERIAS_POR_AREA.get(area, _MATERIAS_POR_AREA["outro"])
+
 
 def get_materias(usuario_id: int) -> list:
     """
@@ -654,6 +736,95 @@ def resetar_usuario(usuario_id: int):
         conn.execute("DELETE FROM erros       WHERE usuario_id = ?", (usuario_id,))
         conn.execute("DELETE FROM cadastros   WHERE usuario_id = ?", (usuario_id,))
         conn.execute("UPDATE usuarios SET plano = 'gratuito' WHERE id = ?", (usuario_id,))
+
+
+def listar_usuarios_dev() -> list:
+    """Retorna todos os usuários para o acesso rápido DEV na tela de login."""
+    with conectar() as conn:
+        rows = conn.execute(
+            "SELECT id, nome, email, role FROM usuarios ORDER BY id"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def gerar_dados_teste(usuario_id: int) -> dict:
+    """
+    Limpa os dados do usuário e gera dados de teste realistas:
+    3 meses de baterias com mix de fontes, desempenhos variados e erros.
+    Retorna {'baterias': N, 'lancamentos': N, 'erros': N}.
+    """
+    import random
+    import json
+    from datetime import date, timedelta
+
+    MATERIAS = [
+        ("Direito Administrativo",  [0.52, 0.65]),
+        ("Direito Constitucional",  [0.75, 0.88]),
+        ("Lingua Portuguesa",       [0.70, 0.82]),
+        ("Raciocinio Logico",       [0.44, 0.58]),
+        ("Legislacao Especifica",   [0.80, 0.92]),
+        ("Conhecimentos Gerais",    [0.63, 0.78]),
+    ]
+    TOPICOS = {
+        "Direito Administrativo": ["Atos Administrativos", "Licitacoes", "Processo Adm", "Poderes Adm", "Organizacao Adm"],
+        "Direito Constitucional": ["Direitos Fundamentais", "Organizacao do Estado", "Poder Legislativo", "Controle de Constitucionalidade"],
+        "Lingua Portuguesa":      ["Coerencia Textual", "Concordancia", "Regencia", "Pontuacao"],
+        "Raciocinio Logico":      ["Proposicoes", "Conjuntos", "Sequencias Numericas", "Probabilidade"],
+        "Legislacao Especifica":  ["Lei 8112", "Lei 8429", "Decreto 9094"],
+        "Conhecimentos Gerais":   ["Atualidades", "Historia do Brasil", "Geografia"],
+    }
+    TIPOS_ERRO = ["nao_sabia", "confundiu", "esqueceu"]
+    FONTES_W   = {"prova_mesma_banca": 0.15, "simulado": 0.25, "banco_questoes": 0.45, "ia_gerado": 0.15}
+
+    hoje    = date.today()
+    bat_num = 1
+    random.seed(usuario_id * 7)
+
+    with conectar() as conn:
+        # Limpa dados existentes
+        conn.execute("DELETE FROM lancamentos WHERE usuario_id = ?", (usuario_id,))
+        conn.execute("DELETE FROM erros WHERE usuario_id = ?", (usuario_id,))
+        # Ativa plano e configura plataformas
+        conn.execute("UPDATE usuarios SET plano = 'ativo' WHERE id = ?", (usuario_id,))
+        conn.execute(
+            "UPDATE usuarios SET plataformas_ativas = ? WHERE id = ?",
+            (json.dumps(["banco_questoes", "simulado", "ia_gerado"]), usuario_id),
+        )
+
+        for mes_offset in range(3, 0, -1):
+            base = (hoje.replace(day=1) - timedelta(days=mes_offset * 31))
+            for _ in range(random.randint(4, 6)):
+                dia = random.randint(1, 28)
+                try:    dt = base.replace(day=dia)
+                except: dt = base.replace(day=28)
+
+                bat_id   = f"B{bat_num:03d}"
+                bat_num += 1
+                fonte    = random.choices(list(FONTES_W.keys()), weights=list(FONTES_W.values()))[0]
+                mats_bat = random.sample(MATERIAS, random.randint(2, 4))
+                data_str = dt.strftime("%d/%m/%Y")
+
+                for mat, (pmin, pmax) in mats_bat:
+                    total   = random.choice([10, 15, 20])
+                    acertos = max(0, min(round(total * random.uniform(pmin, pmax)), total))
+                    conn.execute(
+                        "INSERT INTO lancamentos (id_bateria,materia,data,acertos,total,fonte,subtopico,percentual,usuario_id) VALUES (?,?,?,?,?,?,?,?,?)",
+                        (bat_id, mat, data_str, acertos, total, fonte, "", round(acertos/total*100, 1), usuario_id),
+                    )
+                    n_erros = total - acertos
+                    if n_erros > 0:
+                        tops = TOPICOS.get(mat, ["Topico Geral"])
+                        for _ in range(min(n_erros, random.randint(1, 2))):
+                            conn.execute(
+                                "INSERT INTO erros (id_bateria,materia,topico,qtd_erros,data,tipo_erro,status,usuario_id) VALUES (?,?,?,?,?,?,?,?)",
+                                (bat_id, mat, random.choice(tops), 1, data_str, random.choice(TIPOS_ERRO), "pendente", usuario_id),
+                            )
+
+        n_bat  = conn.execute("SELECT COUNT(DISTINCT id_bateria) FROM lancamentos WHERE usuario_id=?", (usuario_id,)).fetchone()[0]
+        n_lanc = conn.execute("SELECT COUNT(*) FROM lancamentos WHERE usuario_id=?", (usuario_id,)).fetchone()[0]
+        n_err  = conn.execute("SELECT COUNT(*) FROM erros WHERE usuario_id=?", (usuario_id,)).fetchone()[0]
+
+    return {"baterias": n_bat, "lancamentos": n_lanc, "erros": n_err}
 
 
 def copiar_dados_admin(usuario_id: int) -> int:

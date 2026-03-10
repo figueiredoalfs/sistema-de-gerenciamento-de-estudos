@@ -280,14 +280,17 @@ def render():
                                label_visibility="collapsed")
 
     with col_f3:
-        fontes_disp = ["Todas"]
-        if not df_l_all.empty and "Fonte" in df_l_all.columns:
-            fontes_unicas = sorted(df_l_all["Fonte"].dropna().unique().tolist())
-            fontes_disp += fontes_unicas
+        from config_fontes import get_label as _fonte_label
+        fontes_no_banco = sorted(df_l_all["Fonte"].dropna().unique().tolist()) if not df_l_all.empty else []
+        fontes_opts = {slug: _fonte_label(slug) for slug in fontes_no_banco}
         st.caption("Fonte das Questoes")
-        fonte_sel = st.multiselect("Fonte", fontes_disp[1:], key="dash_fonte",
-                                   placeholder="Todas as fontes",
-                                   label_visibility="collapsed")
+        fonte_sel_labels = st.multiselect(
+            "Fonte", list(fontes_opts.values()), key="dash_fonte",
+            placeholder="Todas as fontes", label_visibility="collapsed",
+        )
+        # Converte labels de volta para slugs para filtragem
+        label_to_slug = {v: k for k, v in fontes_opts.items()}
+        fonte_sel = [label_to_slug[l] for l in fonte_sel_labels if l in label_to_slug]
 
     mes_int = meses_map.get(mes_sel)
     ano_int = int(ano_sel) if ano_sel != "Todos" else None

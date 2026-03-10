@@ -1,165 +1,209 @@
 """
 pg_analise_erros.py
-Analise detalhada de erros: ranking por topico, distribuicao por materia e tabela completa.
+Análise de padrões de erro: gráficos, dimensão temporal e breakdown por tipo.
 """
 
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 from database import ler_erros
 
+TIPO_LABEL = {
+    "nao_sabia":  "Não sabia",
+    "confundiu":  "Confundi",
+    "esqueceu":   "Esqueci",
+}
+TIPO_COR = {
+    "nao_sabia":  "#e74c3c",
+    "confundiu":  "#f39c12",
+    "esqueceu":   "#8ab0c8",
+}
+PLOT_LAYOUT = dict(
+    paper_bgcolor="#111e2b",
+    plot_bgcolor="#111e2b",
+    font_color="#d0e4f0",
+    margin=dict(t=30, b=10, l=10, r=10),
+)
 
-def _dark_section(titulo: str):
-    st.html(f"""
+
+def _header():
+    st.html("""
         <div style="
-            background:#0d1b2a;
-            border-radius:8px 8px 0 0;
-            padding:10px 18px;
-            border-bottom:2px solid #00b4a6;
-            margin-top:8px;
+            background:linear-gradient(135deg,#061020 0%,#0d1b2a 100%);
+            border-radius:10px;padding:18px 24px;margin-bottom:20px;
+            text-align:center;border-bottom:3px solid #e74c3c;
+            box-shadow:0 4px 16px rgba(0,0,0,0.35);
         ">
-            <span style="
-                color:#ffffff;
-                font-weight:700;
-                font-size:0.82rem;
-                letter-spacing:0.12em;
-                text-transform:uppercase;
-            ">{titulo}</span>
+            <span style="font-size:1.4rem;">&#128200;</span>
+            <span style="color:#fff;font-weight:800;font-size:1.3rem;
+                letter-spacing:0.12em;margin-left:10px;text-transform:uppercase;">
+                Análise de Erros
+            </span>
         </div>
     """)
 
 
-def _tabela_dark(df: pd.DataFrame, cols: list, col_destaque: str = None):
-    """Renderiza um DataFrame como tabela HTML no tema dark."""
-    th_style = (
-        "padding:10px 14px;"
-        "text-align:center;"
-        "font-size:0.71rem;"
-        "letter-spacing:0.08em;"
-        "color:#7a9ab8;"
-        "font-weight:600;"
-        "white-space:nowrap;"
-    )
-    header_html = "".join(f'<th style="{th_style}">{c.upper()}</th>' for c in cols)
-
-    rows_html = ""
-    for i, row in df[cols].iterrows():
-        row_bg = "#0a1628" if i % 2 == 0 else "#0d1b2a"
-        tds = ""
-        for c in cols:
-            val = row[c]
-            td_style = "padding:10px 14px;text-align:center;white-space:nowrap;color:#c8d6e5;"
-            if c == col_destaque:
-                td_style += "font-weight:700;color:#e74c3c;"
-            elif i == 0 and c == cols[0]:
-                td_style += "font-weight:800;color:#ffffff;"
-            tds += f'<td style="{td_style}">{val}</td>'
-        rows_html += f'<tr style="background:{row_bg};border-bottom:1px solid #1a3050;">{tds}</tr>'
-
+def _section(titulo: str):
     st.html(f"""
-        <div style="
-            background:#0d1b2a;
-            border-radius:0 0 8px 8px;
-            overflow:hidden;
-            border:1px solid #1a3050;
-            border-top:none;
-            box-shadow:0 6px 20px rgba(0,0,0,0.4);
-            margin-bottom:20px;
-        ">
-            <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr style="background:#061020;">{header_html}</tr>
-                </thead>
-                <tbody>{rows_html}</tbody>
-            </table>
+        <div style="background:#0d1b2a;border-radius:8px 8px 0 0;
+            padding:10px 18px;border-bottom:2px solid #00b4a6;margin-top:8px;">
+            <span style="color:#fff;font-weight:700;font-size:0.82rem;
+                letter-spacing:0.12em;text-transform:uppercase;">{titulo}</span>
         </div>
     """)
 
 
 def render():
-    df = ler_erros(st.session_state.usuario["id"])
+    _header()
 
-    # Header
-    st.html("""
-        <div style="
-            background: linear-gradient(135deg, #061020 0%, #0d1b2a 100%);
-            border-radius: 10px;
-            padding: 18px 24px;
-            margin-bottom: 20px;
-            text-align: center;
-            border-bottom: 3px solid #e74c3c;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-        ">
-            <span style="font-size:1.4rem;">&#128680;</span>
-            <span style="
-                color:#ffffff;
-                font-weight:800;
-                font-size:1.3rem;
-                letter-spacing:0.12em;
-                margin-left:10px;
-                text-transform:uppercase;
-            ">ANALISE DE ERROS</span>
-        </div>
-    """)
+    uid = st.session_state.usuario["id"]
+    df  = ler_erros(uid)
 
     if df.empty:
         st.info("Nenhum erro registrado ainda.")
         return
 
-    # ── Filtro de materia ──────────────────────────────────────────────────────
+    # Normaliza tipo para legível
+    df["Tipo"] = df["Tipo Erro"].map(TIPO_LABEL).fillna("Não sabia")
+
+    # ── Filtro de matéria ──────────────────────────────────────────────────────
     materias_disp = ["Todas"] + sorted(df["Materia"].dropna().unique().tolist())
-    col_f1, _ = st.columns([2, 4])
-    with col_f1:
-        st.caption("Filtrar por Materia")
-        mat_sel = st.selectbox("Materia", materias_disp, key="ae_materia",
+    col_f, _ = st.columns([2, 4])
+    with col_f:
+        st.caption("Filtrar por Matéria")
+        mat_sel = st.selectbox("Matéria", materias_disp, key="ae_materia",
                                label_visibility="collapsed")
 
     df_f = df if mat_sel == "Todas" else df[df["Materia"] == mat_sel]
+    df_pend = df_f[df_f["Status"] == "pendente"]
 
-    # KPIs
+    # ── KPIs ──────────────────────────────────────────────────────────────────
     total_e = int(df_f["Qtd Erros"].sum())
     total_t = df_f["Topico"].nunique()
     total_m = df_f["Materia"].nunique()
+    pct_res = int((df_f["Status"] == "revisado").sum() / len(df_f) * 100) if len(df_f) > 0 else 0
 
-    k1, k2, k3 = st.columns(3)
-    k1.metric("Total de Erros", total_e)
-    k2.metric("Topicos Distintos", total_t)
-    k3.metric("Materias", total_m)
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Total de Erros",    total_e)
+    k2.metric("Tópicos Distintos", total_t)
+    k3.metric("Matérias",          total_m)
+    k4.metric("Revisados",         f"{pct_res}%")
 
     st.divider()
 
+    # ── Gráfico 1: Top tópicos (barras horizontais) + Gráfico 2: Por tipo ────
     col_left, col_right = st.columns([3, 2])
 
-    # ── Top Erros por Topico ───────────────────────────────────────────────────
     with col_left:
-        _dark_section("Top Erros por Topico")
+        _section("Top Tópicos com Mais Erros")
         ranking = (
-            df_f.groupby("Topico")["Qtd Erros"]
-            .sum()
-            .sort_values(ascending=False)
-            .head(20)
-            .reset_index()
+            df_pend.groupby("Topico")["Qtd Erros"]
+            .sum().sort_values(ascending=True).tail(15).reset_index()
         )
-        ranking.index = ranking.index + 1
-        _tabela_dark(ranking.reset_index().rename(columns={"index": "#"}),
-                     ["#", "Topico", "Qtd Erros"], col_destaque="Qtd Erros")
+        if not ranking.empty:
+            fig_bar = go.Figure(go.Bar(
+                x=ranking["Qtd Erros"],
+                y=ranking["Topico"],
+                orientation="h",
+                marker_color="#e74c3c",
+                text=ranking["Qtd Erros"],
+                textposition="outside",
+                textfont=dict(color="#d0e4f0", size=11),
+            ))
+            fig_bar.update_layout(
+                **PLOT_LAYOUT,
+                height=max(250, len(ranking) * 32),
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False,
+                           color="#7a9ab8"),
+                yaxis=dict(showgrid=False, color="#d0e4f0", tickfont=dict(size=11)),
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+        else:
+            st.info("Nenhum erro pendente.")
 
-    # ── Erros por Materia ─────────────────────────────────────────────────────
     with col_right:
-        _dark_section("Erros por Materia")
-        por_mat = (
-            df_f.groupby("Materia")["Qtd Erros"]
-            .sum()
-            .sort_values(ascending=False)
-            .reset_index()
+        _section("Distribuição por Tipo")
+        por_tipo = (
+            df_f.groupby("Tipo")["Qtd Erros"].sum().reset_index()
         )
-        _tabela_dark(por_mat, ["Materia", "Qtd Erros"], col_destaque="Qtd Erros")
+        if not por_tipo.empty:
+            cores = [TIPO_COR.get(
+                {v: k for k, v in TIPO_LABEL.items()}.get(t, ""), "#8ab0c8"
+            ) for t in por_tipo["Tipo"]]
+            fig_pie = go.Figure(go.Pie(
+                labels=por_tipo["Tipo"],
+                values=por_tipo["Qtd Erros"],
+                hole=0.45,
+                marker=dict(colors=cores,
+                            line=dict(color="#111e2b", width=2)),
+                textfont=dict(color="#d0e4f0", size=12),
+            ))
+            fig_pie.update_layout(**PLOT_LAYOUT, height=280,
+                                  showlegend=True,
+                                  legend=dict(font=dict(color="#d0e4f0")))
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-    # ── Tabela completa ────────────────────────────────────────────────────────
-    with st.expander("Ver todos os registros de erros"):
-        st.dataframe(
-            df_f[["Materia", "Topico", "Qtd Erros", "Data", "Observacao", "Providencia"]]
-            .sort_values("Qtd Erros", ascending=False)
-            .reset_index(drop=True),
-            use_container_width=True,
-            hide_index=True,
+    # ── Gráfico 3: Evolução temporal de erros por mês ─────────────────────────
+    st.divider()
+    _section("Evolução de Erros por Mês")
+
+    df_dt = df_f.copy()
+    df_dt["_dt"] = pd.to_datetime(df_dt["Data"], dayfirst=True, errors="coerce")
+    df_dt = df_dt.dropna(subset=["_dt"])
+
+    if not df_dt.empty:
+        df_dt["Mês"] = df_dt["_dt"].dt.to_period("M").astype(str)
+        evo = (
+            df_dt.groupby(["Mês", "Tipo"])["Qtd Erros"]
+            .sum().reset_index()
+            .sort_values("Mês")
         )
+        cores_tipo = {v: TIPO_COR.get(k, "#8ab0c8") for k, v in TIPO_LABEL.items()}
+        fig_line = px.bar(
+            evo, x="Mês", y="Qtd Erros", color="Tipo",
+            color_discrete_map=cores_tipo,
+            barmode="stack",
+        )
+        fig_line.update_layout(
+            **PLOT_LAYOUT, height=280,
+            xaxis=dict(showgrid=False, color="#7a9ab8"),
+            yaxis=dict(showgrid=True, gridcolor="#1a3050", color="#7a9ab8"),
+            legend=dict(font=dict(color="#d0e4f0")),
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
+    else:
+        st.info("Sem dados com data para exibir evolução.")
+
+    # ── Tabela: erros por matéria ─────────────────────────────────────────────
+    st.divider()
+    _section("Erros por Matéria (pendentes)")
+    por_mat = (
+        df_pend.groupby("Materia")["Qtd Erros"]
+        .sum().sort_values(ascending=False).reset_index()
+    )
+    if not por_mat.empty:
+        th = ("padding:10px 14px;text-align:left;font-size:0.72rem;"
+              "letter-spacing:0.08em;color:#7a9ab8;font-weight:600;")
+        rows = ""
+        for i, row in por_mat.iterrows():
+            bg = "#0a1628" if i % 2 == 0 else "#0d1b2a"
+            rows += (f'<tr style="background:{bg};border-bottom:1px solid #1a3050;">'
+                     f'<td style="padding:10px 14px;color:#fff;font-weight:700;">{row["Materia"]}</td>'
+                     f'<td style="padding:10px 14px;text-align:center;'
+                     f'color:#e74c3c;font-weight:800;">{int(row["Qtd Erros"])}</td>'
+                     f'</tr>')
+        st.html(f"""
+            <div style="background:#0d1b2a;border-radius:0 0 8px 8px;overflow:hidden;
+                border:1px solid #1a3050;border-top:none;margin-bottom:20px;">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr style="background:#061020;">
+                        <th style="{th}">MATÉRIA</th>
+                        <th style="{th}text-align:center;">ERROS PENDENTES</th>
+                    </tr></thead>
+                    <tbody>{rows}</tbody>
+                </table>
+            </div>
+        """)
+    else:
+        st.success("Nenhum erro pendente para os filtros selecionados.")

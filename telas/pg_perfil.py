@@ -5,6 +5,8 @@ Tela de perfil do usuario — dados pessoais, endereco, login e plano.
 
 import streamlit as st
 from database import get_perfil, salvar_perfil, alterar_email, alterar_senha
+from database import get_plataformas_ativas, salvar_plataformas_ativas
+from config_fontes import GRUPOS_OPCIONAIS, GRUPOS_FONTE
 
 
 def render():
@@ -17,8 +19,8 @@ def render():
         st.error("Nao foi possivel carregar o perfil.")
         return
 
-    aba1, aba2, aba3, aba4 = st.tabs(
-        ["Dados Pessoais", "Endereco", "Login & Senha", "Plano"]
+    aba1, aba2, aba3, aba4, aba5 = st.tabs(
+        ["Dados Pessoais", "Endereco", "Login & Senha", "Plano", "Plataformas"]
     )
 
     # ── ABA 1 — Dados pessoais ────────────────────────────────────────────────
@@ -164,3 +166,40 @@ def render():
                         '<p style="text-align:center;color:#00c48a;font-weight:600;font-size:0.85rem;">Plano ativo</p>',
                         unsafe_allow_html=True,
                     )
+
+    # ── ABA 5 — Plataformas ───────────────────────────────────────────────────
+    with aba5:
+        st.markdown("#### Tipos de plataforma que você usa")
+        st.markdown(
+            '<p style="color:#8ab0c8;font-size:0.85rem;">Isso define quais fontes aparecem '
+            'ao lançar baterias de questões.</p>',
+            unsafe_allow_html=True,
+        )
+        ativas = set(get_plataformas_ativas(usuario_id))
+        novas  = set(ativas)
+
+        for slug in GRUPOS_OPCIONAIS:
+            info  = GRUPOS_FONTE[slug]
+            ligado = slug in novas
+            col_lbl, col_tog = st.columns([4, 1])
+            col_lbl.markdown(
+                f'<span style="color:#d0e4f0;font-weight:600;">{info["label"]}</span><br>'
+                f'<span style="color:#8ab0c8;font-size:0.8rem;">{info["descricao"]}</span>',
+                unsafe_allow_html=True,
+            )
+            novo_val = col_tog.checkbox(
+                "Ativo", value=ligado, key=f"plat_tog_{slug}",
+                label_visibility="collapsed",
+            )
+            if novo_val:
+                novas.add(slug)
+            else:
+                novas.discard(slug)
+
+        if st.button("Salvar plataformas", type="primary", key="btn_salvar_plat"):
+            salvar_plataformas_ativas(usuario_id, list(novas))
+            # Força recarga das fontes na próxima vez que abrir Lançar Bateria
+            for k in list(st.session_state.keys()):
+                if k.startswith("bat_"):
+                    st.session_state.pop(k, None)
+            st.success("Plataformas atualizadas.")

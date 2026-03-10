@@ -6,7 +6,8 @@
       "Bash(python -c \"import streamlit, os; print\\(os.path.dirname\\(streamlit.__file__\\)\\)\")",
       "WebSearch",
       "Bash(python -c \"import ast; ast.parse\\(open\\(''telas/pg_dashboard.py''\\).read\\(\\)\\); print\\(''OK''\\)\")",
-      "Bash(python -c \"import ast; ast.parse\\(open\\(''telas/pg_login.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''OK''\\)\")"
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''telas/pg_login.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''OK''\\)\")",
+      "Bash(python -c \"import plotly; print\\(plotly.__version__\\)\")"
     ]
   }
 }
