@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
 from app.core.database import Base
 
@@ -30,8 +30,12 @@ class Topico(Base):
     ativo = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Auto-relacionamento para hierarquia
-    filhos = relationship("Topico", backref="parent", remote_side=None, foreign_keys=[parent_id])
+    # Auto-relacionamento para hierarquia (adjacency list)
+    filhos = relationship(
+        "Topico",
+        foreign_keys=[parent_id],
+        backref=backref("parent", remote_side="Topico.id"),
+    )
 
     # Outros relacionamentos
     proficiencias = relationship("Proficiencia", back_populates="topico")

@@ -21,6 +21,7 @@ from app.core.database import SessionLocal
 from app.models.erro_critico import ErroCritico
 from app.models.proficiencia import PESO_POR_FONTE, Proficiencia
 from app.models.topico import Topico
+from app.services.decay import get_decay_rate
 
 # Mapeamento de fonte do SISFIG → enum ConcursoAI
 FONTE_MAP = {
@@ -136,6 +137,7 @@ def migrar(sisfig_path: str, aluno_id: str) -> None:
                 nome=row["assunto"],
                 nivel=2,
                 area=row["materia"],
+                decay_rate=get_decay_rate(row["materia"]),
             )
             db.add(topico)
             topico_count += 1

@@ -206,6 +206,22 @@ def api_obter_desempenho(mes: int = None, ano: int = None, fontes: list = None) 
     return None
 
 
+def api_get_agenda(top: int = 5) -> list:
+    """Retorna sessões priorizadas pelo algoritmo de scoring."""
+    try:
+        r = requests.get(
+            f"{API_BASE}/agenda",
+            params={"top": top},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json().get("sessoes", [])
+    except Exception:
+        pass
+    return []
+
+
 def api_atualizar_status_erro(erro_id: str, novo_status: str) -> bool:
     """Atualiza status de um erro crítico. Retorna True se ok."""
     try:

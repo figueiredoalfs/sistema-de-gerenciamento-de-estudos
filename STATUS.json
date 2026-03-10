@@ -1,0 +1,818 @@
+{
+  "concluidas": 56,
+  "em_andamento": 0,
+  "total": 135,
+  "proxima": 54,
+  "tarefas": [
+    {
+      "fase": "F-01",
+      "tarefa": "Instalar Docker Desktop",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Criar estrutura de pastas FastAPI",
+      "nota": "app/, core/, models/, routers/, services/, workers/",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Configurar SQLite local (dev) + PostgreSQL Railway (prod)",
+      "nota": "SQLite: DATABASE_URL=sqlite:///./dev.db — sem instalação. Railway usa Postgres automaticamente.",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "GET /docs funcionando no navegador",
+      "nota": "Marco: ambiente local ok",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: Aluno (role, nivel_desafio, horas_por_dia)",
+      "nota": "role ENUM admin/aluno",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: Topico (parent_id, nivel, peso_edital, decay_rate, dependencias[])",
+      "nota": "nivel 0=matéria/1=bloco/2=tópico",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: Proficiencia (fonte ENUM completo, percentual, peso_fonte)",
+      "nota": "fonte incl. prova_anterior_mesma_banca(1.5x), outra_banca(1.2x), calibracao(1.2x), quiz_ia(0.8x)",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: ErroCritico (status ENUM, topico_id)",
+      "nota": "status: pendente/em_revisao/resolvido",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: ConfigSistema (chave, valor, descricao)",
+      "nota": "ia_provider, W1-W4, etc",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: Sessao — COMPLETO com todos os campos",
+      "nota": "tipo ENUM: teoria_pdf/exercicios/video/flashcard_texto/calibracao | FSRS: stability Float, difficulty Float | duracao_real_min Int | confianca ENUM: baixa/media/alta | uma_vez Bool",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: Cronograma (modo pre/pos, modo_revisao_final)",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: MetaSemanal (janela_inicio, janela_fim, deficit privado)",
+      "nota": "deficit visivel so admin/mentor",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: PadraoCognitivo (tipo, confianca, total_erros_analisados)",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Model: Simulado (edital_id, questoes_json, resultado_json)",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Alembic: 1ª migration — todas as tabelas com campos FSRS incluídos",
+      "nota": "stability + difficulty coletados desde o início para habilitar FSRS na F-06",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Auth JWT: login + token + roles + require_admin",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Script migrar_sisfig.py (SQLite SISFIG → Postgres)",
+      "nota": "LANCAMENTOS→Proficiencia / ERROS→ErroCritico / CADASTROS→Topico",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Rodar migração + conferir no pgAdmin",
+      "nota": "Marco: dados do SISFIG no Postgres",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "POST /onboarding — endpoint único que orquestra fluxo",
+      "nota": "Recebe dados das 5 telas, dispara: arvore + sessoes + meta inicial",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Onboarding Tela 1: seleção de área — 1 clique, sem formulário",
+      "nota": "Fiscal/Jurídica/Policial/TI/Saúde/Outro",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Onboarding Tela 2: edital disponível? + upload PDF + data da prova",
+      "nota": "Parser roda em background — aluno não espera",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Onboarding Tela 3: já vem estudando? — bifurcação 3 perfis",
+      "nota": "Perfil A: zero / Perfil B: tempo por matéria / Perfil C: importar CSV",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Onboarding Tela 4: horas/dia + dias/semana (slider)",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Onboarding Tela 5: cronograma gerado em < 3 minutos",
+      "nota": "Marco: aluno vê valor antes de preencher mais nada",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Perfil B: tempo declarado por matéria → calibra dificuldade inicial da calibração",
+      "nota": "<1m=básico / 1-3m=inter / 3-6m=avançado / >6m=expert",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-01",
+      "tarefa": "Perfil C: importador CSV Qconcursos/TEC → popula Proficiencia",
+      "nota": "fonte=qconcursos peso 1.0x. Parser de colunas do CSV exportado.",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-02",
+      "tarefa": "POST /bateria — registrar bateria multidisciplinar",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-02",
+      "tarefa": "POST /erro-critico com status inicial",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-02",
+      "tarefa": "Campo fonte ENUM + pesos por fonte aplicados ao calcular proficiência composta",
+      "nota": "mesma_banca=1.5x / outra_banca=1.2x / plataforma=1.0x / quiz_ia=0.8x / curso=0.6x",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-02",
+      "tarefa": "GET /baterias — histórico paginado",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-02",
+      "tarefa": "GET /erros-criticos — filtro por status",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-02",
+      "tarefa": "PATCH /erro-critico/{id}/status",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-02",
+      "tarefa": "Flag confianca='baixa' default em toda estimativa nova",
+      "nota": "Mostra intervalo ao aluno ('40–70 min') em vez de ponto. Atualizado pelo D-IC na F-06.",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-02",
+      "tarefa": "Testar todos os endpoints no /docs",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "INTEGRAÇÃO",
+      "tarefa": "Conectar login/cadastro Streamlit ao POST /auth/register e POST /auth/login",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "INTEGRAÇÃO",
+      "tarefa": "Conectar Onboarding Tela 5 ao POST /onboarding (passa perfil A/B/C + tempo_por_materia + dados_csv)",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "INTEGRAÇÃO",
+      "tarefa": "Conectar pg_lancar_bateria ao POST /bateria",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "INTEGRAÇÃO",
+      "tarefa": "Conectar pg_registrar_erros ao POST /erro-critico",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "INTEGRAÇÃO",
+      "tarefa": "Conectar pg_historico ao GET /baterias",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "INTEGRAÇÃO",
+      "tarefa": "Conectar pg_dashboard ao GET /desempenho (métricas reais)",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Login: criar conta nova, login com senha correta, erro com senha errada",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Onboarding Perfil A: fluxar as 5 telas do zero, verificar cronograma na Tela 5",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Onboarding Perfil B: declarar tempos por matéria, verificar níveis na Tela 5",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Onboarding Perfil C: importar CSV Qconcursos, verificar dados na Tela 5",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Dashboard: métricas carregam, gráficos aparecem, sem erro de tela vazia",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Lançar Bateria: preencher acertos/erros, selecionar fonte/matéria, salvar e confirmar no histórico",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Registrar Erros Críticos: registrar 2 erros, verificar listagem",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Erros Críticos: filtrar por status, alterar status de pendente → resolvido",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Histórico: lista de baterias aparece com paginação, filtro por data/matéria",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Análise de Erros: gráfico de padrões carrega sem erro",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Evolução Mensal: gráfico de curva de mastery aparece",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Navegação Sidebar: todos os botões navegam para a tela correta, sem erro de rota",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "TESTES",
+      "tarefa": "TESTE — Layout geral: revisar todas as telas em resolução 1366x768 (notebook padrão), ajustar o que estiver cortado ou feio",
+      "nota": "",
+      "status": "concluida"
+    },
+    {
+      "fase": "DEPLOY",
+      "tarefa": "Criar Procfile + railway.toml",
+      "nota": "web: uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+      "status": "concluida"
+    },
+    {
+      "fase": "DEPLOY",
+      "tarefa": "Criar conta Railway + conectar GitHub + Plugin PostgreSQL",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "DEPLOY",
+      "tarefa": "railway run alembic upgrade head",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "DEPLOY",
+      "tarefa": "Criar contas beta testers — script criar_usuario.py",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "DEPLOY",
+      "tarefa": "Validar fluxo online com dados reais",
+      "nota": "Marco: URL pública funcionando",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Decay λ por categoria: Legislação=0.03 / RL=0.08 / outros=0.05",
+      "nota": "λ individual por aluno/tópico virá do FSRS na F-06 usando os campos já no banco",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Fator de erros críticos no score (W4)",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "GET /agenda — top-5 com breakdown visível do score",
+      "nota": "Decompõe: urgência, lacuna, peso, erros — L-06",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Celery + Redis: recálculo assíncrono após cada input",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "services/arvore_generator.py — prompt: caso concreto ANTES do conceito",
+      "nota": "Estrutura: caso_concreto→conceito→por_quê→quando→distinção. Van Merriënboer 1997.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "services/edital_parser.py — extrai tópicos/pesos do PDF",
+      "nota": "Classifica: explicito/implicito/complementar",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "services/session_generator.py — sessões por tópico com desbloqueio cascata",
+      "nota": "Alto(≥0.7)=4 sessões / Médio(0.3-0.69)=3 / Complementar(<0.3)=2. Tipos: teoria_pdf, exercicios, video, flashcard_texto",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Tipo de questão por momento: primeiro_contato=70% conceito / revisao=70% elaborativo",
+      "nota": "Woloshyn 1992: elaboração funciona melhor com conhecimento prévio",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Desbloqueio visual de sessões — sessão aparece trancada até pré-req concluído",
+      "nota": "Zeigarnik effect: tarefas incompletas criam tensão que motiva conclusão",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Agendamento revisão: ≥80%=15d / 60-79%=7d / 40-59%=3d / <40%=1d",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Feedback de tempo real: duracao_real_min após cada sessão",
+      "nota": "Pergunta única: Muito pouco/Adequado/Precisei de mais. Calibra estimativas individuais.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "services/viabilidade.py — horas disponíveis vs carga total",
+      "nota": "Sugere remover complementares se inviável",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "services/modo_estudo.py — pré/pós edital + sugestão de paralelização",
+      "nota": "Semi-automático: sistema sugere, aluno confirma",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "services/diff_edital.py — diff pré vs pós edital",
+      "nota": "Gera: novos[], removidos[], peso_alterado[]",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "services/meta_semanal.py — gerar_nova_janela() + fechar_janela()",
+      "nota": "conservador=85%/moderado=75%/agressivo=65%. Expiração seletiva. Nunca cresce por atraso.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Modo Revisão Final (D-13): ativa 14 dias antes, congela novos tópicos",
+      "nota": "Ordena: menor acerto × maior peso × maior decay",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "GET /cronograma/gerar + POST /edital/upload + GET /edital/diff",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "PATCH /cronograma/paralelizar",
+      "nota": "Aluno confirma paralelização sugerida",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Regra interleaving: max 2 sessões da mesma matéria por dia",
+      "nota": "Rohrer & Taylor 2007",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-03",
+      "tarefa": "Testes unitários pytest — algoritmo de priorização",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "Camada AIProvider: interface + GeminiProvider + AnthropicProvider",
+      "nota": "Admin troca via ConfigSistema sem redeploy",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "quiz_generator.py — parâmetro momento (primeiro_contato / revisao)",
+      "nota": "primeiro_contato: 70% conceito puro. revisao: 70% contraste+aplicação+exceção.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "Anti-alucinação: grounding no material real do aluno",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "Quiz focado nos erros críticos pendentes do tópico",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "Calibração UX-02: lógica adaptativa — ajusta dificuldade pela resposta anterior",
+      "nota": "4-5 acertos=sobe / 2-3=mantém / 0-1=desce",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "Calibração UX-02: fonte=calibracao peso 1.2x — diluído após 3 baterias reais",
+      "nota": "Dados reais substituem progressivamente. CAT: van der Linden & Hambleton 1997.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "Calibração UX-02: UI sem timer + framing de diagnóstico + feedback pós-cal",
+      "nota": "'Quanto mais honesto, melhor o plano.' Aluno vê nível detectado + pontos fortes + lacunas",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "flashcard_generator.py — resposta digitada avaliada por IA",
+      "nota": "Sem STT. Chi 1994: self-explanation effect preservado pela geração ativa. IA verifica conceitos cobertos.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "POST /flashcard/avaliar — IA compara resposta com conceitos esperados",
+      "nota": "Retorna: cobertura, conceitos_ok, conceitos_faltando, feedback",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "services/nlp_mapper.py — input livre → tópico (Modo Mentor L-01)",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "POST /quiz/gerar + /quiz/responder + POST /sessao/input",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "padrao_cognitivo.py — classifica tipo de erro por raciocínio exigido",
+      "nota": "Ativa com >= 50 questões erradas. Kahneman 2011: System 1 vs System 2.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "Quiz prioriza tipo problemático detectado para o aluno",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-04",
+      "tarefa": "Testar fluxo completo: calibração → quiz elaborativo → flashcard",
+      "nota": "Marco: quiz IA funcionando",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "Middleware: bloquear /admin para role != admin",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "GET/POST/PATCH /admin/usuarios — criar, bloquear, resetar senha",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "GET /admin/dashboard-geral — IP, % conclusão, situacao tópicos",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "POST /admin/editais + PUT /admin/topicos",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "PATCH /admin/cronograma/{aluno_id} — ajustar data_prova",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "PATCH /admin/config/ia-provider + /pesos-algoritmo (W1-W4)",
+      "nota": "Validar soma W1+W2+W3+W4 = 1.0",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "GET /admin/meta/{aluno_id}/historico — déficit privado por janela",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "GET /admin/padrao-cognitivo/{aluno_id}",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "GET /admin/confianca-estimativas — tópicos com estimativas não calibradas",
+      "nota": "Admin monitora qualidade das estimativas durante o beta",
+      "status": "pendente"
+    },
+    {
+      "fase": "ADMIN",
+      "tarefa": "Testar painel admin completo",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "GET /dashboard/kpis + por-materia + evolucao-mensal + ranking-erros",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Relatório PDF semanal automático + link mentor 7 dias",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "services/indice_prontidao.py — IP = Σ(acerto × peso × decay × cobertura)",
+      "nota": "0 a 100 ponderado pelo edital. Framing: diagnóstico, não pontuação.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Mapa de progresso: tópicos coloridos por situacao — GAME-01",
+      "nota": "Dominado=verde/Em estudo=amarelo/Não iniciado=cinza. Bandura 1997: autoeficácia por visualização.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Curva de mastery: histórico semanal do IP em gráfico",
+      "nota": "Dweck 2006: growth mindset — aluno vê que esforço produz progresso mensurável",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Meta de IP: aluno define IP alvo e prazo",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Impacto da meta semanal no IP: '+X pontos se concluir esta semana'",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "services/diagnostico_topico.py — classifica situacao por tópico",
+      "nota": "esquecimento/dificuldade_genuina/misconception_ativa/instavel/aprendendo/consolidando",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Detecção esquecimento: acertava >70%, caiu para <50%",
+      "nota": "Resposta: revisão antecipada, intervalo reduzido à metade. VanLehn 2011.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Detecção dificuldade genuína: nunca atingiu >60% após 2+ ciclos",
+      "nota": "Resposta: diagnóstico de pré-requisito + nova explicação",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Diagnóstico de pré-requisito: verifica dependencias[] do tópico",
+      "nota": "Se pré-req < 60%: insere na fila com prioridade alta antes de continuar",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Geração de explicação alternativa: prompt modo=reexplicacao",
+      "nota": "Outra analogia, outro ponto de entrada. Chi et al. 1989: mudança de representação.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Detecção misconception ativa: erra sempre na mesma direção específica",
+      "nota": "Ex: sempre confunde X com Y. Questão de confronto direto. Chi 2008.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Interleaving forçado para tópicos em dificuldade_genuina",
+      "nota": "Nunca 2 sessões seguidas do tópico difícil. Kornell & Bjork 2008.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Campo situacao em Topico — alimenta dashboard e relatório do mentor",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Horário de estudo no relatório do mentor (timestamp das sessões)",
+      "nota": "Walker 2017: sono consolida memória. Padrão visível após 4 semanas de dados.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "services/simulado_generator.py — distribuição por pesos do edital",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "POST /simulado/gerar + /responder + timer + relatório pós-simulado",
+      "nota": "Framing: chefe de fase. Csikszentmihalyi: challenge-skill balance.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Simulado obrigatório automático no Modo Revisão Final",
+      "nota": "Penúltima semana antes da prova",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Job scraping editais por área + notificação email (D-12)",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Botão criar cronograma pré-edital na notificação (D-12)",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-05",
+      "tarefa": "Teste ponta a ponta: onboarding → calibração → quiz → simulado → relatório",
+      "nota": "Marco: produto completo validado",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Model: TopicoColetivo + PerfilColetivo",
+      "nota": "Dados agregados anônimos. Mín. 5 alunos por perfil.",
+      "status": "concluida"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "services/inteligencia_coletiva.py — agregação anônima",
+      "nota": "Job Celery Beat toda segunda às 3h. Nunca real-time.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Enriquecer cronograma novo com perfil coletivo",
+      "nota": "Ajusta pesos, durações, adiciona tópicos cobrados fora do edital",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Calibrar pesos por fonte com dados reais de acerto pós-prova",
+      "nota": "D-IC aprende qual fonte é mais preditiva por área/banca",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Atualizar flag confianca: baixa→media→alta conforme dados chegam",
+      "nota": "Intervalo de estimativa se estreita. Pontual quando confianca=alta.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "GET /admin/perfil-coletivo/{area}/{banca}/{cargo}",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Teste de anonimização — nenhum dado individual exposto",
+      "nota": "",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Implementar algoritmo FSRS usando stability + difficulty acumulados",
+      "nota": "Substitui decay fixo por λ aprendido por aluno/tópico. Wozniak / Jarrett Ye 2022. Requer 3-4 meses de dados.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Validar FSRS: comparar intervalo sugerido vs intervalo histórico real",
+      "nota": "Requer mín. 10 alunos ativos com histórico completo",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Interleaving por similaridade temática — refinamento do atual",
+      "nota": "Priorizar intercalar matérias da mesma área jurídica. Rohrer 2007 refinamento.",
+      "status": "pendente"
+    },
+    {
+      "fase": "F-06",
+      "tarefa": "Adversário calibrado: mediana dos aprovados na última edição",
+      "nota": "Near-peer competition. Garcia & Tor 2009. Requer dados reais de aprovados.",
+      "status": "pendente"
+    }
+  ]
+}
