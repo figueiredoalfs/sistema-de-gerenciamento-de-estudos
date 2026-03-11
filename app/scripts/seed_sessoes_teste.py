@@ -37,8 +37,16 @@ def seed_sessoes(email: str) -> dict:
             db.add(cron)
             db.flush()
 
-        # Pega os primeiros 20 topicos de nivel 0 e 2
-        topicos = db.query(Topico).filter(Topico.ativo == True).limit(20).all()
+        # Pega 1 topico raiz por materia + ate 2 subtopicos por materia
+        # Garante diversidade de areas para o algoritmo de interleaving
+        topicos_raiz = db.query(Topico).filter(Topico.ativo == True, Topico.nivel == 0).all()
+        topicos_sub  = db.query(Topico).filter(Topico.ativo == True, Topico.nivel == 2).all()
+        areas_vistas: dict = {}
+        topicos = list(topicos_raiz)
+        for t in topicos_sub:
+            if areas_vistas.get(t.area, 0) < 2:
+                topicos.append(t)
+                areas_vistas[t.area] = areas_vistas.get(t.area, 0) + 1
 
         agora = datetime.now(timezone.utc)
         count = 0

@@ -235,12 +235,16 @@ def calcular_agenda(
     # Ordena por score desc
     resultados.sort(key=lambda x: x[0], reverse=True)
 
-    # Interleaving: max 2 sessoes da mesma area
+    # Interleaving: limita sessoes por area de forma proporcional ao top
+    # Minimo 2 por area; aumenta se necessario para preencher o top
+    areas_unicas = len({sp.area or "sem_area" for _, sp in resultados}) or 1
+    max_por_area = max(2, math.ceil(top / areas_unicas))
+
     contagem_area: dict[str, int] = {}
     agenda: list[SessaoPriorizada] = []
     for _, sp in resultados:
         area_key = sp.area or "sem_area"
-        if contagem_area.get(area_key, 0) >= 2:
+        if contagem_area.get(area_key, 0) >= max_por_area:
             continue
         contagem_area[area_key] = contagem_area.get(area_key, 0) + 1
         agenda.append(sp)

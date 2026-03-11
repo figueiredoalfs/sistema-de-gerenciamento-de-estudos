@@ -1,10 +1,11 @@
 """
-GET  /agenda?top=N   — sessões priorizadas
-PATCH /agenda/sessao/{id}/concluir — marca sessão como concluída e registra desempenho
+GET   /agenda?top=N              — sessoes priorizadas
+PATCH /agenda/sessao/{id}/concluir — marca concluida + registra desempenho
+PATCH /agenda/adiar              — adia todas as sessoes pendentes em 7 dias
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -20,8 +21,8 @@ router = APIRouter(prefix="/agenda", tags=["agenda"])
 
 
 class ConcluirBody(BaseModel):
-    percentual: float = 0.0    # 0-100 — desempenho informado
-    duracao_real_min: int = 0  # tempo real gasto
+    percentual: float = 0.0
+    duracao_real_min: int = 0
 
 
 @router.get("")
@@ -30,7 +31,7 @@ def get_agenda(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Retorna top-N sessões priorizadas com score_breakdown."""
+    """Retorna top-N sessoes priorizadas com score_breakdown."""
     agenda = calcular_agenda(aluno_id=current_user.id, db=db, top=top)
     return {
         "aluno_id": current_user.id,
@@ -65,10 +66,8 @@ def concluir_sessao(
     current_user=Depends(get_current_user),
 ):
     """
-    Marca a sessão como concluída e registra o desempenho do aluno.
-
-    Se percentual < 60, cria automaticamente uma sessão de reforço
-    (flashcard_texto, 20 min) para o mesmo tópico no próximo pacote.
+    Marca sessao como concluida e registra desempenho.
+    Se percentual < 60, insere sessao de reforco (flashcard_texto, 20 min).
     """
     sessao = db.query(Sessao).filter(
         Sessao.id == sessao_id,
@@ -76,18 +75,16 @@ def concluir_sessao(
     ).first()
 
     if not sessao:
-        raise HTTPException(status_code=404, detail="Sessão não encontrada")
+        raise HTTPException(status_code=404, detail="Sessao nao encontrada")
 
-    # Marca como concluída
     sessao.concluida = True
     sessao.data_concluida = datetime.now(timezone.utc)
     if body.duracao_real_min > 0:
         sessao.duracao_real_min = body.duracao_real_min
 
-    # Registra proficiência se o aluno informou desempenho
     reforco_criado = False
     if body.percentual > 0 and sessao.topico_id:
-        prof = Proficiencia(
+        db.add(Proficiencia(
             id=str(uuid.uuid4()),
             aluno_id=current_user.id,
             topico_id=sessao.topico_id,
@@ -97,12 +94,9 @@ def concluir_sessao(
             percentual=body.percentual,
             fonte="manual",
             peso_fonte=PESO_POR_FONTE.get("manual", 0.8),
-        )
-        db.add(prof)
-
-        # Reforço automático se desempenho < 60%
-        if body.percentual < 60 and sessao.topico_id:
-            reforco = Sessao(
+        ))
+        if body.percentual < 60:
+            db.add(Sessao(
                 id=str(uuid.uuid4()),
                 aluno_id=current_user.id,
                 topico_id=sessao.topico_id,
@@ -110,14 +104,32 @@ def concluir_sessao(
                 tipo="flashcard_texto",
                 duracao_planejada_min=20,
                 concluida=False,
-            )
-            db.add(reforco)
+            ))
             reforco_criado = True
 
     db.commit()
+    return {"ok": True, "sessao_id": sessao_id, "reforco_inserido": reforco_criado}
 
-    return {
-        "ok": True,
-        "sessao_id": sessao_id,
-        "reforco_inserido": reforco_criado,
-    }
+
+@router.patch("/adiar")
+def adiar_meta(
+    dias: int = Query(default=7, ge=1, le=30),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Adia todas as sessoes pendentes do aluno em N dias (default 7)."""
+    sessoes = db.query(Sessao).filter(
+        Sessao.aluno_id == current_user.id,
+        Sessao.concluida == False,
+    ).all()
+
+    delta = timedelta(days=dias)
+    agora = datetime.now(timezone.utc)
+    for s in sessoes:
+        if s.data_agendada:
+            s.data_agendada = s.data_agendada + delta
+        else:
+            s.data_agendada = agora + delta
+
+    db.commit()
+    return {"ok": True, "sessoes_adiadas": len(sessoes), "dias": dias}

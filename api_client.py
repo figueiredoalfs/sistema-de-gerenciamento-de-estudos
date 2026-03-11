@@ -239,6 +239,20 @@ def api_concluir_sessao(sessao_id: str, percentual: float = 0.0, duracao_real_mi
     return None
 
 
+def api_adiar_meta(dias: int = 7) -> bool:
+    """Adia todas as sessoes pendentes em N dias."""
+    try:
+        r = requests.patch(
+            f"{API_BASE}/agenda/adiar",
+            params={"dias": dias},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
 def api_atualizar_status_erro(erro_id: str, novo_status: str) -> bool:
     """Atualiza status de um erro crítico. Retorna True se ok."""
     try:
