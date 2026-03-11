@@ -34,35 +34,6 @@ if not st.session_state.get("autenticado"):
     pg_login()
     st.stop()
 
-# ── Busca JWT em background (não bloqueia o render da tela) ──────────────────
-# Resultado guardado em dict de módulo; consumido no próximo render.
-import threading as _threading
-_jwt_results: dict = {}  # user_id -> token
-
-_uid_atual = st.session_state.get("usuario", {}).get("id", "")
-
-# Inicia thread se há credenciais pendentes
-if "api_token" not in st.session_state and "_jwt_email" in st.session_state:
-    _email_bg = st.session_state.pop("_jwt_email")
-    _senha_bg = st.session_state.pop("_jwt_senha")
-    _nome_bg  = st.session_state.usuario.get("nome", "")
-
-    def _fetch_jwt_bg(uid, email, senha, nome):
-        from api_client import api_login as _al
-        token = _al(email, senha, nome=nome)
-        if token:
-            _jwt_results[uid] = token
-
-    _threading.Thread(
-        target=_fetch_jwt_bg,
-        args=(_uid_atual, _email_bg, _senha_bg, _nome_bg),
-        daemon=True,
-    ).start()
-
-# Consome resultado da thread (disponível a partir da próxima interação)
-if "api_token" not in st.session_state and _uid_atual in _jwt_results:
-    st.session_state.api_token = _jwt_results.pop(_uid_atual)
-
 # ── Importa as telas ─────────────────────────────────────────────────────────
 from telas.pg_dashboard       import render as pg_dashboard
 from telas.pg_lancar_bateria  import render as pg_lancar
@@ -90,7 +61,7 @@ if not st.session_state.get("onboarding_concluido"):
 
 # ── Inicializa o estado de navegacao ─────────────────────────────────────────
 if "pagina" not in st.session_state:
-    st.session_state.pagina = "dashboard"
+    st.session_state.pagina = "plano"
 
 # ── Sidebar de navegacao ──────────────────────────────────────────────────────
 with st.sidebar:
@@ -176,10 +147,17 @@ with st.sidebar:
         result = gerar_dados_teste(st.session_state.usuario["id"])
         _fetch_lancamentos.clear()
         st.session_state.onboarding_concluido = True
-        st.session_state.pagina = "dashboard"
+        # Gera sessoes no dev.db para o usuario logado (para a Agenda funcionar)
+        email_atual = st.session_state.get("usuario", {}).get("email", "")
+        if email_atual and st.session_state.get("api_token"):
+            try:
+                from app.scripts.seed_sessoes_teste import seed_sessoes
+                seed_sessoes(email_atual)
+            except Exception:
+                pass
+        st.session_state.pagina = "plano"
         st.toast(
-            f"✅ {result['baterias']} baterias · {result['lancamentos']} lançamentos · {result['erros']} erros gerados",
-            icon="🧪",
+            f"Dados de teste carregados! {result['baterias']} baterias geradas.",
         )
         st.rerun()
 

@@ -183,8 +183,11 @@ footer{display:none!important}
                         else:
                             st.session_state.usuario     = usuario
                             st.session_state.autenticado = True
-                            st.session_state._jwt_email  = email_l.strip()
-                            st.session_state._jwt_senha  = senha_l
+                            # Busca token JWT sincronamente ao fazer login
+                            from api_client import api_login as _api_login
+                            token = _api_login(email_l.strip(), senha_l, nome=usuario.get("nome", ""))
+                            if token:
+                                st.session_state.api_token = token
                             st.rerun()
                     else:
                         st.error("E-mail ou senha incorretos.")
@@ -223,8 +226,10 @@ footer{display:none!important}
                             if usuario:
                                 st.session_state.usuario     = usuario
                                 st.session_state.autenticado = True
-                                st.session_state._jwt_email  = email_c.strip()
-                                st.session_state._jwt_senha  = senha_c
+                                from api_client import api_login as _api_login
+                                token = _api_login(email_c.strip(), senha_c, nome=nome_c.strip())
+                                if token:
+                                    st.session_state.api_token = token
                                 st.rerun()
                     else:
                         st.error("Este e-mail já está cadastrado.")

@@ -1,5 +1,5 @@
 {
-  "concluidas": 56,
+  "concluidas": 58,
   "em_andamento": 0,
   "total": 135,
   "proxima": 54,
@@ -368,7 +368,7 @@
       "fase": "F-03",
       "tarefa": "GET /agenda — top-5 com breakdown visível do score",
       "nota": "Decompõe: urgência, lacuna, peso, erros — L-06",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "F-03",
@@ -410,7 +410,7 @@
       "fase": "F-03",
       "tarefa": "Agendamento revisão: ≥80%=15d / 60-79%=7d / 40-59%=3d / <40%=1d",
       "nota": "",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "F-03",

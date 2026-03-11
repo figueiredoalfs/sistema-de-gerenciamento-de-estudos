@@ -55,7 +55,7 @@ def migrar(sisfig_path: str, aluno_id: str) -> None:
     try:
         # ── LANCAMENTOS → Proficiencia ────────────────────────────────────
         rows = src.execute("SELECT * FROM lancamentos").fetchall()
-        print(f"\nMigrando {len(rows)} lançamentos → Proficiencia...")
+        print(f"\nMigrando {len(rows)} lancamentos -> Proficiencia...")
 
         prof_count = 0
         for row in rows:
@@ -90,7 +90,7 @@ def migrar(sisfig_path: str, aluno_id: str) -> None:
 
         # ── ERROS → ErroCritico ───────────────────────────────────────────
         rows_erros = src.execute("SELECT * FROM erros").fetchall()
-        print(f"Migrando {len(rows_erros)} erros → ErroCritico...")
+        print(f"Migrando {len(rows_erros)} erros -> ErroCritico...")
 
         erro_count = 0
         for row in rows_erros:
@@ -126,7 +126,7 @@ def migrar(sisfig_path: str, aluno_id: str) -> None:
 
         # ── CADASTROS → Topico ────────────────────────────────────────────
         rows_cad = src.execute("SELECT * FROM cadastros").fetchall()
-        print(f"Migrando {len(rows_cad)} cadastros → Topico...")
+        print(f"Migrando {len(rows_cad)} cadastros -> Topico...")
 
         topico_count = 0
         for row in rows_cad:
@@ -143,14 +143,14 @@ def migrar(sisfig_path: str, aluno_id: str) -> None:
             topico_count += 1
 
         db.commit()
-        print(f"\n✅ Migração concluída:")
+        print(f"\n[OK] Migracao concluida:")
         print(f"   Proficiencias: {prof_count}")
         print(f"   ErroCritico:   {erro_count}")
         print(f"   Topicos:       {topico_count}")
 
     except Exception as e:
         db.rollback()
-        print(f"\n❌ Erro na migração: {e}")
+        print(f"\n[ERRO] Migracao falhou: {e}")
         raise
     finally:
         db.close()

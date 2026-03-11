@@ -39,9 +39,10 @@ def api_login(email: str, senha: str, nome: str = "") -> str | None:
     Se o usuário ainda não existe no FastAPI, cria automaticamente (migração suave).
     """
     try:
+        # OAuth2PasswordRequestForm exige form data com campos username/password
         r = requests.post(
             f"{API_BASE}/auth/login",
-            json={"email": email, "senha": senha},
+            data={"username": email, "password": senha},
             timeout=TIMEOUT,
         )
         if r.status_code == 200:
@@ -51,14 +52,14 @@ def api_login(email: str, senha: str, nome: str = "") -> str | None:
         if r.status_code in (401, 404) and nome:
             reg = requests.post(
                 f"{API_BASE}/auth/register",
-                json={"nome": nome, "email": email, "senha": senha},
+                json={"nome": nome, "email": email, "password": senha},
                 timeout=TIMEOUT,
             )
             if reg.status_code == 201:
-                # Tenta login novamente
+                # Tenta login novamente com form data
                 r2 = requests.post(
                     f"{API_BASE}/auth/login",
-                    json={"email": email, "senha": senha},
+                    data={"username": email, "password": senha},
                     timeout=TIMEOUT,
                 )
                 if r2.status_code == 200:
@@ -206,7 +207,7 @@ def api_obter_desempenho(mes: int = None, ano: int = None, fontes: list = None) 
     return None
 
 
-def api_get_agenda(top: int = 5) -> list:
+def api_get_agenda(top: int = 14) -> list:
     """Retorna sessões priorizadas pelo algoritmo de scoring."""
     try:
         r = requests.get(
@@ -220,6 +221,22 @@ def api_get_agenda(top: int = 5) -> list:
     except Exception:
         pass
     return []
+
+
+def api_concluir_sessao(sessao_id: str, percentual: float = 0.0, duracao_real_min: int = 0) -> dict | None:
+    """Marca sessão como concluída e registra desempenho. Retorna dict com reforco_inserido."""
+    try:
+        r = requests.patch(
+            f"{API_BASE}/agenda/sessao/{sessao_id}/concluir",
+            json={"percentual": percentual, "duracao_real_min": duracao_real_min},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
 
 
 def api_atualizar_status_erro(erro_id: str, novo_status: str) -> bool:
