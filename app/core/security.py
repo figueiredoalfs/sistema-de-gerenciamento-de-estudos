@@ -63,3 +63,21 @@ def require_admin(current_user=Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
     return current_user
+
+
+def get_optional_current_user(
+    token: str = Depends(OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)),
+    db: Session = Depends(get_db),
+):
+    """Retorna o aluno autenticado ou None se não houver token válido."""
+    if not token:
+        return None
+    from app.models.aluno import Aluno
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        aluno_id: str = payload.get("sub")
+        if not aluno_id:
+            return None
+        return db.query(Aluno).filter(Aluno.id == aluno_id, Aluno.ativo == True).first()
+    except JWTError:
+        return None

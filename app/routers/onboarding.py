@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import hash_password
+from app.core.security import get_optional_current_user, hash_password
 from app.models.aluno import Aluno
 from app.models.cronograma import Cronograma
 from app.models.meta_semanal import MetaSemanal
@@ -186,12 +186,22 @@ def _gerar_sessoes(topicos: list, cronograma_id: str, aluno_id: str, db: Session
 def onboarding(
     body: OnboardingRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(get_optional_current_user),
 ):
     # ── 1. Resolver aluno ────────────────────────────────────────────────
     aluno = None
 
-    # Se recebeu credenciais novas, cadastra
-    if body.email and body.senha and body.nome:
+    if current_user:
+        # Usuário já autenticado — atualiza perfil existente
+        aluno = current_user
+        aluno.area = body.area
+        aluno.horas_por_dia = body.horas_por_dia
+        aluno.dias_por_semana = body.dias_por_semana
+        if body.data_prova:
+            aluno.data_prova = datetime.combine(body.data_prova, datetime.min.time())
+        db.flush()
+    elif body.email and body.senha and body.nome:
+        # Novo cadastro via onboarding
         if db.query(Aluno).filter(Aluno.email == body.email).first():
             raise HTTPException(status_code=400, detail="E-mail já cadastrado")
         aluno = Aluno(
