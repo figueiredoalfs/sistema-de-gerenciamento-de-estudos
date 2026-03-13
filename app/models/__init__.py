@@ -8,6 +8,12 @@ from app.models.cronograma import Cronograma
 from app.models.meta_semanal import MetaSemanal
 from app.models.padrao_cognitivo import PadraoCognitivo
 from app.models.simulado import Simulado
+from app.models.exam import Exam
+from app.models.subject import Subject
+from app.models.topic import Topic
+from app.models.topic_progress import TopicProgress
+from app.models.question_attempt import QuestionAttempt
+from app.models.study_session import StudySession
 
 __all__ = [
     "Aluno",
@@ -20,4 +26,10 @@ __all__ = [
     "MetaSemanal",
     "PadraoCognitivo",
     "Simulado",
+    "Exam",
+    "Subject",
+    "Topic",
+    "TopicProgress",
+    "QuestionAttempt",
+    "StudySession",
 ]
