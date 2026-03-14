@@ -13,10 +13,51 @@ Tela 6: cronograma gerado — aluno vê valor imediato
 import io
 import json
 import datetime
+import requests as _requests
 import streamlit as st
 import streamlit.components.v1 as components
 from database import salvar_perfil, salvar_plataformas_ativas
 from config_fontes import GRUPOS_OPCIONAIS, GRUPOS_FONTE, PLATAFORMAS_DEFAULT
+
+_API_BASE = "http://localhost:8000"
+
+
+def _chamar_onboarding_api() -> dict | None:
+    """Chama POST /onboarding na API FastAPI para gerar sessões reais no banco."""
+    if st.session_state.get("_ob_api_chamado"):
+        return st.session_state.get("_ob_api_resultado")
+
+    token = st.session_state.get("api_token", "")
+    if not token:
+        return None
+
+    payload = {
+        "area":            st.session_state.get("ob_area", "fiscal"),
+        "perfil":          st.session_state.get("ob_perfil", "zero"),
+        "horas_por_dia":   float(st.session_state.get("ob_horas", 3.0)),
+        "dias_por_semana": int(st.session_state.get("ob_dias", 5)),
+        "tem_edital":      st.session_state.get("ob_tem_edital", False),
+    }
+    data_prova = st.session_state.get("ob_data_prova")
+    if data_prova:
+        payload["data_prova"] = str(data_prova)
+    if payload["perfil"] == "tempo_por_materia":
+        payload["tempo_por_materia"] = st.session_state.get("ob_tempos", {})
+
+    try:
+        r = _requests.post(
+            f"{_API_BASE}/onboarding",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        resultado = r.json() if r.status_code == 201 else None
+    except Exception:
+        resultado = None
+
+    st.session_state["_ob_api_chamado"] = True
+    st.session_state["_ob_api_resultado"] = resultado
+    return resultado
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -356,6 +397,15 @@ def _tela6():
     _step_indicator(6)
     _card_titulo("🎉", "Seu plano está pronto!", "Aqui está a sua primeira semana de estudos")
 
+    # ── Chama a API FastAPI para gerar sessões reais no banco ─────────────
+    resultado_api = _chamar_onboarding_api()
+    if resultado_api:
+        st.session_state["cronograma_id"] = resultado_api.get("cronograma_id")
+        n = resultado_api.get("sessoes_geradas", 0)
+        st.success(f"✅ {n} sessões geradas no seu cronograma fiscal!")
+    else:
+        st.warning("⚠️ Não foi possível conectar ao servidor. Verifique se a API está rodando em localhost:8000.")
+
     area    = st.session_state.get("ob_area", "outro")
     perfil  = st.session_state.get("ob_perfil", "zero")
     horas   = float(st.session_state.get("ob_horas", 3.0))
@@ -420,6 +470,12 @@ def _tela6():
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def render():
+    # Pré-seleciona fiscal e vai direto para Tela 2 em novos usuários
+    if "ob_area" not in st.session_state:
+        st.session_state.ob_area = "fiscal"
+        st.session_state.ob_tela = 2
+        st.rerun()
+
     tela = st.session_state.get("ob_tela", 1)
 
     # Full-screen: oculta sidebar, perfil e expande layout

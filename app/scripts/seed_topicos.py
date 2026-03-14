@@ -20,6 +20,30 @@ from app.models.topico import Topico
 from app.services.decay import get_decay_rate
 
 # Matérias e subtópicos padrão
+# Pesos diferenciados por matéria — base para priorização fiscal
+PESO_FISCAL: dict[str, float] = {
+    "Direito Tributário":      0.90,
+    "Contabilidade":           0.85,
+    "Administração":           0.80,
+    "Matemática Financeira":   0.70,
+    "Direito Constitucional":  0.65,
+    "Direito Administrativo":  0.65,
+    "Português":               0.50,
+    "Raciocínio Lógico":       0.50,
+    "Matemática":              0.45,
+    "Informática":             0.35,
+    "Atualidades":             0.30,
+}
+
+
+def _peso(materia: str) -> float:
+    """Retorna peso_edital para a matéria, com fallback de 0.50."""
+    for chave, peso in PESO_FISCAL.items():
+        if chave.lower() in materia.lower():
+            return peso
+    return 0.50
+
+
 MATERIAS_PADRAO: dict[str, list[str]] = {
     "Português": [
         "Interpretação de Texto", "Concordância Verbal e Nominal", "Regência Verbal e Nominal",
@@ -159,6 +183,7 @@ def seed(db=None) -> dict:
 
         for materia, subtopicos in MATERIAS_PADRAO.items():
             decay = get_decay_rate(materia)
+            peso = _peso(materia)
 
             # Tópico raiz (nivel=0 = matéria)
             if (materia, 0) not in existentes:
@@ -168,10 +193,17 @@ def seed(db=None) -> dict:
                     nivel=0,
                     area=materia,
                     decay_rate=decay,
-                    peso_edital=1.0,
+                    peso_edital=peso,
                 ))
                 existentes.add((materia, 0))
                 materias_criadas += 1
+            else:
+                # Atualiza peso se ainda está no default antigo
+                t = db.query(Topico).filter(
+                    Topico.nome == materia, Topico.nivel == 0
+                ).first()
+                if t and t.peso_edital == 1.0:
+                    t.peso_edital = peso
 
             # Subtópicos (nivel=2 = tópico folha)
             for sub in subtopicos:
@@ -182,10 +214,17 @@ def seed(db=None) -> dict:
                         nivel=2,
                         area=materia,
                         decay_rate=decay,
-                        peso_edital=1.0,
+                        peso_edital=peso,
                     ))
                     existentes.add((sub, 2))
                     topicos_criados += 1
+                else:
+                    # Atualiza peso do subtópico se ainda está no default
+                    st_ = db.query(Topico).filter(
+                        Topico.nome == sub, Topico.nivel == 2
+                    ).first()
+                    if st_ and st_.peso_edital == 1.0:
+                        st_.peso_edital = peso
 
         db.commit()
         resultado = {"materias": materias_criadas, "topicos": topicos_criados}

@@ -12,6 +12,7 @@ import streamlit as st
 from database import inicializar_banco
 from style import aplicar_estilo
 from config_app import APP_NAME, APP_SLOGAN, APP_AUTHOR, LOGO_FILE
+from telas.components import timer_bar
 
 # ── Configuracao da pagina ────────────────────────────────────────────────────
 st.set_page_config(
@@ -25,7 +26,6 @@ inicializar_banco()
 
 # ── Autenticacao ──────────────────────────────────────────────────────────────
 if not st.session_state.get("autenticado"):
-    # Reseta qualquer CSS residual da sessão anterior antes de mostrar o login
     st.markdown(
         "<style>.stApp{background:none!important}</style>",
         unsafe_allow_html=True,
@@ -34,27 +34,27 @@ if not st.session_state.get("autenticado"):
     pg_login()
     st.stop()
 
+# ── Timer de estudo no topo (client-side JS) ──────────────────────────────────
+st.markdown(timer_bar(), unsafe_allow_html=True)
+
 # ── Importa as telas ─────────────────────────────────────────────────────────
 from telas.pg_dashboard       import render as pg_dashboard
 from telas.pg_lancar_bateria  import render as pg_lancar
 from telas.pg_historico       import render as pg_historico
 from telas.pg_erros_criticos  import render as pg_erros_criticos
 from telas.pg_evolucao_mensal import render as pg_grafico
-from telas.pg_cadastro        import render as pg_cadastro
 from telas.pg_analise_erros   import render as pg_analise_erros
 from telas.pg_perfil          import render as pg_perfil
-from telas.pg_onboarding     import render as pg_onboarding
-from telas.pg_plano          import render as pg_plano
+from telas.pg_onboarding      import render as pg_onboarding
+from telas.pg_plano           import render as pg_plano
 
 # ── Onboarding: redireciona novos usuarios ────────────────────────────────────
 if not st.session_state.get("onboarding_concluido"):
     from database import get_perfil as _get_perfil
     _perfil_db = _get_perfil(st.session_state.usuario["id"])
     if _perfil_db.get("plano") == "ativo":
-        # Ja concluiu o onboarding anteriormente
         st.session_state.onboarding_concluido = True
     else:
-        # Novo usuario — inicia onboarding
         if "ob_tela" not in st.session_state:
             st.session_state.ob_tela = 1
         st.session_state.pagina = "onboarding"
@@ -65,7 +65,7 @@ if "pagina" not in st.session_state:
 
 # ── Sidebar de navegacao ──────────────────────────────────────────────────────
 with st.sidebar:
-    # Logo
+    # Logo ou nome do app
     logo_path = os.path.join(os.path.dirname(__file__), LOGO_FILE)
     if os.path.exists(logo_path):
         img_b64 = base64.b64encode(open(logo_path, "rb").read()).decode()
@@ -91,19 +91,23 @@ with st.sidebar:
     )
     st.divider()
 
-    menu = [
-        ("plano",         "Meu Plano"),
-        ("dashboard",     "Desempenho"),
-        ("lancar",        "Lançar Bateria"),
-        ("historico",     "Histórico"),
-        ("analise_erros", "Análise de Erros"),
-        ("grafico",       "Evolução Mensal"),
+    # Menu com ícones
+    MENU_ITEMS = [
+        ("plano",          "🏠", "Agenda do Dia"),
+        ("dashboard",      "📊", "Desempenho"),
+        ("lancar",         "✏️",  "Lançar Bateria"),
+        ("historico",      "🕐", "Histórico"),
+        ("analise_erros",  "🔍", "Análise de Erros"),
+        ("erros_criticos", "⚠️", "Erros Críticos"),
+        ("grafico",        "📈", "Evolução Mensal"),
+        ("perfil",         "👤", "Meu Perfil"),
     ]
 
-    for chave, label in menu:
+    for chave, icone, label in MENU_ITEMS:
         ativo = (st.session_state.pagina == chave)
+        texto = f"{icone}  {label}"
         if st.button(
-            label,
+            texto,
             key=f"nav_{chave}",
             use_container_width=True,
             type="primary" if ativo else "secondary",
@@ -115,6 +119,8 @@ with st.sidebar:
             st.rerun()
 
     st.divider()
+
+    # Nome do usuário + sair
     usuario_sb = st.session_state.get("usuario", {})
     st.markdown(
         f'<p style="color:#8ab0c8;font-size:0.78rem;text-align:center;padding:0 8px 4px 8px;">'
@@ -133,7 +139,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    uid_atual = st.session_state.get("usuario", {}).get("id", "?")
+    uid_atual  = st.session_state.get("usuario", {}).get("id", "?")
     nome_atual = st.session_state.get("usuario", {}).get("nome", "?")
     st.markdown(
         f'<p style="color:#3a6080;font-size:0.68rem;text-align:center;margin:0 0 6px 0;">'
@@ -147,7 +153,6 @@ with st.sidebar:
         result = gerar_dados_teste(st.session_state.usuario["id"])
         _fetch_lancamentos.clear()
         st.session_state.onboarding_concluido = True
-        # Gera sessoes no dev.db para o usuario logado (para a Agenda funcionar)
         email_atual = st.session_state.get("usuario", {}).get("email", "")
         if email_atual and st.session_state.get("api_token"):
             try:
@@ -156,9 +161,7 @@ with st.sidebar:
             except Exception:
                 pass
         st.session_state.pagina = "plano"
-        st.toast(
-            f"Dados de teste carregados! {result['baterias']} baterias geradas.",
-        )
+        st.toast(f"Dados de teste carregados! {result['baterias']} baterias geradas.")
         st.rerun()
 
     if st.button("Resetar Dados", key="btn_reset_usuario", use_container_width=True):
@@ -175,28 +178,6 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# ── Topbar superior direito (popover perfil + logoff) ────────────────────────
-usuario = st.session_state.get("usuario", {})
-nome_usuario = usuario.get("nome", "Usuario")
-iniciais = "".join(p[0].upper() for p in nome_usuario.split()[:2])
-
-_, col_user = st.columns([7, 1.5])
-with col_user:
-    with st.popover(f"{iniciais}  {nome_usuario}", use_container_width=True):
-        st.markdown(
-            f'<div class="topbar-avatar">{iniciais}</div>'
-            f'<p class="topbar-nome">{nome_usuario}</p>'
-            f'<p class="topbar-email">{usuario.get("email","")}</p>',
-            unsafe_allow_html=True,
-        )
-        st.divider()
-        if st.button("Meu Perfil", key="pop_perfil", use_container_width=True):
-            st.session_state.pagina = "perfil"
-            st.rerun()
-        if st.button("Sair", key="pop_logout", use_container_width=True):
-            st.session_state.clear()
-            st.rerun()
-
 # ── Roteamento de paginas ─────────────────────────────────────────────────────
 pagina = st.session_state.pagina
 
@@ -212,8 +193,6 @@ elif pagina == "erros_criticos":
     pg_erros_criticos()
 elif pagina == "grafico":
     pg_grafico()
-elif pagina == "cadastro":
-    pg_cadastro()
 elif pagina == "perfil":
     pg_perfil()
 elif pagina == "onboarding":

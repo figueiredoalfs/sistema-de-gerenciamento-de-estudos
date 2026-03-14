@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from database import ler_erros
+from telas.components import page_title, _injetar_css
 
 TIPO_LABEL = {
     "nao_sabia":  "Não sabia",
@@ -28,20 +29,8 @@ PLOT_LAYOUT = dict(
 
 
 def _header():
-    st.html("""
-        <div style="
-            background:linear-gradient(135deg,#061020 0%,#0d1b2a 100%);
-            border-radius:10px;padding:18px 24px;margin-bottom:20px;
-            text-align:center;border-bottom:3px solid #e74c3c;
-            box-shadow:0 4px 16px rgba(0,0,0,0.35);
-        ">
-            <span style="font-size:1.4rem;">&#128200;</span>
-            <span style="color:#fff;font-weight:800;font-size:1.3rem;
-                letter-spacing:0.12em;margin-left:10px;text-transform:uppercase;">
-                Análise de Erros
-            </span>
-        </div>
-    """)
+    _injetar_css()
+    page_title("Análise de Erros", "Padrões e tendências dos seus erros por matéria")
 
 
 def _section(titulo: str):

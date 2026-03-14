@@ -4,9 +4,29 @@
 > Consulte /docs apenas quando a tarefa em execução exigir.
 
 ## Projeto
-Plataforma de estudos para concursos públicos com IA.
-Stack: FastAPI + SQLite(dev)/PostgreSQL(prod) + Celery/Redis + Gemini/Anthropic.
+Plataforma de estudos para concursos — **foco primário: Área Fiscal**.
+Stack: FastAPI + SQLite(dev)/PostgreSQL(prod) + Celery(eager/sync) + Gemini/Anthropic.
 Frontend: Streamlit. Deploy: Railway. Auth: JWT (roles: admin / aluno).
+
+### Estado atual (2026-03-14)
+- Onboarding pré-selecionado para fiscal (pula Tela 1, vai direto à Tela 2)
+- Tela 6 do onboarding chama POST /onboarding → gera sessões reais no banco
+- seed_topicos.py com pesos diferenciados por matéria (PESO_FISCAL)
+- Agenda do Dia: tabela compacta com estrelas de relevância, KPIs, abas
+- Timer de estudo (cronômetro JS client-side) no topo de todas as telas
+- Sidebar com ícones + 8 itens de menu (incl. Erros Críticos e Meu Perfil)
+- Header padronizado (page_title / page_header) em todas as telas
+- `telas/components.py` com componentes reutilizáveis
+
+### Fluxo funcional para testar
+```
+1. uvicorn app.main:app --reload
+2. python -m app.scripts.seed_topicos
+3. streamlit run app.py
+4. Login → Onboarding (Tela 2 direto) → Tela 6 "N sessões geradas"
+5. Agenda do Dia → tabela de sessões fiscais → concluir → % acerto
+6. Desempenho → tabela por matéria com KPIs
+```
 
 ## Arquivos de referência (ler só quando necessário)
 ```

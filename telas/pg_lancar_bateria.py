@@ -18,6 +18,7 @@ from database import (
 from api_client import api_registrar_bateria, api_registrar_erro
 from config_fontes import fontes_disponiveis
 from config_materias import get_topicos, get_subtopicos
+from telas.components import page_title, _injetar_css
 import threading
 
 TIPOS_ERRO = {
@@ -389,6 +390,8 @@ def _render_erros():
 # ── RENDER PRINCIPAL ──────────────────────────────────────────────────────────
 
 def render():
+    _injetar_css()
+    page_title("Lançar Bateria", "Registre suas questões e acompanhe os erros")
     _inicializar()
     if st.session_state.bat_fase == "erros":
         _render_erros()

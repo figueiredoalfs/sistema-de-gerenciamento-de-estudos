@@ -7,10 +7,12 @@ import streamlit as st
 from database import get_perfil, salvar_perfil, alterar_email, alterar_senha
 from database import get_plataformas_ativas, salvar_plataformas_ativas
 from config_fontes import GRUPOS_OPCIONAIS, GRUPOS_FONTE
+from telas.components import page_title, _injetar_css
 
 
 def render():
-    st.markdown("## Meu Perfil")
+    _injetar_css()
+    page_title("Meu Perfil", "Configurações da conta e preferências de estudo")
 
     usuario_id = st.session_state.usuario["id"]
     perfil = get_perfil(usuario_id)

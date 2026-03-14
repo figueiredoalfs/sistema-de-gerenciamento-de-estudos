@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.proficiencia import PESO_POR_FONTE, Proficiencia
 from app.models.sessao import Sessao
+from app.models.topico import Topico
 from app.services.priorizacao import calcular_agenda
 
 router = APIRouter(prefix="/agenda", tags=["agenda"])
@@ -87,11 +88,15 @@ def concluir_sessao(
 
     reforco_criado = False
     if body.percentual > 0 and sessao.topico_id:
+        # Carrega Topico explicitamente para evitar lazy-load falho
+        topico = db.query(Topico).filter(Topico.id == sessao.topico_id).first()
+        materia_nome = topico.area if topico else None  # area armazena o nome da matéria
+
         db.add(Proficiencia(
             id=str(uuid.uuid4()),
             aluno_id=current_user.id,
             topico_id=sessao.topico_id,
-            materia=sessao.topico.area if sessao.topico else None,
+            materia=materia_nome,
             acertos=0,
             total=0,
             percentual=body.percentual,

@@ -487,18 +487,12 @@ Gerar exemplo prático.
 ## Dashboard
 
 ### TASK 21
-⬜ PENDING
+✅ DONE (parcial — via /agenda + /desempenho)
 
-Criar endpoint:
-
-GET /dashboard
-
-Retornar:
-
-cronograma do dia
-progresso
-taxa de acerto
-próximas revisões
+GET /agenda já retorna sessões priorizadas do dia.
+GET /desempenho já retorna taxa de acerto por matéria.
+Dashboard (pg_plano.py) consome ambos e exibe KPIs + tabela.
+Endpoint dedicado /dashboard não é necessário por ora.
 
 ---
 

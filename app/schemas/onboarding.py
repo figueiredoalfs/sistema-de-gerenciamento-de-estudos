@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class OnboardingRequest(BaseModel):
     # Tela 1
-    area: str                   # Fiscal / Jurídica / Policial / TI / Saúde / Outro
+    area: str = "fiscal"        # Fiscal / Jurídica / Policial / TI / Saúde / Outro
 
     # Tela 2
     tem_edital: bool = False

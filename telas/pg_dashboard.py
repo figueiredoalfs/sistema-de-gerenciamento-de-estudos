@@ -7,6 +7,7 @@ import streamlit as st
 import pandas as pd
 from database import ler_lancamentos, ler_erros
 from api_client import api_obter_desempenho
+from telas.components import page_title, kpi_card, _injetar_css
 
 # ── Paleta de desempenho (limites: >85 / 75-85 / 65-75 / <65) ─────────────────
 def _perc_color(perc: float) -> str:
@@ -251,7 +252,8 @@ def _fetch_desempenho_api(token: str, mes, ano, fontes) -> dict | None:
 
 
 def render():
-    _dark_header("Painel de Desempenho")
+    _injetar_css()
+    page_title("Desempenho por Matéria", "Acompanhe seu aproveitamento em cada disciplina fiscal")
 
     # ── Filtros ────────────────────────────────────────────────────────────────
     meses_map = {
@@ -307,11 +309,13 @@ def render():
         total_a    = dados_api["total_acertos"]
         perc_geral = dados_api["perc_geral"]
 
-        k1, k2 = st.columns(2)
-        k1.metric("Total de Questoes", total_q)
-        k2.metric("Acertos", f"{total_a}  ({perc_geral:.1f}%)")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: kpi_card("Total de Questões", str(total_q), "📋", "#3a86ff")
+        with c2: kpi_card("Acertos", str(total_a), "✅", "#06d6a0")
+        with c3: kpi_card("% Geral", f"{perc_geral:.1f}%", "🎯", "#f77f00" if perc_geral < 65 else "#27ae60")
+        with c4: kpi_card("Matérias", str(len(dados_api["por_materia"])), "📚", "#9b5de5")
 
-        st.divider()
+        st.markdown("<br>", unsafe_allow_html=True)
         _render_tabela(dados_api["por_materia"], df_l_all, usar_api=True)
 
     else:
@@ -324,9 +328,12 @@ def render():
         total_a    = int(df_l["Acertos"].sum()) if not df_l.empty else 0
         perc_geral = round(total_a / total_q * 100, 1) if total_q > 0 else 0.0
 
-        k1, k2 = st.columns(2)
-        k1.metric("Total de Questoes", total_q)
-        k2.metric("Acertos", f"{total_a}  ({perc_geral:.1f}%)")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: kpi_card("Total de Questões", str(total_q), "📋", "#3a86ff")
+        with c2: kpi_card("Acertos", str(total_a), "✅", "#06d6a0")
+        with c3: kpi_card("% Geral", f"{perc_geral:.1f}%", "🎯", "#f77f00" if perc_geral < 65 else "#27ae60")
+        with c4: kpi_card("Matérias", str(len(df_l["Materia"].unique()) if not df_l.empty else 0), "📚", "#9b5de5")
+        st.markdown("<br>", unsafe_allow_html=True)
 
         st.divider()
 

@@ -27,6 +27,7 @@ from app.models.proficiencia import PESO_POR_FONTE, Proficiencia
 from app.models.sessao import Sessao
 from app.models.topico import Topico
 from app.schemas.onboarding import OnboardingRequest, OnboardingResponse
+from config_materias import MATERIAS_POR_AREA
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
@@ -240,8 +241,22 @@ def onboarding(
     if body.perfil == "csv" and body.dados_csv:
         _importar_csv(body.dados_csv, aluno.id, db)
 
-    # ── 4. Gerar sessões com tópicos base (genéricos se sem edital) ───────
-    topicos = db.query(Topico).filter(Topico.ativo == True).limit(50).all()
+    # ── 4. Gerar sessões com tópicos da área do aluno ─────────────────────
+    area_key = (body.area or "fiscal").lower()
+    materias_da_area = MATERIAS_POR_AREA.get(area_key, MATERIAS_POR_AREA.get("fiscal", []))
+
+    topicos = (
+        db.query(Topico)
+        .filter(
+            Topico.ativo == True,
+            Topico.nivel == 0,
+            Topico.area.in_(materias_da_area),
+        )
+        .all()
+    )
+    # Fallback se seed ainda não foi executado
+    if not topicos:
+        topicos = db.query(Topico).filter(Topico.ativo == True).limit(50).all()
     sessoes_count = _gerar_sessoes(topicos, cronograma.id, aluno.id, db)
 
     # ── 5. Meta semanal inicial ───────────────────────────────────────────

@@ -1,267 +1,258 @@
 """
-pg_plano.py - Plano semanal com lista unica de tasks, meta semanal e quiz inline.
+pg_plano.py — Agenda do Dia
+Tela principal: meta semanal, KPIs, tabela de atividades por prioridade.
 """
 import streamlit as st
 from database import get_perfil
 from api_client import api_get_agenda, api_concluir_sessao, api_adiar_meta
-
-TIPO_LABEL = {
-    "teoria_pdf": "Teoria", "exercicios": "Exercicios",
-    "video": "Video", "flashcard_texto": "Flashcard", "calibracao": "Calibracao",
-}
-TIPO_COR = {
-    "teoria_pdf": "#3b82f6", "exercicios": "#f59e0b",
-    "video": "#8b5cf6", "flashcard_texto": "#10b981", "calibracao": "#00b4a6",
-}
-QUIZ_TEMPLATES = {
-    "teoria_pdf":      ["Qual o conceito central deste topico?", "Cite um exemplo pratico.", "Qual a principal regra ou principio?"],
-    "exercicios":      ["Qual foi o maior erro neste topico?", "Qual questao voce achou mais dificil?", "O que precisa revisar?"],
-    "flashcard_texto": ["Explique com suas palavras o conceito.", "Qual a diferenca entre os termos?", "Quando este conceito se aplica?"],
-    "video":           ["O que voce aprendeu no video?", "Qual ponto foi mais relevante?", "O que faz sentido com o que ja sabia?"],
-}
+from telas.components import page_header, kpi_card, score_to_stars, tipo_badge, tipo_label, _injetar_css
 
 
-def _prio(score):
-    if score >= 0.7:
-        return "URGENTE", "#e74c3c"
-    elif score >= 0.5:
-        return "Alta", "#f59e0b"
-    return "Normal", "#27ae60"
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _horas_str(minutos: int) -> str:
+    h = minutos // 60
+    m = minutos % 60
+    if h and m:
+        return f"{h}h {m}min"
+    return f"{h}h" if h else f"{m}min"
 
 
-def _render_meta(sessoes, horas, dias):
-    total_semana = max(1, int(horas * dias * 60 / 50))
+def _render_meta_progress(sessoes: list, horas: float, dias: int):
+    """Barra de progresso da meta semanal."""
+    total_meta = max(1, int(horas * dias * 60 / 50))
     concluidas = sum(1 for s in sessoes if st.session_state.get(f"ok_{s['sessao_id']}"))
-    pct = min(int(concluidas / total_semana * 100), 100)
+    pct = min(int(concluidas / total_meta * 100), 100)
     cor = "#27ae60" if pct >= 70 else "#f59e0b" if pct >= 40 else "#e74c3c"
-    st.html(
-        f"<div style='background:#0d1b2a;border-radius:10px;border:1px solid #1a3050;"
-        f"padding:14px 18px;margin-bottom:12px;'>"
-        f"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'>"
-        f"<span style='color:#ffffff;font-weight:700;font-size:0.9rem;'>Meta Semanal</span>"
-        f"<span style='color:{cor};font-weight:800;font-size:1rem;'>{concluidas}/{total_semana} tasks</span></div>"
-        f"<div style='background:#0a1628;border-radius:6px;height:10px;'>"
-        f"<div style='background:{cor};width:{pct}%;height:10px;border-radius:6px;'></div></div>"
-        f"<div style='color:#7a9ab8;font-size:0.72rem;margin-top:6px;'>{pct}% concluido esta semana</div></div>"
-    )
 
-
-def _quiz(topico, tipo, key):
-    perguntas = QUIZ_TEMPLATES.get(tipo, QUIZ_TEMPLATES["teoria_pdf"])
     st.markdown(
-        f"<div style='background:#061020;border-radius:8px;border:1px solid #00b4a6;"
-        f"padding:12px 16px;margin-top:8px;'>"
-        f"<span style='color:#00b4a6;font-weight:700;font-size:0.82rem;'>"
-        f"Questionario: {topico[:40]}</span></div>",
+        f'<div class="meta-card">'
+        f'  <span class="meta-tag">Meta Semanal</span>'
+        f'  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+        f'    <span style="color:#8ab0c8;font-size:0.8rem;">{concluidas} de {total_meta} sessões</span>'
+        f'    <span style="color:{cor};font-weight:700;">{pct}%</span>'
+        f'  </div>'
+        f'  <div style="background:#0a1628;border-radius:6px;height:10px;">'
+        f'    <div style="background:{cor};width:{pct}%;height:10px;border-radius:6px;transition:width 0.3s;"></div>'
+        f'  </div>'
+        f'  <div class="meta-info">{int(horas * dias)}h planejadas por semana · {dias} dias</div>'
+        f'</div>',
         unsafe_allow_html=True,
     )
-    respostas = []
-    for i, pergunta in enumerate(perguntas):
-        r = st.text_area(pergunta, key=f"qr_{key}_{i}", height=60, placeholder="Sua resposta...")
-        respostas.append(r.strip())
-    respondidas = sum(1 for r in respostas if len(r) > 5)
-    if respondidas < 2:
-        st.caption(f"Responda pelo menos 2 perguntas para concluir ({respondidas}/2)")
-    return respondidas >= 2
 
 
-def _card(s, idx):
-    tipo       = s.get("tipo", "")
-    tipo_label = TIPO_LABEL.get(tipo, tipo)
-    tipo_cor   = TIPO_COR.get(tipo, "#7a9ab8")
-    score      = s.get("score", 0)
-    prio_label, prio_cor = _prio(score)
-    dur    = s.get("duracao_planejada_min", 50)
-    topico = s.get("topico_nome", "Topico")
-    area   = s.get("area", "")
-    sid    = s.get("sessao_id", "")
-    key    = f"t{idx}_{sid[:8]}"
-
-    if st.session_state.get(f"ok_{sid}"):
-        st.html(
-            f"<div style='background:#0a1628;border-radius:8px;border-left:4px solid #27ae60;"
-            f"padding:8px 16px;margin-bottom:4px;opacity:0.5;'>"
-            f"<span style='color:#27ae60;font-size:0.75rem;'>Concluido</span>"
-            f"<span style='color:#7a9ab8;margin-left:8px;font-size:0.82rem;'>{topico[:50]}</span></div>"
-        )
-        return
-
-    expandido = st.session_state.get(f"exp_{sid}", False)
-    col_card, col_btn = st.columns([5, 1])
-
-    with col_card:
-        seta = "v" if expandido else ">"
-        if st.button(
-            f"[{seta}] [{tipo_label}]  {topico[:45]}  |  {dur}min  |  {prio_label}",
-            key=f"card_{key}",
-            use_container_width=True,
-        ):
-            st.session_state[f"exp_{sid}"] = not expandido
-            st.rerun()
-
-    with col_btn:
-        if not expandido:
-            if st.button("Concluir", key=f"rapido_{key}", type="primary", use_container_width=True):
-                st.session_state[f"fb_{sid}"] = True
-                st.rerun()
-
-    # Feedback rapido
-    if not expandido and st.session_state.get(f"fb_{sid}"):
+def _render_proxima_sessao(sessoes: list):
+    """Painel lateral com a próxima sessão pendente em destaque."""
+    pendente = next(
+        (s for s in sessoes if not st.session_state.get(f"ok_{s['sessao_id']}")),
+        None,
+    )
+    if pendente:
+        materia = pendente.get("materia") or pendente.get("area", "")
+        dur = pendente.get("duracao_planejada_min", 50)
         st.markdown(
-            f"<div style='background:#0d1b2a;border:1px solid #00b4a6;border-radius:8px;"
-            f"padding:10px 16px;margin-bottom:4px;'>"
-            f"<span style='color:#c8d6e5;font-size:0.82rem;'>Como foi em <b>{topico[:35]}</b>?</span></div>",
+            f'<div class="prox-card">'
+            f'  <div class="prox-titulo">Próxima Sessão</div>'
+            f'  <div style="font-size:0.85rem;color:#e8f4ff;font-weight:600;margin-bottom:4px;">{materia}</div>'
+            f'  <div style="font-size:0.75rem;color:#8ab0c8;">{tipo_label(pendente.get("tipo",""))} · {dur}min</div>'
+            f'  <div class="prox-data">{score_to_stars(pendente.get("score", 0))}</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
+    else:
+        st.markdown(
+            '<div class="prox-card">'
+            '  <div class="prox-titulo">Meta</div>'
+            '  <div class="prox-data">✅</div>'
+            '  <div style="font-size:0.75rem;color:#8ab0c8;margin-top:6px;">Todas concluídas!</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+
+def _modal_concluir(s: dict, key_suffix: str):
+    """Formulário inline para registrar conclusão de sessão."""
+    sid = s["sessao_id"]
+    dur = s.get("duracao_planejada_min", 50)
+
+    with st.expander(f"✓ Concluir: {s.get('topico_nome','')[:40]}", expanded=True):
         c1, c2 = st.columns(2)
-        perc  = c1.slider("% acerto", 0, 100, 70, key=f"perc_{key}")
-        dur_r = c2.number_input("Tempo (min)", 5, 120, dur, key=f"dur_{key}")
+        perc  = c1.slider("% de acerto", 0, 100, 70, key=f"perc_{key_suffix}")
+        dur_r = c2.number_input("Tempo real (min)", 5, 180, dur, key=f"dur_{key_suffix}")
         b1, b2 = st.columns(2)
-        if b1.button("Salvar", key=f"salvar_{key}", type="primary"):
+        if b1.button("Salvar", key=f"salvar_{key_suffix}", type="primary"):
             res = api_concluir_sessao(sid, percentual=float(perc), duracao_real_min=int(dur_r))
             st.session_state[f"ok_{sid}"] = True
-            st.session_state.pop(f"fb_{sid}", None)
+            st.session_state.pop(f"modal_{sid}", None)
             if res and res.get("reforco_inserido"):
-                st.session_state["_reforco_msg"] = topico[:35]
+                st.session_state["_reforco_msg"] = s.get("topico_nome", "")[:35]
             st.rerun()
-        if b2.button("Pular", key=f"skip_{key}"):
+        if b2.button("Pular", key=f"skip_{key_suffix}"):
             api_concluir_sessao(sid, percentual=0, duracao_real_min=0)
             st.session_state[f"ok_{sid}"] = True
-            st.session_state.pop(f"fb_{sid}", None)
+            st.session_state.pop(f"modal_{sid}", None)
             st.rerun()
 
-    # Painel expandido
-    if expandido:
-        st.html(
-            f"<div style='background:linear-gradient(135deg,#0a1628,#0d1b2a);"
-            f"border-radius:0 0 8px 8px;border:1px solid #1a3050;border-top:none;"
-            f"padding:14px 16px;margin-bottom:4px;'>"
-            f"<div style='display:flex;gap:8px;margin-bottom:8px;'>"
-            f"<span style='background:{tipo_cor}22;color:{tipo_cor};font-size:0.7rem;"
-            f"font-weight:700;padding:3px 10px;border-radius:4px;'>{tipo_label}</span>"
-            f"<span style='background:{prio_cor}22;color:{prio_cor};font-size:0.68rem;"
-            f"padding:3px 8px;border-radius:4px;font-weight:700;'>{prio_label}</span>"
-            f"<span style='color:#7a9ab8;font-size:0.7rem;margin-left:auto;'>{dur} min</span></div>"
-            f"<div style='color:#ffffff;font-weight:700;'>{topico}</div>"
-            f"<div style='color:#7a9ab8;font-size:0.78rem;margin-top:2px;'>{area}</div></div>"
-        )
 
-        c_pdf, c_quiz, c_fechar = st.columns(3)
-        with c_pdf:
-            if st.button("Gerar PDF", key=f"pdf_{key}", use_container_width=True):
-                st.session_state[f"pdf_info_{sid}"] = True
-        with c_quiz:
-            quiz_ativo = st.session_state.get(f"qativo_{sid}", False)
-            lbl = "Fechar Questionario" if quiz_ativo else "Realizar Questionario"
-            if st.button(lbl, key=f"qbtn_{key}", use_container_width=True):
-                st.session_state[f"qativo_{sid}"] = not quiz_ativo
+def _render_tabela(sessoes: list, prefix: str = "at"):
+    """Tabela compacta de sessões com colunas: #, Matéria, Tipo, Tópico, Relevância, Duração, Desempenho, Ação."""
+    if not sessoes:
+        st.info("Nenhuma sessão pendente. Complete o onboarding para gerar seu plano.")
+        return
+
+    # Cabeçalho
+    cols = st.columns([0.4, 1.8, 1.2, 2.8, 1.3, 0.8, 0.9, 1.1])
+    for label, col in zip(
+        ["#", "Matéria", "Tipo", "Tópico", "Relevância", "Duração", "Desempenho", ""],
+        cols,
+    ):
+        col.markdown(f"<small><b>{label}</b></small>", unsafe_allow_html=True)
+
+    st.markdown('<hr style="margin:4px 0 8px 0;border-color:#1e3040;">', unsafe_allow_html=True)
+
+    for i, s in enumerate(sessoes, 1):
+        sid     = s["sessao_id"]
+        concluida = st.session_state.get(f"ok_{sid}", False)
+        materia = s.get("materia") or s.get("area", "—")
+        topico  = s.get("topico_nome", "—")
+        tipo    = s.get("tipo", "")
+        dur     = s.get("duracao_planejada_min", 50)
+        score   = s.get("score", 0)
+        desemp  = s.get("desempenho")
+        desemp_txt = f"{desemp:.0f}%" if desemp is not None else "—"
+        estrelas = score_to_stars(score)
+
+        opacity = "0.45" if concluida else "1"
+        row_bg  = "#122033" if concluida else ("transparent" if i % 2 == 0 else "#0e1d2b")
+
+        cols = st.columns([0.4, 1.8, 1.2, 2.8, 1.3, 0.8, 0.9, 1.1])
+        style = f"opacity:{opacity};"
+
+        cols[0].markdown(f"<span style='{style}color:#8ab0c8;'>{i}</span>", unsafe_allow_html=True)
+        cols[1].markdown(f"<span style='{style}color:#e8f4ff;font-weight:600;'>{materia[:22]}</span>", unsafe_allow_html=True)
+        cols[2].markdown(tipo_badge(tipo) if not concluida else f"<span style='color:#8ab0c8;font-size:0.75rem;'>{tipo_label(tipo)}</span>", unsafe_allow_html=True)
+        cols[3].markdown(f"<span style='{style}color:#c8d6e5;'>{topico[:38]}</span>", unsafe_allow_html=True)
+        cols[4].markdown(f"<span style='{style}color:#f0c040;'>{estrelas}</span>", unsafe_allow_html=True)
+        cols[5].markdown(f"<span style='{style}color:#8ab0c8;'>{dur}min</span>", unsafe_allow_html=True)
+        cols[6].markdown(f"<span style='{style}color:#8ab0c8;'>{desemp_txt}</span>", unsafe_allow_html=True)
+
+        if concluida:
+            cols[7].markdown("<span style='color:#27ae60;font-size:0.8rem;'>✓ Feito</span>", unsafe_allow_html=True)
+        else:
+            if cols[7].button("✓", key=f"{prefix}_btn_{sid}", help="Concluir sessão"):
+                st.session_state[f"modal_{sid}"] = True
                 st.rerun()
-        with c_fechar:
-            if st.button("Fechar", key=f"fechar_{key}", use_container_width=True):
-                st.session_state[f"exp_{sid}"] = False
-                st.rerun()
 
-        if st.session_state.pop(f"pdf_info_{sid}", False):
-            st.info("Geracao de PDF sera implementada na F-05.")
+        # Modal inline abaixo da linha
+        if st.session_state.get(f"modal_{sid}"):
+            _modal_concluir(s, key_suffix=f"{prefix}_{sid[:8]}")
 
-        if st.session_state.get(f"qativo_{sid}"):
-            quiz_ok = _quiz(topico, tipo, key)
-            if quiz_ok:
-                c1, c2 = st.columns(2)
-                perc  = c1.slider("% acerto", 0, 100, 70, key=f"qperc_{key}")
-                dur_r = c2.number_input("Tempo (min)", 5, 120, dur, key=f"qdur_{key}")
-                if st.button("Concluir Task", key=f"qconcluir_{key}", type="primary", use_container_width=True):
-                    res = api_concluir_sessao(sid, percentual=float(perc), duracao_real_min=int(dur_r))
-                    st.session_state[f"ok_{sid}"] = True
-                    st.session_state.pop(f"qativo_{sid}", None)
-                    st.session_state.pop(f"exp_{sid}", None)
-                    if res and res.get("reforco_inserido"):
-                        st.session_state["_reforco_msg"] = topico[:35]
-                    st.rerun()
 
+# ── Entry point ───────────────────────────────────────────────────────────────
 
 def render():
+    _injetar_css()
+
     usuario_id = st.session_state.usuario["id"]
     perfil = get_perfil(usuario_id)
-    area   = perfil.get("area_estudo", "")
     horas  = float(perfil.get("horas_dia") or 3.0)
     dias   = int(perfil.get("dias_semana") or 5)
-    data_p = perfil.get("data_prova", "")
 
-    st.html(
-        "<div style='background:linear-gradient(135deg,#061020,#0d1b2a);border-radius:10px;"
-        "padding:18px 24px;margin-bottom:16px;text-align:center;border-bottom:3px solid #00b4a6;"
-        "box-shadow:0 4px 16px rgba(0,0,0,0.35);'>"
-        "<span style='color:#ffffff;font-weight:800;font-size:1.3rem;"
-        "letter-spacing:0.12em;text-transform:uppercase;'>Meu Plano Semanal</span>"
-        "<div style='color:#7a9ab8;font-size:0.78rem;margin-top:4px;'>"
-        "Priorizado por urgencia, lacuna e desempenho real</div></div>"
-    )
-
-    msg_reforco = st.session_state.pop("_reforco_msg", None)
-    if msg_reforco:
-        st.warning(f"Reforco inserido: Flashcard adicionado para '{msg_reforco}' (desempenho < 60%).")
-
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Carga/semana", f"{int(horas * dias)}h")
-    c2.metric("Dias de estudo", f"{dias}")
-    c3.metric("Max/sessao", "50 min")
-    if data_p:
-        st.markdown(
-            f"<p style='color:#7a9ab8;font-size:0.82rem;'>Prova: <strong>{data_p}</strong></p>",
-            unsafe_allow_html=True,
-        )
-
-    if not area or perfil.get("plano") != "ativo":
-        st.divider()
-        st.info("Voce ainda nao configurou seu plano.")
-        if st.button("Configurar ->", type="primary"):
+    # Verificações de estado
+    if not perfil.get("plano") == "ativo":
+        page_header("Agenda do Dia", "Configure seu plano para começar")
+        st.info("Você ainda não configurou seu plano de estudos.")
+        if st.button("Configurar agora →", type="primary"):
             st.session_state.ob_tela = 1
             st.session_state.pagina  = "onboarding"
             st.rerun()
         return
 
     if not st.session_state.get("api_token"):
-        st.divider()
-        st.warning("Sessao expirada. Faca logout e entre novamente.")
+        page_header("Agenda do Dia", "")
+        st.warning("Sessão expirada. Saia e entre novamente para continuar.")
         if st.button("Sair", key="plano_logout"):
             st.session_state.clear()
             st.rerun()
         return
 
-    sessoes_por_dia = max(1, int(horas * 60 / 50))
-    total_buscar = min(sessoes_por_dia * dias + 10, 50)
+    # Header
+    page_header("Agenda do Dia", "Acompanhe seu progresso e veja o que falta para atingir sua meta")
 
-    with st.spinner("Calculando plano..."):
+    # Busca sessões da API
+    sessoes_por_dia = max(1, int(horas * 60 / 50))
+    total_buscar    = min(sessoes_por_dia * dias + 10, 50)
+    with st.spinner("Calculando prioridades..."):
         sessoes = api_get_agenda(top=total_buscar)
 
-    if not sessoes:
-        st.divider()
-        st.info("Nenhuma sessao pendente. Use Carregar Dados de Teste para gerar um plano.")
-        return
+    # Meta + próxima sessão
+    col_meta, col_prox = st.columns([3, 1])
+    with col_meta:
+        _render_meta_progress(sessoes, horas, dias)
+    with col_prox:
+        _render_proxima_sessao(sessoes)
 
-    st.divider()
-    _render_meta(sessoes, horas, dias)
+    # Notificação de reforço inserido
+    msg_reforco = st.session_state.pop("_reforco_msg", None)
+    if msg_reforco:
+        st.warning(f"Reforço inserido: Flashcard adicionado para '{msg_reforco}' (desempenho < 60%).")
 
-    col_adiar, _ = st.columns([1, 3])
-    with col_adiar:
-        if st.button("Adiar Meta (+7 dias)", key="btn_adiar", use_container_width=True):
-            if api_adiar_meta(dias=7):
-                st.toast("Meta adiada em 7 dias.")
+    # KPIs
+    total_sessoes   = len(sessoes)
+    concluidas_hoje = sum(1 for s in sessoes if st.session_state.get(f"ok_{s['sessao_id']}"))
+    scores          = [s.get("score", 0) for s in sessoes if s.get("score")]
+    desemp_medio    = sum(scores) / len(scores) * 100 if scores else 0
+    carga_plan_min  = sum(s.get("duracao_planejada_min", 50) for s in sessoes if not st.session_state.get(f"ok_{s['sessao_id']}"))
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("Sessões pendentes", str(total_sessoes - concluidas_hoje), "📋", "#3a86ff")
+    with c2:
+        kpi_card("Concluídas hoje", str(concluidas_hoje), "✅", "#06d6a0")
+    with c3:
+        kpi_card("Prioridade média", f"{desemp_medio:.0f}%", "🎯", "#f77f00")
+    with c4:
+        kpi_card("Carga pendente", _horas_str(carga_plan_min), "⏱", "#9b5de5")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Separar atividades normais de reforços (flashcard gerado automaticamente)
+    reforcos   = [s for s in sessoes if s.get("tipo") == "flashcard_texto" and s.get("score", 1) < 0.3]
+    atividades = [s for s in sessoes if s not in reforcos]
+
+    # Abas
+    tab_ativ, tab_ref, tab_adiar = st.tabs([
+        f"Atividades | {len(atividades)}",
+        f"Reforços | {len(reforcos)}",
+        "⚙️ Opções",
+    ])
+
+    with tab_ativ:
+        _render_tabela(atividades, prefix="at")
+
+    with tab_ref:
+        if reforcos:
+            _render_tabela(reforcos, prefix="rf")
+        else:
+            st.info("Nenhum reforço pendente. Os reforços aparecem quando você tem desempenho < 60% em uma sessão.")
+
+    with tab_adiar:
+        st.markdown("##### Adiar todas as sessões")
+        st.caption("Use com moderação — adia as sessões pendentes em N dias.")
+        dias_adiar = st.selectbox("Adiar em", [1, 3, 7], index=0, key="dias_adiar_sel")
+        if st.button(f"Adiar em {dias_adiar} dia(s)", key="btn_adiar"):
+            if api_adiar_meta(dias=dias_adiar):
+                st.toast(f"Sessões adiadas em {dias_adiar} dia(s).")
                 for k in list(st.session_state.keys()):
-                    if k.startswith("ok_") or k.startswith("exp_"):
+                    if k.startswith("ok_") or k.startswith("exp_") or k.startswith("modal_"):
                         del st.session_state[k]
                 st.rerun()
 
-    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-
-    for idx, s in enumerate(sessoes):
-        _card(s, idx)
-
-    st.divider()
-    if st.button("Recalcular plano", key="btn_recalc"):
-        prefixes = ("ok_", "fb_", "exp_", "qr_", "qativo_", "perc_", "dur_")
-        for k in list(st.session_state.keys()):
-            if any(k.startswith(p) for p in prefixes):
-                del st.session_state[k]
-        st.rerun()
+        st.markdown("---")
+        st.markdown("##### Recalcular plano")
+        if st.button("Recalcular", key="btn_recalc"):
+            prefixes = ("ok_", "fb_", "exp_", "modal_", "qr_", "qativo_", "perc_", "dur_")
+            for k in list(st.session_state.keys()):
+                if any(k.startswith(p) for p in prefixes):
+                    del st.session_state[k]
+            st.rerun()
