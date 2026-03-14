@@ -14,8 +14,8 @@ from app.models.subject import Subject
 from app.models.topic import Topic
 from app.models.topic_progress import TopicProgress
 from app.models.question_attempt import QuestionAttempt
-from app.models.study_session import StudySession
 from app.models.resposta_questao import RespostaQuestao
+from app.models.study_task import StudyTask
 
 __all__ = [
     "Aluno",
@@ -34,6 +34,6 @@ __all__ = [
     "Topic",
     "TopicProgress",
     "QuestionAttempt",
-    "StudySession",
     "RespostaQuestao",
+    "StudyTask",
 ]

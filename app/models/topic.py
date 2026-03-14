@@ -17,4 +17,3 @@ class Topic(Base):
     subject = relationship("Subject", back_populates="topics")
     progress = relationship("TopicProgress", back_populates="topic", cascade="all, delete-orphan")
     attempts = relationship("QuestionAttempt", back_populates="topic", cascade="all, delete-orphan")
-    study_sessions = relationship("StudySession", back_populates="topic", cascade="all, delete-orphan")

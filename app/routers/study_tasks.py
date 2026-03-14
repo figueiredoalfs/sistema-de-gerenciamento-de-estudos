@@ -1,0 +1,151 @@
+"""
+routers/study_tasks.py
+
+POST  /tasks              — cria task de estudo
+GET   /tasks              — lista tasks do usuário (filtros: tipo, status)
+PATCH /tasks/{id}/status  — atualiza status da task
+"""
+
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models.aluno import Aluno
+from app.models.study_task import StudyTask
+from app.models.topico import Topico
+from app.schemas.study_task import (
+    StudyTaskCreate,
+    StudyTaskListResponse,
+    StudyTaskResponse,
+    StudyTaskStatusUpdate,
+)
+
+router = APIRouter(tags=["tasks"])
+
+
+# ── Helpers ─────────────────────────────────────────────────────────────────────
+
+def _get_topico(db: Session, topico_id: str, nivel: int) -> Topico:
+    """Busca um tópico pelo id e valida o nível esperado. Lança 404 se não encontrar."""
+    topico = db.query(Topico).filter(
+        Topico.id == topico_id,
+        Topico.nivel == nivel,
+        Topico.ativo == True,
+    ).first()
+    niveis = {0: "subject", 1: "topic", 2: "subtopic"}
+    if not topico:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{niveis[nivel]} '{topico_id}' não encontrado ou inativo",
+        )
+    return topico
+
+
+def _validar_hierarquia(db: Session, subject_id: str, topic_id: str, subtopic_id: str):
+    """Valida que topic é filho de subject e subtopic é filho de topic."""
+    subject = _get_topico(db, subject_id, nivel=0)
+    topic = _get_topico(db, topic_id, nivel=1)
+    subtopic = _get_topico(db, subtopic_id, nivel=2)
+
+    if topic.parent_id != subject.id:
+        raise HTTPException(status_code=422, detail="topic não pertence ao subject informado")
+    if subtopic.parent_id != topic.id:
+        raise HTTPException(status_code=422, detail="subtopic não pertence ao topic informado")
+
+    return subject, topic, subtopic
+
+
+def _to_response(task: StudyTask) -> StudyTaskResponse:
+    return StudyTaskResponse(
+        id=task.id,
+        aluno_id=task.aluno_id,
+        subject_id=task.subject_id,
+        topic_id=task.topic_id,
+        subtopic_id=task.subtopic_id,
+        subject_nome=task.subject.nome if task.subject else None,
+        topic_nome=task.topic.nome if task.topic else None,
+        subtopic_nome=task.subtopic.nome if task.subtopic else None,
+        tipo=task.tipo,
+        status=task.status,
+        created_at=task.created_at,
+    )
+
+
+# ── Endpoints ───────────────────────────────────────────────────────────────────
+
+@router.post("/tasks", response_model=StudyTaskResponse, status_code=201)
+def criar_task(
+    body: StudyTaskCreate,
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """Cria uma task de estudo para o usuário autenticado."""
+    _validar_hierarquia(db, body.subject_id, body.topic_id, body.subtopic_id)
+
+    task = StudyTask(
+        aluno_id=usuario.id,
+        subject_id=body.subject_id,
+        topic_id=body.topic_id,
+        subtopic_id=body.subtopic_id,
+        tipo=body.tipo,
+        status="pending",
+    )
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+
+    return _to_response(task)
+
+
+@router.get("/tasks", response_model=StudyTaskListResponse)
+def listar_tasks(
+    tipo: Optional[str] = Query(None, description="Filtrar por tipo: study, questions, review"),
+    status: Optional[str] = Query(None, description="Filtrar por status: pending, in_progress, completed"),
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """Lista todas as tasks do usuário autenticado, com filtros opcionais."""
+    q = db.query(StudyTask).filter(StudyTask.aluno_id == usuario.id)
+
+    if tipo:
+        if tipo not in {"study", "questions", "review"}:
+            raise HTTPException(status_code=422, detail="tipo inválido. Use: study, questions, review")
+        q = q.filter(StudyTask.tipo == tipo)
+
+    if status:
+        if status not in {"pending", "in_progress", "completed"}:
+            raise HTTPException(status_code=422, detail="status inválido. Use: pending, in_progress, completed")
+        q = q.filter(StudyTask.status == status)
+
+    tasks = q.order_by(StudyTask.created_at.desc()).all()
+
+    return StudyTaskListResponse(
+        total=len(tasks),
+        itens=[_to_response(t) for t in tasks],
+    )
+
+
+@router.patch("/tasks/{task_id}/status", response_model=StudyTaskResponse)
+def atualizar_status(
+    task_id: str,
+    body: StudyTaskStatusUpdate,
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """Atualiza o status de uma task do usuário autenticado."""
+    task = db.query(StudyTask).filter(
+        StudyTask.id == task_id,
+        StudyTask.aluno_id == usuario.id,
+    ).first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task não encontrada")
+
+    task.status = body.status
+    db.commit()
+    db.refresh(task)
+
+    return _to_response(task)
