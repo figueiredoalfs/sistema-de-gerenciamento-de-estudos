@@ -117,6 +117,7 @@ else:
     from telas.pg_perfil          import render as pg_perfil
     from telas.pg_onboarding      import render as pg_onboarding
     from telas.pg_plano           import render as pg_plano
+    from telas.pg_meta_00         import render as pg_meta_00
 
     # Onboarding: redireciona novos usuarios
     if not st.session_state.get("onboarding_concluido"):
@@ -162,6 +163,7 @@ else:
 
         MENU_ITEMS = [
             ("plano",          "🏠", "Agenda do Dia"),
+            ("meta_00",        "🎯", "Diagnóstico (Meta 00)"),
             ("dashboard",      "📊", "Desempenho"),
             ("lancar",         "✏️",  "Lançar Bateria"),
             ("historico",      "🕐", "Histórico"),
@@ -249,6 +251,8 @@ else:
 
     if pagina == "dashboard":
         pg_dashboard()
+    elif pagina == "meta_00":
+        pg_meta_00()
     elif pagina == "lancar":
         pg_lancar()
     elif pagina == "historico":

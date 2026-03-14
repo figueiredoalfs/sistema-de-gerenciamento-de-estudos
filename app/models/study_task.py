@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, String
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -15,12 +15,13 @@ class StudyTask(Base):
     aluno_id = Column(String(36), ForeignKey("alunos.id"), nullable=False, index=True)
 
     # Hierarquia de tópicos (nivel 0=subject, 1=topic, 2=subtopic) → tabela topicos
+    # topic_id e subtopic_id são nullable: tasks diagnósticas operam no nível da matéria
     subject_id = Column(String(36), ForeignKey("topicos.id"), nullable=False)
-    topic_id = Column(String(36), ForeignKey("topicos.id"), nullable=False)
-    subtopic_id = Column(String(36), ForeignKey("topicos.id"), nullable=False, index=True)
+    topic_id = Column(String(36), ForeignKey("topicos.id"), nullable=True)
+    subtopic_id = Column(String(36), ForeignKey("topicos.id"), nullable=True)
 
     tipo = Column(
-        Enum("study", "questions", "review", name="study_task_tipo_enum"),
+        Enum("study", "questions", "review", "diagnostico", name="study_task_tipo_enum"),
         nullable=False,
     )
 
@@ -29,6 +30,9 @@ class StudyTask(Base):
         nullable=False,
         default="pending",
     )
+
+    # JSON array de IDs de questões — preenchido nas baterias diagnósticas
+    questoes_json = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

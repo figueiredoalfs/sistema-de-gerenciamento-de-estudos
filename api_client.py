@@ -270,6 +270,57 @@ def api_listar_tasks(tipo: str = None, status: str = None) -> list:
     return []
 
 
+def api_get_questoes_task(subject_id: str, questao_ids: list[str]) -> list:
+    """Busca as questões de uma task diagnóstica filtrando por IDs."""
+    if not questao_ids:
+        return []
+    ids_set = set(questao_ids)
+    try:
+        r = requests.get(
+            f"{API_BASE}/questoes",
+            params={"subject_id": subject_id, "apenas_ativas": True},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return [q for q in r.json() if q["id"] in ids_set]
+    except Exception:
+        pass
+    return []
+
+
+def api_responder_questao(questao_id: str, resposta_dada: str) -> dict | None:
+    """Registra resposta do aluno para uma questão da Meta 00."""
+    try:
+        r = requests.post(
+            f"{API_BASE}/questoes/{questao_id}/responder",
+            json={"resposta_dada": resposta_dada},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 201:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
+def api_concluir_task(task_id: str) -> dict | None:
+    """Marca uma StudyTask como completed e retorna o resultado com tarefas_geradas."""
+    try:
+        r = requests.patch(
+            f"{API_BASE}/tasks/{task_id}/status",
+            json={"status": "completed"},
+            headers=_headers(),
+            timeout=15,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
 def api_atualizar_status_erro(erro_id: str, novo_status: str) -> bool:
     """Atualiza status de um erro crítico. Retorna True se ok."""
     try:

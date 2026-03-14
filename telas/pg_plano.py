@@ -4,7 +4,7 @@ Tela principal: meta semanal, KPIs, tabela de atividades por prioridade.
 """
 import streamlit as st
 from database import get_perfil
-from api_client import api_get_agenda, api_concluir_sessao, api_adiar_meta
+from api_client import api_get_agenda, api_concluir_sessao, api_adiar_meta, api_listar_tasks
 from telas.components import page_header, kpi_card, score_to_stars, tipo_badge, tipo_label, _injetar_css
 
 
@@ -178,6 +178,28 @@ def render():
 
     # Header
     page_header("Agenda do Dia", "Acompanhe seu progresso e veja o que falta para atingir sua meta")
+
+    # Banner: diagnóstico inicial pendente
+    diagnosticos_pendentes = api_listar_tasks(tipo="diagnostico", status="pending")
+    if diagnosticos_pendentes:
+        n = len(diagnosticos_pendentes)
+        st.markdown(
+            f'<div style="background:#1a2e1a;border:1px solid #27ae60;border-radius:10px;'
+            f'padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">'
+            f'<span style="font-size:1.4rem;">🎯</span>'
+            f'<div>'
+            f'<p style="color:#06d6a0;font-weight:700;margin:0 0 2px 0;">Diagnóstico Inicial Pendente</p>'
+            f'<p style="color:#8ab0c8;font-size:0.82rem;margin:0;">'
+            f'Você tem {n} {"matéria" if n == 1 else "matérias"} para diagnosticar. '
+            f'Complete a Meta 00 para gerar seu plano de estudos personalizado.</p>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Fazer Diagnóstico Agora →", type="primary", key="btn_ir_meta00"):
+            st.session_state.pagina = "meta_00"
+            st.rerun()
+        st.divider()
 
     # Busca sessões da API
     sessoes_por_dia = max(1, int(horas * 60 / 50))

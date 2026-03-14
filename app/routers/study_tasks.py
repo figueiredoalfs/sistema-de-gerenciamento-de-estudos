@@ -21,7 +21,10 @@ from app.schemas.study_task import (
     StudyTaskListResponse,
     StudyTaskResponse,
     StudyTaskStatusUpdate,
+    TaskGeradaItem,
 )
+from app.services.desempenho_diagnostico import calcular_e_salvar_desempenho_diagnostico
+from app.services.plano_pos_diagnostico import gerar_tasks_pos_diagnostico
 
 router = APIRouter(tags=["tasks"])
 
@@ -58,7 +61,23 @@ def _validar_hierarquia(db: Session, subject_id: str, topic_id: str, subtopic_id
     return subject, topic, subtopic
 
 
-def _to_response(task: StudyTask) -> StudyTaskResponse:
+def _to_response(task: StudyTask, desempenho=None, tarefas_geradas=None) -> StudyTaskResponse:
+    geradas = None
+    if tarefas_geradas:
+        geradas = [
+            TaskGeradaItem(
+                id=t.id,
+                subject_id=t.subject_id,
+                topic_id=t.topic_id,
+                subtopic_id=t.subtopic_id,
+                subject_nome=t.subject.nome if t.subject else None,
+                topic_nome=t.topic.nome if t.topic else None,
+                subtopic_nome=t.subtopic.nome if t.subtopic else None,
+                tipo=t.tipo,
+                status=t.status,
+            )
+            for t in tarefas_geradas
+        ]
     return StudyTaskResponse(
         id=task.id,
         aluno_id=task.aluno_id,
@@ -70,7 +89,10 @@ def _to_response(task: StudyTask) -> StudyTaskResponse:
         subtopic_nome=task.subtopic.nome if task.subtopic else None,
         tipo=task.tipo,
         status=task.status,
+        questoes_json=task.questoes_json,
         created_at=task.created_at,
+        desempenho_subtopicos=desempenho,
+        tarefas_geradas=geradas,
     )
 
 
@@ -83,7 +105,16 @@ def criar_task(
     usuario: Aluno = Depends(get_current_user),
 ):
     """Cria uma task de estudo para o usuário autenticado."""
-    _validar_hierarquia(db, body.subject_id, body.topic_id, body.subtopic_id)
+    # Tasks diagnósticas operam no nível da matéria; topic/subtopic são opcionais
+    if body.tipo != "diagnostico":
+        if not body.topic_id or not body.subtopic_id:
+            raise HTTPException(
+                status_code=422,
+                detail="topic_id e subtopic_id são obrigatórios para tasks do tipo study, questions e review.",
+            )
+        _validar_hierarquia(db, body.subject_id, body.topic_id, body.subtopic_id)
+    else:
+        _get_topico(db, body.subject_id, nivel=0)
 
     task = StudyTask(
         aluno_id=usuario.id,
@@ -111,8 +142,8 @@ def listar_tasks(
     q = db.query(StudyTask).filter(StudyTask.aluno_id == usuario.id)
 
     if tipo:
-        if tipo not in {"study", "questions", "review"}:
-            raise HTTPException(status_code=422, detail="tipo inválido. Use: study, questions, review")
+        if tipo not in {"study", "questions", "review", "diagnostico"}:
+            raise HTTPException(status_code=422, detail="tipo inválido. Use: study, questions, review, diagnostico")
         q = q.filter(StudyTask.tipo == tipo)
 
     if status:
@@ -144,8 +175,19 @@ def atualizar_status(
     if not task:
         raise HTTPException(status_code=404, detail="Task não encontrada")
 
+    ja_concluida = task.status == "completed"
     task.status = body.status
     db.commit()
     db.refresh(task)
 
-    return _to_response(task)
+    desempenho = None
+    tarefas_geradas = None
+    if task.tipo == "diagnostico" and body.status == "completed" and not ja_concluida:
+        desempenho = calcular_e_salvar_desempenho_diagnostico(usuario.id, task, db)
+        tarefas_geradas = gerar_tasks_pos_diagnostico(
+            aluno_id=usuario.id,
+            desempenho=desempenho,
+            db=db,
+        )
+
+    return _to_response(task, desempenho, tarefas_geradas)

@@ -3,14 +3,17 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel
 
-TipoTask = Literal["study", "questions", "review"]
+from app.schemas.resposta_questao import DesempenhoSubtopicoItem
+
+TipoTask = Literal["study", "questions", "review", "diagnostico"]
 StatusTask = Literal["pending", "in_progress", "completed"]
 
 
 class StudyTaskCreate(BaseModel):
     subject_id: str
-    topic_id: str
-    subtopic_id: str
+    # Opcionais: tasks diagnósticas operam no nível da matéria (sem topic/subtopic)
+    topic_id: Optional[str] = None
+    subtopic_id: Optional[str] = None
     tipo: TipoTask
 
 
@@ -18,18 +21,33 @@ class StudyTaskStatusUpdate(BaseModel):
     status: StatusTask
 
 
-class StudyTaskResponse(BaseModel):
+class TaskGeradaItem(BaseModel):
     id: str
-    aluno_id: str
     subject_id: str
-    topic_id: str
-    subtopic_id: str
+    topic_id: Optional[str] = None
+    subtopic_id: Optional[str] = None
     subject_nome: Optional[str] = None
     topic_nome: Optional[str] = None
     subtopic_nome: Optional[str] = None
     tipo: str
     status: str
+
+
+class StudyTaskResponse(BaseModel):
+    id: str
+    aluno_id: str
+    subject_id: str
+    topic_id: Optional[str] = None
+    subtopic_id: Optional[str] = None
+    subject_nome: Optional[str] = None
+    topic_nome: Optional[str] = None
+    subtopic_nome: Optional[str] = None
+    tipo: str
+    status: str
+    questoes_json: Optional[str] = None
     created_at: datetime
+    desempenho_subtopicos: Optional[List[DesempenhoSubtopicoItem]] = None
+    tarefas_geradas: Optional[List[TaskGeradaItem]] = None
 
     model_config = {"from_attributes": True}
 
