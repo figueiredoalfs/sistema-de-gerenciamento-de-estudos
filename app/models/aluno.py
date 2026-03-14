@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, Float, String
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, String
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -15,7 +15,10 @@ class Aluno(Base):
     email = Column(String(200), unique=True, nullable=False, index=True)
     senha_hash = Column(String(255), nullable=False)
 
-    role = Column(Enum("admin", "aluno", name="role_enum"), nullable=False, default="aluno")
+    role = Column(Enum("admin", "mentor", "student", name="role_enum"), nullable=False, default="student")
+
+    # Relacionamento mentor → alunos mentorados
+    mentor_id = Column(String(36), ForeignKey("alunos.id"), nullable=True)
     nivel_desafio = Column(
         Enum("conservador", "moderado", "agressivo", name="nivel_desafio_enum"),
         nullable=False,
@@ -34,6 +37,18 @@ class Aluno(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relacionamentos
+    mentor = relationship(
+        "Aluno",
+        back_populates="alunos_mentorados",
+        foreign_keys=[mentor_id],
+        remote_side="Aluno.id",
+    )
+    alunos_mentorados = relationship(
+        "Aluno",
+        back_populates="mentor",
+        foreign_keys="[Aluno.mentor_id]",
+    )
+
     proficiencias = relationship("Proficiencia", back_populates="aluno", cascade="all, delete-orphan")
     erros_criticos = relationship("ErroCritico", back_populates="aluno", cascade="all, delete-orphan")
     sessoes = relationship("Sessao", back_populates="aluno", cascade="all, delete-orphan")
