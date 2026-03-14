@@ -8,6 +8,7 @@ from app.models.cronograma import Cronograma
 from app.models.meta_semanal import MetaSemanal
 from app.models.padrao_cognitivo import PadraoCognitivo
 from app.models.simulado import Simulado
+from app.models.questao import Questao
 from app.models.exam import Exam
 from app.models.subject import Subject
 from app.models.topic import Topic
@@ -26,6 +27,7 @@ __all__ = [
     "MetaSemanal",
     "PadraoCognitivo",
     "Simulado",
+    "Questao",
     "Exam",
     "Subject",
     "Topic",
