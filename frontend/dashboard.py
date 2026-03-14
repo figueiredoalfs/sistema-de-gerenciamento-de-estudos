@@ -32,6 +32,59 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── CSS global dark mode ───────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* Remove chrome Streamlit */
+#MainMenu, footer, header, .stDeployButton,
+[data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
+
+/* Fundo principal */
+.stApp { background-color: #0B1F2A !important; }
+.main .block-container { background: #0B1F2A !important; }
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: #0d1b2a !important;
+    border-right: 1px solid #1a3050 !important;
+}
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] label { color: #c8d6e5 !important; }
+
+/* Botões sidebar */
+section[data-testid="stSidebar"] .stButton > button {
+    background: #1E2A36 !important;
+    color: #c8d6e5 !important;
+    border: 1px solid #1a3050 !important;
+    border-radius: 6px !important;
+    font-size: 0.82rem !important;
+    transition: all 0.15s !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+    border-color: #00AFA0 !important;
+    color: #E6EDF3 !important;
+}
+section[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+    background: #00AFA0 !important;
+    border-color: #00AFA0 !important;
+    color: #fff !important;
+}
+
+/* Divisores */
+hr { border-color: #1a3050 !important; }
+
+/* Popover */
+[data-testid="stPopoverBody"] {
+    background: #1E2A36 !important;
+    border: 1px solid #1a3050 !important;
+}
+
+/* Spinner */
+.stSpinner > div > div { border-top-color: #00AFA0 !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # ── Autenticação ──────────────────────────────────────────────────────────────
 if not st.session_state.get("autenticado"):
     st.markdown(
