@@ -60,13 +60,13 @@ def get_current_user(
 
 
 def require_admin(current_user=Depends(get_current_user)):
-    if current_user.role != "admin":
+    if current_user.role != "administrador":
         raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
     return current_user
 
 
 def require_mentor(current_user=Depends(get_current_user)):
-    if current_user.role not in ("mentor", "admin"):
+    if current_user.role not in ("mentor", "administrador"):
         raise HTTPException(status_code=403, detail="Acesso restrito a mentores")
     return current_user
 

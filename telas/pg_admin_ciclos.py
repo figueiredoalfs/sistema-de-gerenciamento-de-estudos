@@ -93,6 +93,10 @@ def _remover(ciclo_id: str) -> bool:
 
 
 def render():
+    if st.session_state.get("usuario", {}).get("role") != "administrador":
+        st.error("Acesso negado.")
+        st.stop()
+
     st.markdown("## ⚙️ Ciclos de Matérias")
     st.caption("Configure quais matérias compõem o ciclo de cada área e a ordem de estudo.")
 

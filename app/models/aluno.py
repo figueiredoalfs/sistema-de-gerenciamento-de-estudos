@@ -15,7 +15,7 @@ class Aluno(Base):
     email = Column(String(200), unique=True, nullable=False, index=True)
     senha_hash = Column(String(255), nullable=False)
 
-    role = Column(Enum("admin", "mentor", "student", name="role_enum"), nullable=False, default="student")
+    role = Column(Enum("administrador", "mentor", "estudante", name="role_enum"), nullable=False, default="estudante")
 
     # Relacionamento mentor → alunos mentorados
     mentor_id = Column(String(36), ForeignKey("alunos.id"), nullable=True)

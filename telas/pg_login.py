@@ -12,6 +12,10 @@ from config_app import EMAIL_CONFIRMACAO_ATIVO, APP_AUTHOR
 
 
 def render() -> bool:
+    # Acesso admin via URL ?admin (invisível para usuários normais)
+    if "admin" in st.query_params:
+        st.session_state.login_mode = "admin"
+        st.rerun()
 
     # ── Logo ──────────────────────────────────────────────────────────────────
     logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logo.png")

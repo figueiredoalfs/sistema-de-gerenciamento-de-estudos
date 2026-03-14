@@ -49,7 +49,7 @@ def verificar_login(email: str, senha: str) -> dict | None:
     return None
 
 
-def criar_usuario(nome: str, email: str, senha: str, role: str = "aluno") -> bool:
+def criar_usuario(nome: str, email: str, senha: str, role: str = "estudante") -> bool:
     """Cria usuario. Retorna False se email ja existe."""
     email = email.strip().lower()
     try:
@@ -182,15 +182,16 @@ def inicializar_banco():
                 role       TEXT NOT NULL DEFAULT 'aluno'
             );
         """)
-        # Cria admin padrao se nao existir
+        # Remove admins antigos e garante admin único com login "admin"
+        for old in ("admin@aprovai.com", "admin@concursoai.com"):
+            conn.execute("DELETE FROM usuarios WHERE email = ?", (old,))
         existe = conn.execute(
-            "SELECT 1 FROM usuarios WHERE email = 'admin@aprovai.com'"
+            "SELECT 1 FROM usuarios WHERE email = 'admin'"
         ).fetchone()
         if not existe:
-            email = "admin@aprovai.com"
             conn.execute(
                 "INSERT INTO usuarios (nome, email, senha_hash, role) VALUES (?, ?, ?, ?)",
-                ("Admin", email, _hash_senha("admin123", email), "admin"),
+                ("Admin", "admin", _hash_senha("", "admin"), "administrador"),
             )
 
         # Adiciona colunas de perfil se ainda nao existirem (migracao incremental)
@@ -281,6 +282,10 @@ def inicializar_banco():
             conn.execute(
                 "ALTER TABLE usuarios ADD COLUMN plataformas_ativas TEXT DEFAULT '[]'"
             )
+
+        # Migração de roles: nomes antigos → novos (idempotente)
+        conn.execute("UPDATE usuarios SET role = 'estudante'     WHERE role = 'aluno'")
+        conn.execute("UPDATE usuarios SET role = 'administrador' WHERE role = 'admin'")
 
 
 # ─── LANCAMENTOS ──────────────────────────────────────────────────────────────
@@ -573,7 +578,7 @@ def copiar_dados_admin(usuario_id: int) -> int:
     """
     with conectar() as conn:
         admin = conn.execute(
-            "SELECT id FROM usuarios WHERE role = 'admin' LIMIT 1"
+            "SELECT id FROM usuarios WHERE role = 'administrador' LIMIT 1"
         ).fetchone()
         if not admin:
             return 0
