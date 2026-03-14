@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
-from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, conhecimento, questoes, respostas, study_tasks
+from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, conhecimento, questoes, respostas, study_tasks
 from app.modules.conteudo.router import router as conteudo_router
 
 # Importar todos os models para o Alembic detectar
@@ -19,6 +19,10 @@ async def lifespan(app: FastAPI):
     # Seed de tópicos padrão (idempotente — pula se já existirem)
     from app.scripts.seed_topicos import seed
     seed()
+
+    # Seed de ciclos de matérias por área (depende dos tópicos já existirem)
+    from app.scripts.seed_ciclos import seed_ciclos
+    seed_ciclos()
 
     # Garante que existe pelo menos 1 usuário admin no banco FastAPI
     from app.scripts.seed_admin import seed_admin
@@ -52,6 +56,7 @@ app.include_router(agenda.router)
 app.include_router(conteudo_router)
 app.include_router(usuarios.router)
 app.include_router(admin_topicos.router)
+app.include_router(admin_ciclos.router)
 app.include_router(conhecimento.router)
 app.include_router(questoes.router)
 app.include_router(respostas.router)

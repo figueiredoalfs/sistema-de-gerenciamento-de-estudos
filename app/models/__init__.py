@@ -17,6 +17,7 @@ from app.models.question_attempt import QuestionAttempt
 from app.models.resposta_questao import RespostaQuestao
 from app.models.study_task import StudyTask
 from app.models.perfil_estudo import PerfilEstudo
+from app.models.ciclo_materia import CicloMateria
 
 __all__ = [
     "Aluno",
@@ -38,4 +39,5 @@ __all__ = [
     "RespostaQuestao",
     "StudyTask",
     "PerfilEstudo",
+    "CicloMateria",
 ]

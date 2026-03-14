@@ -85,9 +85,15 @@ def onboarding(
     db.commit()
     db.refresh(perfil)
 
+    from app.services.plano_inicial import gerar_plano_inicial
+    tasks_geradas = gerar_plano_inicial(
+        db, aluno.id, body.area, body.fase_estudo, body.experiencia
+    )
+
     return OnboardingResponse(
         aluno_id=aluno.id,
         perfil_estudo_id=perfil.id,
         funcionalidades=body.funcionalidades,
         mensagem="Perfil de estudo configurado com sucesso.",
+        tasks_geradas=tasks_geradas,
     )

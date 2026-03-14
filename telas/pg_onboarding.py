@@ -287,22 +287,28 @@ def _enviar_onboarding(funcionalidades: list):
     headers = {"Authorization": f"Bearer {token}"} if token else {}
 
     try:
-        with st.spinner("Salvando seu perfil..."):
+        with st.spinner("Criando seu plano de estudos..."):
             r = _requests.post(
                 f"{_API_BASE}/onboarding",
                 json=payload,
                 headers=headers,
-                timeout=10,
+                timeout=15,
             )
         if r.status_code == 201:
             dados = r.json()
             st.session_state["perfil_estudo_id"] = dados.get("perfil_estudo_id")
+            tasks_geradas = dados.get("tasks_geradas", 0)
             st.session_state.onboarding_concluido = True
+            # Marca plano como ativo no banco SQLite local
+            from database import salvar_perfil
+            salvar_perfil(st.session_state.usuario["id"], {"plano": "ativo"})
             # Limpa estado do onboarding
             for k in list(st.session_state.keys()):
                 if k.startswith("ob_"):
                     del st.session_state[k]
-            st.session_state.pagina = "dashboard"
+            st.session_state.pagina = "plano"
+            if tasks_geradas:
+                st.toast(f"✅ Plano criado com {tasks_geradas} tasks de estudo!")
             st.rerun()
         else:
             st.error(f"Erro ao salvar perfil ({r.status_code}). Tente novamente.")

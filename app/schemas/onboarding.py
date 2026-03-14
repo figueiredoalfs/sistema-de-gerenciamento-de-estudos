@@ -61,3 +61,4 @@ class OnboardingResponse(BaseModel):
     perfil_estudo_id: str
     funcionalidades: List[str]
     mensagem: str
+    tasks_geradas: int = 0

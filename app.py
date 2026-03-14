@@ -47,6 +47,7 @@ from telas.pg_analise_erros   import render as pg_analise_erros
 from telas.pg_perfil          import render as pg_perfil
 from telas.pg_onboarding      import render as pg_onboarding
 from telas.pg_plano           import render as pg_plano
+from telas.pg_admin_ciclos    import render as pg_admin_ciclos
 
 # ── Onboarding: redireciona novos usuarios ────────────────────────────────────
 if not st.session_state.get("onboarding_concluido"):
@@ -102,6 +103,9 @@ with st.sidebar:
         ("grafico",        "📈", "Evolução Mensal"),
         ("perfil",         "👤", "Meu Perfil"),
     ]
+
+    if st.session_state.get("usuario", {}).get("role") == "admin":
+        MENU_ITEMS.append(("admin_ciclos", "⚙️", "Ciclos de Matérias"))
 
     for chave, icone, label in MENU_ITEMS:
         ativo = (st.session_state.pagina == chave)
@@ -199,3 +203,5 @@ elif pagina == "onboarding":
     pg_onboarding()
 elif pagina == "plano":
     pg_plano()
+elif pagina == "admin_ciclos":
+    pg_admin_ciclos()

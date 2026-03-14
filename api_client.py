@@ -253,6 +253,23 @@ def api_adiar_meta(dias: int = 7) -> bool:
         return False
 
 
+def api_listar_tasks(tipo: str = None, status: str = None) -> list:
+    """Lista study tasks do aluno com filtros opcionais."""
+    params = {k: v for k, v in {"tipo": tipo, "status": status}.items() if v}
+    try:
+        r = requests.get(
+            f"{API_BASE}/tasks",
+            params=params,
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json().get("itens", [])
+    except Exception:
+        pass
+    return []
+
+
 def api_atualizar_status_erro(erro_id: str, novo_status: str) -> bool:
     """Atualiza status de um erro crítico. Retorna True se ok."""
     try:
