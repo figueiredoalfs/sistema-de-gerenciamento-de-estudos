@@ -18,6 +18,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from database import salvar_perfil, salvar_plataformas_ativas
 from config_fontes import GRUPOS_OPCIONAIS, GRUPOS_FONTE, PLATAFORMAS_DEFAULT
+from config_materias import MATERIAS_POR_AREA
 
 _API_BASE = "http://localhost:8000"
 
@@ -70,20 +71,6 @@ AREAS = [
     ("outro",     "Outro",     "📋"),
 ]
 
-MATERIAS_POR_AREA = {
-    "fiscal":   ["Direito Tributário", "Contabilidade", "Direito Administrativo",
-                 "Língua Portuguesa", "Raciocínio Lógico", "Legislação Específica"],
-    "juridica": ["Direito Constitucional", "Direito Civil", "Direito Penal",
-                 "Direito Administrativo", "Língua Portuguesa", "Direito Processual Civil"],
-    "policial": ["Direito Penal", "Direito Processual Penal", "Direito Constitucional",
-                 "Língua Portuguesa", "Raciocínio Lógico", "Conhecimentos Gerais"],
-    "ti":       ["Algoritmos e Estruturas de Dados", "Banco de Dados", "Redes de Computadores",
-                 "Segurança da Informação", "Engenharia de Software", "Língua Portuguesa"],
-    "saude":    ["Conhecimentos Específicos", "Legislação SUS", "Ética Profissional",
-                 "Língua Portuguesa", "Raciocínio Lógico", "Atualidades"],
-    "outro":    ["Língua Portuguesa", "Raciocínio Lógico", "Conhecimentos Gerais",
-                 "Direito Administrativo", "Informática", "Atualidades"],
-}
 
 TEMPOS = [
     ("<1m",  "Menos de 1 mês",  1),
