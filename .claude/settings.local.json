@@ -24,7 +24,8 @@
       "Bash(c:/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/venv/Scripts/python.exe -m pip list)",
       "Bash(c:/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/venv/Scripts/python.exe -m pip install -r c:/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/requirements.txt)",
       "Bash(venv/Scripts/pip install:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

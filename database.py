@@ -9,7 +9,7 @@ import hashlib
 import os
 import pandas as pd
 
-DB_PATH = "sisfig.db"
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sisfig.db")
 
 # ─── CATÁLOGO PADRÃO ──────────────────────────────────────────────────────────
 # Matérias e subtópicos mais cobrados em concursos públicos brasileiros.

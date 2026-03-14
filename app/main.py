@@ -13,9 +13,17 @@ import app.models  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Garante que todas as tabelas existem (fallback quando Alembic não foi rodado)
+    Base.metadata.create_all(bind=engine)
+
     # Seed de tópicos padrão (idempotente — pula se já existirem)
     from app.scripts.seed_topicos import seed
     seed()
+
+    # Garante que existe pelo menos 1 usuário admin no banco FastAPI
+    from app.scripts.seed_admin import seed_admin
+    seed_admin()
+
     yield
 
 

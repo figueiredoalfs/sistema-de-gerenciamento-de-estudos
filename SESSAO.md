@@ -43,6 +43,23 @@ docs/REGRAS.md      → decisões tomadas — não questionar
 
 ## Rotina de sessão — siga sempre esta ordem
 
+### 0. Classificar a solicitação por camada
+
+Antes de qualquer implementação, identificar a camada afetada (ver `CAMADAS.md`):
+
+| Camada  | Arquivos principais                                         |
+|---------|-------------------------------------------------------------|
+| BD      | `database.py`, `app/models/`, `alembic/`                   |
+| API     | `app/routers/`, `app/services/`, `app/schemas/`             |
+| UI      | `telas/`, `app.py`                                          |
+| CONFIG  | `config_*.py`, `.env`, `*.md`                               |
+| INT     | `api_client.py`                                             |
+
+**Alterar SOMENTE os arquivos da camada identificada.**
+Se múltiplas camadas, avisar e aguardar confirmação.
+
+---
+
 ### 1. Verificar progresso
 ```python
 import json
