@@ -42,6 +42,9 @@ def get_agenda(
                 "topico_id": s.topico_id,
                 "topico_nome": s.topico_nome,
                 "area": s.area,
+                "materia": s.materia,
+                "topico_bloco": s.topico_bloco,
+                "subtopico": s.subtopico,
                 "tipo": s.tipo,
                 "duracao_planejada_min": min(s.duracao_planejada_min, 50),
                 "confianca": s.confianca,
@@ -113,7 +116,7 @@ def concluir_sessao(
 
 @router.patch("/adiar")
 def adiar_meta(
-    dias: int = Query(default=7, ge=1, le=30),
+    dias: int = Query(default=1, ge=1, le=3),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):

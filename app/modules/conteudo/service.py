@@ -4,8 +4,9 @@ from app.core.ai_provider import get_ai_provider
 def gerar_resumo(topico: str) -> str:
     ai = get_ai_provider()
     prompt = (
-        f"Explique o tópico '{topico}' de forma clara e objetiva em no máximo 5 linhas. "
-        "Foque nos pontos mais cobrados em concursos públicos."
+        f"Explique o subtópico '{topico}' de forma clara e objetiva em no máximo 5 linhas. "
+        "Foque especificamente neste subtópico e nos pontos mais cobrados em concursos públicos. "
+        "Não fale de outros temas."
     )
     return ai.generate(prompt)
 

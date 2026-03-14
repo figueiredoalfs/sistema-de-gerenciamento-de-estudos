@@ -52,6 +52,9 @@ class SessaoPriorizada:
     confianca: str
     score: float
     breakdown: ScoreBreakdown
+    materia: str = ""
+    topico_bloco: str = ""
+    subtopico: str = ""
 
 
 def _get_pesos(db: Session) -> dict:
@@ -174,8 +177,21 @@ def calcular_agenda(
             for t in db.query(Topico).filter(Topico.id.in_(topico_ids)).all()
         }
         max_peso = max((t.peso_edital for t in topicos_map.values()), default=1.0) or 1.0
+
+        # Carrega tópicos pai e avô para montar hierarquia matéria → bloco → subtópico
+        parent_ids = {t.parent_id for t in topicos_map.values() if t.parent_id}
+        if parent_ids:
+            parents = {t.id: t for t in db.query(Topico).filter(Topico.id.in_(parent_ids)).all()}
+            gp_ids = {t.parent_id for t in parents.values() if t.parent_id}
+            grandparents = {}
+            if gp_ids:
+                grandparents = {t.id: t for t in db.query(Topico).filter(Topico.id.in_(gp_ids)).all()}
+            all_topicos_map = {**topicos_map, **parents, **grandparents}
+        else:
+            all_topicos_map = topicos_map
     else:
         topicos_map = {}
+        all_topicos_map = {}
         max_peso = 1.0
 
     # Proficiências do aluno agrupadas por topico_id
@@ -187,6 +203,21 @@ def calcular_agenda(
             profs_por_topico.setdefault(p.topico_id, []).append(p)
         if p.materia:
             profs_por_materia.setdefault(p.materia, []).append(p)
+
+    def _hierarquia(topico) -> tuple[str, str, str]:
+        """Retorna (materia, topico_bloco, subtopico) percorrendo cadeia de pais."""
+        if topico is None:
+            return "", "", ""
+        chain = [topico]
+        cur = topico
+        while cur.parent_id and cur.parent_id in all_topicos_map:
+            cur = all_topicos_map[cur.parent_id]
+            chain.append(cur)
+        chain.reverse()  # raiz → folha
+        mat = chain[0].nome if len(chain) >= 1 else topico.nome
+        bloco = chain[1].nome if len(chain) >= 2 else ""
+        sub = chain[2].nome if len(chain) >= 3 else (chain[1].nome if len(chain) == 2 else chain[0].nome)
+        return mat, bloco, sub
 
     resultados: list[tuple[float, SessaoPriorizada]] = []
 
@@ -213,6 +244,8 @@ def calcular_agenda(
 
         score = round(w1 * urgencia + w2 * lacuna + w3 * peso_norm + w4 * fator_erros, 4)
 
+        mat, bloco, sub = _hierarquia(topico)
+
         sp = SessaoPriorizada(
             sessao_id=sessao.id,
             topico_id=sessao.topico_id,
@@ -229,6 +262,9 @@ def calcular_agenda(
                 fator_erros=fator_erros,
                 score=score,
             ),
+            materia=mat,
+            topico_bloco=bloco,
+            subtopico=sub,
         )
         resultados.append((score, sp))
 

@@ -103,22 +103,28 @@ def _card(s: dict, idx: int):
     prio_label, prio_cor = _prio(score)
     dur         = s.get("duracao_planejada_min", 50)
     topico_nome = s.get("topico_nome", "Tópico")
-    area        = s.get("area", "")
     sid         = s.get("sessao_id", "")
     key         = f"t{idx}_{sid[:8]}"
+    num         = idx + 1  # numeração da task
 
-    # Disciplina e tópico separados
-    disciplina = area if area else topico_nome
-    subtopico  = topico_nome if topico_nome != disciplina else ""
+    # Hierarquia: matéria → tópico → subtópico
+    materia     = s.get("materia", "") or s.get("area", "") or topico_nome
+    topico_bloco = s.get("topico_bloco", "")
+    subtopico   = s.get("subtopico", "") or topico_nome
+
+    # Prompt para IA: usar o subtópico específico
+    prompt_ia   = subtopico if subtopico else (topico_bloco if topico_bloco else materia)
 
     # ── Concluído: linha apagada ──────────────────────────────────────────────
     if st.session_state.get(f"ok_{sid}"):
         st.html(
             f"<div style='background:#1E2A36;border-radius:8px;padding:8px 14px;"
             f"margin-bottom:4px;border-left:3px solid #4ade80;opacity:0.45;'>"
-            f"<span style='color:#4ade80;font-size:0.65rem;font-weight:700;'>✓ CONCLUÍDO</span>"
+            f"<span style='color:#4ade80;font-size:0.65rem;font-weight:700;'>✓ #{num} CONCLUÍDO</span>"
             f"<span style='color:#7a9ab8;margin-left:8px;font-size:0.8rem;'>"
-            f"{disciplina}{' — ' + subtopico if subtopico else ''}</span></div>"
+            f"{materia}{' › ' + topico_bloco if topico_bloco else ''}"
+            f"{' › ' + subtopico if subtopico and subtopico not in (materia, topico_bloco) else ''}"
+            f"</span></div>"
         )
         return
 
@@ -127,18 +133,25 @@ def _card(s: dict, idx: int):
     bg_top    = "#243444"  if expandida else "#1E2A36"
     dot_cor   = "#f59e0b" if expandida else "#374151"  # amarelo=em andamento, cinza=pendente
 
+    # Linha de hierarquia para exibição
+    hierarquia_html = f"<span style='color:#E6EDF3;font-weight:700;font-size:0.9rem;'>{materia}</span>"
+    if topico_bloco:
+        hierarquia_html += f"<span style='color:#4a6a85;font-size:0.82rem;'> › {topico_bloco}</span>"
+    if subtopico and subtopico not in (materia, topico_bloco):
+        hierarquia_html += f"<span style='color:#c8d6e5;font-size:0.82rem;'> › {subtopico}</span>"
+
     # ── Cabeçalho do card ─────────────────────────────────────────────────────
     st.html(f"""
     <div style="background:{bg_top};border-radius:{'8px 8px 0 0' if expandida else '8px'};
         border:1px solid {border};border-bottom:{'none' if expandida else f'1px solid {border}'};
         padding:10px 14px;margin-bottom:0;cursor:pointer;">
         <div style="display:flex;align-items:center;gap:10px;">
+            <span style="color:#4a6a85;font-size:0.75rem;font-weight:700;flex-shrink:0;
+                min-width:22px;text-align:right;">#{num}</span>
             <span style="color:{dot_cor};font-size:1rem;line-height:1;flex-shrink:0;">●</span>
             <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
-                    <span style="color:#E6EDF3;font-weight:700;font-size:0.9rem;
-                        white-space:nowrap;">{disciplina}</span>
-                    {"<span style='color:#7a9ab8;font-size:0.82rem;'>— " + subtopico + "</span>" if subtopico else ""}
+                <div style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;">
+                    {hierarquia_html}
                 </div>
                 <div style="display:flex;gap:5px;margin-top:5px;align-items:center;flex-wrap:wrap;">
                     <span style="background:{tipo_cor}22;color:{tipo_cor};font-size:0.65rem;
@@ -166,11 +179,12 @@ def _card(s: dict, idx: int):
 
     # ── Feedback rápido ───────────────────────────────────────────────────────
     if not expandida and st.session_state.get(f"fb_{sid}"):
+        label_fb = subtopico[:40] if subtopico else materia[:40]
         st.html(f"""
         <div style="background:#0d1b2a;border:1px solid #00AFA0;border-radius:6px;
             padding:10px 14px;margin-top:2px;">
             <span style="color:#c8d6e5;font-size:0.8rem;">
-                Como foi em <b>{topico_nome[:40]}</b>?
+                Como foi em <b>{label_fb}</b>?
             </span>
         </div>
         """)
@@ -183,7 +197,7 @@ def _card(s: dict, idx: int):
             st.session_state[f"ok_{sid}"] = True
             st.session_state.pop(f"fb_{sid}", None)
             if res and res.get("reforco_inserido"):
-                st.session_state["_reforco_msg"] = topico_nome[:35]
+                st.session_state["_reforco_msg"] = (subtopico or materia)[:35]
             st.rerun()
         if b2.button("Pular", key=f"skip_{key}", use_container_width=True):
             concluir_sessao(sid, percentual=0, duracao_real_min=0)
@@ -195,9 +209,8 @@ def _card(s: dict, idx: int):
     if expandida:
         cache_key = f"resumo_{sid}"
         if cache_key not in st.session_state:
-            prompt = f"{disciplina} — {subtopico}" if subtopico else disciplina
             with st.spinner("Gerando resumo..."):
-                resultado = gerar_resumo(prompt)
+                resultado = gerar_resumo(prompt_ia)
             st.session_state[cache_key] = resultado or "Resumo não disponível para este tópico."
 
         resumo = st.session_state[cache_key]
@@ -229,7 +242,7 @@ def _card(s: dict, idx: int):
             st.session_state.pop(f"exp_{sid}", None)
             st.session_state.pop(cache_key, None)
             if res and res.get("reforco_inserido"):
-                st.session_state["_reforco_msg"] = topico_nome[:35]
+                st.session_state["_reforco_msg"] = (subtopico or materia)[:35]
             st.rerun()
 
     st.html("<div style='height:4px'></div>")
@@ -319,11 +332,19 @@ def render():
     st.divider()
     _render_meta(sessoes, horas, dias)
 
-    col_adiar, _ = st.columns([1, 3])
+    col_adiar, col_dias, _ = st.columns([1, 1, 2])
+    with col_dias:
+        dias_adiar = st.selectbox(
+            "Dias",
+            options=[1, 2, 3],
+            index=0,
+            key="sel_dias_adiar",
+            label_visibility="collapsed",
+        )
     with col_adiar:
-        if st.button("Adiar Meta (+7 dias)", key="btn_adiar", use_container_width=True):
-            if adiar_meta(dias=7):
-                st.toast("Meta adiada em 7 dias.")
+        if st.button(f"Adiar Meta (+{dias_adiar} dia{'s' if dias_adiar > 1 else ''})", key="btn_adiar", use_container_width=True):
+            if adiar_meta(dias=dias_adiar):
+                st.toast(f"Meta adiada em {dias_adiar} dia{'s' if dias_adiar > 1 else ''}.")
                 for k in list(st.session_state.keys()):
                     if k.startswith(("ok_", "exp_", "resumo_")):
                         del st.session_state[k]
