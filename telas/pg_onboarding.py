@@ -1,606 +1,327 @@
 """
 telas/pg_onboarding.py
-Fluxo de onboarding do AprovAI — 6 telas, < 3 minutos.
+Fluxo de onboarding — 4 telas, < 2 minutos.
 
-Tela 1: seleção de área (1 clique)
-Tela 2: edital disponível? + upload PDF + data da prova
-Tela 3: já vem estudando? → 3 perfis (A/B/C)
-Tela 4: quais tipos de plataforma você usa? (multiselect por grupo)
-Tela 5: horas/dia + dias/semana
-Tela 6: cronograma gerado — aluno vê valor imediato
+Tela 1: área do concurso (apenas fiscal)
+Tela 2: fase de estudo (pre_edital / pos_edital)
+Tela 3: experiência (iniciante / tempo_de_estudo)
+Tela 4: funcionalidades desejadas
 """
 
-import io
-import json
-import datetime
 import requests as _requests
 import streamlit as st
-import streamlit.components.v1 as components
-from database import salvar_perfil, salvar_plataformas_ativas
-from config_fontes import GRUPOS_OPCIONAIS, GRUPOS_FONTE, PLATAFORMAS_DEFAULT
-from config_materias import MATERIAS_POR_AREA
 
 _API_BASE = "http://localhost:8000"
 
-
-def _chamar_onboarding_api() -> dict | None:
-    """Chama POST /onboarding na API FastAPI para gerar sessões reais no banco."""
-    if st.session_state.get("_ob_api_chamado"):
-        return st.session_state.get("_ob_api_resultado")
-
-    token = st.session_state.get("api_token", "")
-    if not token:
-        return None
-
-    payload = {
-        "area":            st.session_state.get("ob_area", "fiscal"),
-        "perfil":          st.session_state.get("ob_perfil", "zero"),
-        "horas_por_dia":   float(st.session_state.get("ob_horas", 3.0)),
-        "dias_por_semana": int(st.session_state.get("ob_dias", 5)),
-        "tem_edital":      st.session_state.get("ob_tem_edital", False),
-    }
-    data_prova = st.session_state.get("ob_data_prova")
-    if data_prova:
-        payload["data_prova"] = str(data_prova)
-    if payload["perfil"] == "tempo_por_materia":
-        payload["tempo_por_materia"] = st.session_state.get("ob_tempos", {})
-
-    try:
-        r = _requests.post(
-            f"{_API_BASE}/onboarding",
-            json=payload,
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=15,
-        )
-        resultado = r.json() if r.status_code == 201 else None
-    except Exception:
-        resultado = None
-
-    st.session_state["_ob_api_chamado"] = True
-    st.session_state["_ob_api_resultado"] = resultado
-    return resultado
-
-# ── Constantes ────────────────────────────────────────────────────────────────
-
-AREAS = [
-    ("fiscal",    "Fiscal",    "🏛️"),
-    ("juridica",  "Jurídica",  "⚖️"),
-    ("policial",  "Policial",  "🚔"),
-    ("ti",        "TI",        "💻"),
-    ("saude",     "Saúde",     "🏥"),
-    ("outro",     "Outro",     "📋"),
+FUNCIONALIDADES = [
+    ("geracao_conteudo",  "📖", "Geração de Conteúdo",   "Resumos e materiais gerados por IA"),
+    ("analise_desempenho","📊", "Análise de Desempenho",  "Relatórios de acertos e pontos fracos"),
+    ("cronograma_estudo", "📅", "Cronograma de Estudo",   "Plano de estudos adaptado ao seu ritmo"),
+    ("geracao_questoes",  "✏️", "Geração de Questões",    "Questões inéditas geradas por IA"),
 ]
-
 
 TEMPOS = [
-    ("<1m",  "Menos de 1 mês",  1),
-    ("1-3m", "1 a 3 meses",     2),
-    ("3-6m", "3 a 6 meses",     3),
-    (">6m",  "Mais de 6 meses", 4),
+    ("<1m",  "Menos de 1 mês"),
+    ("1-3m", "1 a 3 meses"),
+    ("3-6m", "3 a 6 meses"),
+    (">6m",  "Mais de 6 meses"),
 ]
+
+# ── CSS ───────────────────────────────────────────────────────────────────────
+
+_CSS = """
+<style>
+[data-testid="stSidebar"]    { display: none !important; }
+[data-testid="stSidebarNav"] { display: none !important; }
+.block-container {
+    max-width: 820px !important;
+    margin: 0 auto !important;
+    padding-top: 2rem !important;
+}
+.stApp { background: linear-gradient(160deg,#0a1520 0%,#0f1e2a 100%) !important; }
+
+/* Cards de seleção */
+div[data-testid="stButton"] button.ob-card {
+    min-height: 160px !important;
+    height: auto !important;
+    border-radius: 16px !important;
+    white-space: pre-wrap !important;
+    padding: 24px 16px !important;
+    line-height: 1.6 !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    border: 1.5px solid #1e4a6a !important;
+    background: #19293a !important;
+    color: #e8f4ff !important;
+    transition: border-color 0.15s, background 0.15s !important;
+}
+div[data-testid="stButton"] button.ob-card-ativo {
+    min-height: 160px !important;
+    height: auto !important;
+    border-radius: 16px !important;
+    white-space: pre-wrap !important;
+    padding: 24px 16px !important;
+    line-height: 1.6 !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    border: 2px solid #00b4a6 !important;
+    background: #0d2535 !important;
+    color: #00b4a6 !important;
+}
+</style>
+"""
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _step_indicator(atual: int, total: int = 6):
+def _step_indicator(atual: int, total: int = 4):
     pontos = ""
     for i in range(1, total + 1):
         if i < atual:
-            cor = "#00b4a6"
-            pontos += f'<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:{cor};color:#fff;text-align:center;line-height:28px;font-size:0.75rem;font-weight:700;margin:0 4px;">{i}</span>'
+            cor, txt_cor = "#00b4a6", "#fff"
+            sombra = ""
         elif i == atual:
-            cor = "#00b4a6"
-            pontos += f'<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:{cor};color:#fff;text-align:center;line-height:28px;font-size:0.85rem;font-weight:700;margin:0 4px;box-shadow:0 0 0 3px #00b4a630;">{i}</span>'
+            cor, txt_cor = "#00b4a6", "#fff"
+            sombra = "box-shadow:0 0 0 3px #00b4a630;"
         else:
-            pontos += f'<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:#19293a;color:#3a6080;text-align:center;line-height:28px;font-size:0.75rem;font-weight:600;margin:0 4px;">{i}</span>'
+            cor, txt_cor = "#19293a", "#3a6080"
+            sombra = ""
+        pontos += (
+            f'<span style="display:inline-block;width:28px;height:28px;border-radius:50%;'
+            f'background:{cor};color:{txt_cor};text-align:center;line-height:28px;'
+            f'font-size:0.78rem;font-weight:700;margin:0 4px;{sombra}">{i}</span>'
+        )
     st.markdown(
         f'<div style="text-align:center;margin-bottom:24px;">{pontos}</div>',
         unsafe_allow_html=True,
     )
 
 
-def _card_titulo(emoji: str, titulo: str, subtitulo: str = ""):
+def _titulo(emoji: str, titulo: str, sub: str = ""):
     st.markdown(
-        f'<div style="text-align:center;margin-bottom:20px;">'
-        f'<div style="font-size:2.4rem;margin-bottom:6px;">{emoji}</div>'
+        f'<div style="text-align:center;margin-bottom:24px;">'
+        f'<div style="font-size:2.2rem;margin-bottom:6px;">{emoji}</div>'
         f'<h2 style="color:#e8f4ff;margin:0 0 4px 0;">{titulo}</h2>'
-        + (f'<p style="color:#8ab0c8;font-size:0.9rem;margin:0;">{subtitulo}</p>' if subtitulo else "")
+        + (f'<p style="color:#8ab0c8;font-size:0.9rem;margin:0;">{sub}</p>' if sub else "")
         + "</div>",
         unsafe_allow_html=True,
     )
 
 
-# ── Tela 1 — Seleção de área ──────────────────────────────────────────────────
+def _card_btn(chave: str, emoji: str, titulo: str, desc: str, ativo: bool, btn_key: str) -> bool:
+    """Renderiza um botão no estilo card e retorna True se clicado."""
+    check = "  ✓" if ativo else ""
+    label = f"{emoji}\n{titulo}\n{desc}{check}"
+    css = "ob-card-ativo" if ativo else "ob-card"
+    # Injeta classe via markdown antes do botão (hack CSS :has() alternativo)
+    st.markdown(f'<style>#{btn_key} button {{ }}</style>', unsafe_allow_html=True)
+    clicked = st.button(label, key=btn_key, use_container_width=True)
+    return clicked
+
+
+def _nav(tela_anterior: int | None, tela_proxima: int | None, label_avancar: str = "Continuar →"):
+    """Botões de navegação Voltar / Continuar."""
+    cols = st.columns([1, 1] if tela_anterior else [1])
+    if tela_anterior is not None:
+        with cols[0]:
+            if st.button("← Voltar", key=f"nav_voltar_{tela_anterior}", use_container_width=True):
+                st.session_state.ob_tela = tela_anterior
+                st.rerun()
+    if tela_proxima is not None:
+        col_av = cols[-1]
+        with col_av:
+            if st.button(label_avancar, key=f"nav_avancar_{tela_proxima}", use_container_width=True, type="primary"):
+                return True
+    return False
+
+
+# ── Tela 1 — Área do concurso ─────────────────────────────────────────────────
 
 def _tela1():
     _step_indicator(1)
-    _card_titulo("🎯", "Qual é a sua área de atuação?", "Escolha uma opção — você poderá mudar depois")
+    _titulo("🎯", "Área do concurso", "Selecione a área que você está estudando")
 
-    cols = st.columns(3)
-    for i, (chave, nome, emoji) in enumerate(AREAS):
-        with cols[i % 3]:
-            ativo = st.session_state.get("ob_area") == chave
-            label = f"{emoji}\n{nome}" + ("\n✓" if ativo else "")
-            css_class = "area-btn-ativo" if ativo else "area-btn"
-            st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
-            if st.button(label, key=f"ob_btn_area_{chave}", use_container_width=True):
-                st.session_state.ob_area = chave
-                st.session_state.ob_tela = 2
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+    # Apenas fiscal disponível por enquanto
+    ativo = st.session_state.get("ob_area") == "fiscal"
+    col = st.columns([1, 2, 1])[1]
+    with col:
+        if _card_btn("fiscal", "🏛️", "Fiscal", "Receita Federal, SEFAZ, Auditor...", ativo, "ob_btn_fiscal"):
+            st.session_state.ob_area = "fiscal"
+            st.session_state.ob_tela = 2
+            st.rerun()
+
+    st.markdown(
+        '<p style="text-align:center;color:#3a6080;font-size:0.8rem;margin-top:12px;">'
+        'Outras áreas em breve</p>',
+        unsafe_allow_html=True,
+    )
 
 
-# ── Tela 2 — Edital + data da prova ──────────────────────────────────────────
+# ── Tela 2 — Fase de estudo ───────────────────────────────────────────────────
 
 def _tela2():
     _step_indicator(2)
-    _card_titulo("📄", "Você tem o edital disponível?", "O PDF ajuda a criar um plano muito mais preciso")
+    _titulo("📋", "Qual é a sua fase de estudo?")
 
-    tem = st.session_state.get("ob_tem_edital")  # True / False / None
-
+    fase = st.session_state.get("ob_fase_estudo")
     col1, col2 = st.columns(2)
-    opcoes = [
-        ("sim",  col1, "📤", "Sim, tenho o PDF",              "Melhor precisão no plano"),
-        ("nao",  col2, "📅", "Não tenho / Ainda não lançou",  "Usaremos um plano base da área"),
-    ]
-    for chave, col, emoji, titulo, desc in opcoes:
-        with col:
-            ativo = (tem is True and chave == "sim") or (tem is False and chave == "nao")
-            css_class = "ob-card-ativo" if ativo else "ob-card"
-            check = "\n✓" if ativo else ""
-            label = f"{emoji}\n{titulo}\n{desc}{check}"
-            st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
-            if st.button(label, key=f"ob_btn_edital_{chave}", use_container_width=True):
-                st.session_state.ob_tem_edital = (chave == "sim")
-                if chave == "nao":
-                    st.session_state.ob_tela = 3
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
 
-    # Upload aparece abaixo do card "Sim" quando selecionado
-    if tem is True:
-        st.markdown("<br>", unsafe_allow_html=True)
-        pdf_file = st.file_uploader(
-            "Selecione o PDF do edital",
-            type=["pdf"],
-            key="ob_pdf",
-        )
-        if pdf_file:
-            st.success(f"✓ {pdf_file.name}")
-            st.session_state.ob_pdf_nome = pdf_file.name
+    with col1:
+        if _card_btn("pre_edital", "🌱", "Pré-edital", "Ainda não há edital publicado — estudo base da área", fase == "pre_edital", "ob_btn_pre"):
+            st.session_state.ob_fase_estudo = "pre_edital"
+            st.rerun()
+
+    with col2:
+        if _card_btn("pos_edital", "📄", "Pós-edital", "Edital publicado — foco nas matérias do concurso", fase == "pos_edital", "ob_btn_pos"):
+            st.session_state.ob_fase_estudo = "pos_edital"
+            st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("**Data prevista da prova** *(opcional)*")
-    st.date_input(
-        "Data da prova",
-        value=None,
-        min_value=datetime.date.today(),
-        key="ob_data_prova",
-        label_visibility="collapsed",
-    )
-
-    col_v, col_n = st.columns([1, 1])
-    with col_v:
-        if st.button("← Voltar", key="ob_t2_voltar", use_container_width=True):
-            st.session_state.ob_tela = 1
-            st.rerun()
-    with col_n:
-        if st.button("Continuar →", key="ob_t2_avancar", use_container_width=True, type="primary"):
+    avancar = _nav(tela_anterior=1, tela_proxima=3)
+    if avancar:
+        if not fase:
+            st.warning("Selecione uma fase antes de continuar.")
+        else:
             st.session_state.ob_tela = 3
             st.rerun()
 
 
-# ── Tela 3 — Perfil de estudo ─────────────────────────────────────────────────
+# ── Tela 3 — Experiência ──────────────────────────────────────────────────────
 
 def _tela3():
     _step_indicator(3)
-    _card_titulo("📊", "Você já vem estudando para este concurso?")
+    _titulo("🎓", "Qual é a sua experiência?", "Isso ajuda a calibrar o nível do seu plano de estudos")
 
-    op = st.session_state.get("ob_perfil")
+    exp = st.session_state.get("ob_experiencia")
+    col1, col2 = st.columns(2)
 
-    c1, c2, c3 = st.columns(3)
-    perfis = [
-        ("zero",              c1, "🌱", "Estou começando do zero",       "Montaremos o plano completo a partir do início"),
-        ("tempo_por_materia", c2, "📚", "Já estudo há algum tempo",       "Informe quanto tempo por matéria e calibramos o nível"),
-        ("csv",               c3, "📥", "Tenho histórico em banco de questões",  "Importe seu CSV (TEC, Qconcursos, Gran...) e usamos seus dados reais"),
-    ]
+    with col1:
+        if _card_btn("iniciante", "🌱", "Estou começando", "Nunca estudei para este concurso", exp == "iniciante", "ob_btn_ini"):
+            st.session_state.ob_experiencia = "iniciante"
+            st.session_state.ob_tempo_estudo = None
+            st.rerun()
 
-    for chave, col, emoji, titulo, desc in perfis:
-        with col:
-            ativo = op == chave
-            css_class = "perfil-btn-ativo" if ativo else "perfil-btn"
-            check = "\n✓ Selecionado" if ativo else ""
-            label = f"{emoji}\n{titulo}\n{desc}{check}"
-            st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
-            if st.button(label, key=f"ob_btn_perfil_{chave}", use_container_width=True):
-                st.session_state.ob_perfil = chave
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+    with col2:
+        if _card_btn("tempo_de_estudo", "📚", "Já estudo há algum tempo", "Informe há quanto tempo para calibrar seu nível", exp == "tempo_de_estudo", "ob_btn_tempo"):
+            st.session_state.ob_experiencia = "tempo_de_estudo"
+            st.rerun()
 
-    # Perfil B — tempo por matéria
-    if op == "tempo_por_materia":
-        area = st.session_state.get("ob_area", "outro")
-        materias = MATERIAS_POR_AREA.get(area, MATERIAS_POR_AREA["outro"])
-        st.markdown("<br>**Quanto tempo você já estuda cada matéria?**", unsafe_allow_html=True)
-        tempos_sel = st.session_state.get("ob_tempos", {})
-        cols_m = st.columns(2)
-        for i, mat in enumerate(materias):
-            with cols_m[i % 2]:
-                idx = [t[0] for t in TEMPOS].index(tempos_sel.get(mat, "<1m")) if tempos_sel.get(mat) in [t[0] for t in TEMPOS] else 0
-                sel = st.selectbox(
-                    mat,
-                    options=[t[1] for t in TEMPOS],
-                    index=idx,
-                    key=f"ob_tempo_{mat}",
-                )
-                tempos_sel[mat] = TEMPOS[[t[1] for t in TEMPOS].index(sel)][0]
-        st.session_state.ob_tempos = tempos_sel
-
-    # Perfil C — CSV genérico
-    if op == "csv":
-        st.markdown(
-            "<br>**Importe o CSV exportado do seu banco de questões:**<br>"
-            "<span style='font-size:0.82rem;color:#8ab0c8;'>"
-            "Formatos aceitos: TEC Concursos, Qconcursos, Gran, Direção Concursos</span>",
-            unsafe_allow_html=True,
+    if exp == "tempo_de_estudo":
+        st.markdown("<br>", unsafe_allow_html=True)
+        opcoes_label = [t[1] for t in TEMPOS]
+        opcoes_val   = [t[0] for t in TEMPOS]
+        atual = st.session_state.get("ob_tempo_estudo", "<1m")
+        idx = opcoes_val.index(atual) if atual in opcoes_val else 0
+        sel = st.selectbox(
+            "Há quanto tempo estuda para este concurso?",
+            options=opcoes_label,
+            index=idx,
+            key="ob_sel_tempo",
         )
-        csv_file = st.file_uploader("Arquivo CSV", type=["csv"], key="ob_csv",
-                                    label_visibility="collapsed")
-        if csv_file:
-            st.success(f"Arquivo: {csv_file.name}")
-            st.session_state.ob_csv_nome = csv_file.name
+        st.session_state.ob_tempo_estudo = opcoes_val[opcoes_label.index(sel)]
 
     st.markdown("<br>", unsafe_allow_html=True)
-    col_v, col_n = st.columns([1, 1])
-    with col_v:
-        if st.button("← Voltar", key="ob_t3_voltar", use_container_width=True):
-            st.session_state.ob_tela = 2
+    avancar = _nav(tela_anterior=2, tela_proxima=4)
+    if avancar:
+        if not exp:
+            st.warning("Selecione uma opção antes de continuar.")
+        elif exp == "tempo_de_estudo" and not st.session_state.get("ob_tempo_estudo"):
+            st.warning("Informe há quanto tempo estuda.")
+        else:
+            st.session_state.ob_tela = 4
             st.rerun()
-    with col_n:
-        if st.button("Continuar →", key="ob_t3_avancar", use_container_width=True, type="primary"):
-            if not op:
-                st.warning("Selecione uma opção antes de continuar.")
-            else:
-                st.session_state.ob_tela = 4
-                st.rerun()
 
 
-# ── Tela 4 — Plataformas de estudo ───────────────────────────────────────────
+# ── Tela 4 — Funcionalidades ──────────────────────────────────────────────────
 
 def _tela4():
     _step_indicator(4)
-    _card_titulo(
-        "🖥️", "Quais plataformas você usa?",
-        "Isso personaliza suas opções ao lançar baterias de questões",
-    )
+    _titulo("⚙️", "O que você quer usar?", "Selecione as funcionalidades desejadas (pode alterar depois)")
 
-    selecionadas = set(st.session_state.get("ob_plataformas", PLATAFORMAS_DEFAULT))
-
-    st.markdown(
-        '<p style="color:#8ab0c8;font-size:0.84rem;text-align:center;margin-bottom:16px;">'
-        'Clique para selecionar. Você pode alterar depois no seu perfil.</p>',
-        unsafe_allow_html=True,
-    )
+    selecionadas: set = set(st.session_state.get("ob_funcionalidades", []))
 
     col1, col2 = st.columns(2)
     cols = [col1, col2]
 
-    for i, slug in enumerate(GRUPOS_OPCIONAIS):
-        info  = GRUPOS_FONTE[slug]
-        ativo = slug in selecionadas
-        css   = "plat-btn-ativo" if ativo else "plat-btn"
-
+    for i, (chave, emoji, titulo, desc) in enumerate(FUNCIONALIDADES):
+        ativo = chave in selecionadas
         with cols[i % 2]:
-            st.markdown(f'<div class="{css}"></div>', unsafe_allow_html=True)
-            if st.button(
-                f"{info['icon']}\n{info['label']}\n{info['descricao']}",
-                key=f"ob_plat_{slug}",
-                use_container_width=True,
-            ):
+            if _card_btn(chave, emoji, titulo, desc, ativo, f"ob_func_{chave}"):
                 if ativo:
-                    selecionadas.discard(slug)
+                    selecionadas.discard(chave)
                 else:
-                    selecionadas.add(slug)
-                st.session_state.ob_plataformas = list(selecionadas)
+                    selecionadas.add(chave)
+                st.session_state.ob_funcionalidades = list(selecionadas)
                 st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
+
     col_v, col_n = st.columns([1, 1])
     with col_v:
-        if st.button("← Voltar", key="ob_t4_voltar", use_container_width=True):
+        if st.button("← Voltar", key="nav_voltar_3", use_container_width=True):
             st.session_state.ob_tela = 3
             st.rerun()
     with col_n:
-        if st.button("Continuar →", key="ob_t4_avancar", use_container_width=True, type="primary"):
-            st.session_state.ob_plataformas = list(selecionadas)
-            st.session_state.ob_tela = 5
+        if st.button("Concluir →", key="ob_concluir", use_container_width=True, type="primary"):
+            if not selecionadas:
+                st.warning("Selecione ao menos uma funcionalidade.")
+            else:
+                _enviar_onboarding(list(selecionadas))
+
+
+# ── Envio para a API ──────────────────────────────────────────────────────────
+
+def _enviar_onboarding(funcionalidades: list):
+    token = st.session_state.get("api_token", "")
+    exp   = st.session_state.get("ob_experiencia", "iniciante")
+
+    payload = {
+        "area":          st.session_state.get("ob_area", "fiscal"),
+        "fase_estudo":   st.session_state.get("ob_fase_estudo"),
+        "experiencia":   exp,
+        "funcionalidades": funcionalidades,
+    }
+    if exp == "tempo_de_estudo":
+        payload["tempo_estudo"] = st.session_state.get("ob_tempo_estudo", "<1m")
+
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+
+    try:
+        with st.spinner("Salvando seu perfil..."):
+            r = _requests.post(
+                f"{_API_BASE}/onboarding",
+                json=payload,
+                headers=headers,
+                timeout=10,
+            )
+        if r.status_code == 201:
+            dados = r.json()
+            st.session_state["perfil_estudo_id"] = dados.get("perfil_estudo_id")
+            st.session_state.onboarding_concluido = True
+            # Limpa estado do onboarding
+            for k in list(st.session_state.keys()):
+                if k.startswith("ob_"):
+                    del st.session_state[k]
+            st.session_state.pagina = "dashboard"
             st.rerun()
-
-
-# ── Tela 5 — Disponibilidade ──────────────────────────────────────────────────
-
-def _tela5_disp():
-    _step_indicator(5)
-    _card_titulo("⏰", "Qual é a sua disponibilidade?", "Seja realista — o sistema se adapta a você")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        horas = st.slider(
-            "Horas de estudo por dia",
-            min_value=0.5, max_value=12.0,
-            value=float(st.session_state.get("ob_horas", 3.0)),
-            step=0.5,
-            format="%.1f h",
-            key="ob_slider_horas",
-        )
-        st.session_state.ob_horas = horas
-        st.markdown(
-            f'<p style="color:#00b4a6;font-weight:700;font-size:1.1rem;text-align:center;">'
-            f'{horas:.1f}h por dia</p>',
-            unsafe_allow_html=True,
-        )
-
-    with col2:
-        dias = st.slider(
-            "Dias de estudo por semana",
-            min_value=1, max_value=7,
-            value=int(st.session_state.get("ob_dias", 5)),
-            step=1,
-            format="%d dias",
-            key="ob_slider_dias",
-        )
-        st.session_state.ob_dias = dias
-        st.markdown(
-            f'<p style="color:#00b4a6;font-weight:700;font-size:1.1rem;text-align:center;">'
-            f'{dias} dias por semana</p>',
-            unsafe_allow_html=True,
-        )
-
-    total_min = horas * dias * 60
-    st.markdown(
-        f'<div style="background:#19293a;border-radius:10px;padding:16px;text-align:center;margin-top:16px;">'
-        f'<p style="color:#8ab0c8;font-size:0.85rem;margin:0 0 4px 0;">Total semanal estimado</p>'
-        f'<p style="color:#00b4a6;font-size:1.5rem;font-weight:700;margin:0;">'
-        f'{int(total_min // 60)}h {int(total_min % 60)}min / semana</p>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    col_v, col_n = st.columns([1, 1])
-    with col_v:
-        if st.button("← Voltar", key="ob_t5_voltar", use_container_width=True):
-            st.session_state.ob_tela = 4
-            st.rerun()
-    with col_n:
-        if st.button("Gerar meu plano →", key="ob_t5_avancar", use_container_width=True, type="primary"):
-            st.session_state.ob_tela = 6
-            st.rerun()
-
-
-# ── Tela 6 — Cronograma gerado ────────────────────────────────────────────────
-
-def _tela6():
-    _step_indicator(6)
-    _card_titulo("🎉", "Seu plano está pronto!", "Aqui está a sua primeira semana de estudos")
-
-    # ── Chama a API FastAPI para gerar sessões reais no banco ─────────────
-    resultado_api = _chamar_onboarding_api()
-    if resultado_api:
-        st.session_state["cronograma_id"] = resultado_api.get("cronograma_id")
-        n = resultado_api.get("sessoes_geradas", 0)
-        st.success(f"✅ {n} sessões geradas no seu cronograma fiscal!")
-    else:
-        st.warning("⚠️ Não foi possível conectar ao servidor. Verifique se a API está rodando em localhost:8000.")
-
-    area    = st.session_state.get("ob_area", "outro")
-    perfil  = st.session_state.get("ob_perfil", "zero")
-    horas   = float(st.session_state.get("ob_horas", 3.0))
-    dias    = int(st.session_state.get("ob_dias", 5))
-    materias = MATERIAS_POR_AREA.get(area, MATERIAS_POR_AREA["outro"])
-
-    # Salva todos os dados do onboarding no perfil do usuario
-    usuario_id = st.session_state.usuario["id"]
-    salvar_perfil(usuario_id, {
-        "plano":          "ativo",
-        "area_estudo":    area,
-        "horas_dia":      horas,
-        "dias_semana":    dias,
-        "perfil_estudo":  perfil,
-        "data_prova":     str(st.session_state.get("ob_data_prova", "")),
-    })
-    plataformas = st.session_state.get("ob_plataformas", PLATAFORMAS_DEFAULT)
-    salvar_plataformas_ativas(usuario_id, plataformas)
-    st.session_state.ob_concluido = True
-
-    # Gera preview da semana (simulado visual — sem backend real ainda)
-    carga_dia_min = horas * 60
-    sessoes_preview = []
-    for i, mat in enumerate(materias[:dias]):
-        sessoes_preview.append({
-            "dia": f"Dia {i+1}",
-            "materia": mat,
-            "tipo": "Teoria + Exercícios",
-            "duracao": f"{int(carga_dia_min)}min",
-        })
-
-    st.markdown("#### Primeira semana")
-    for s in sessoes_preview:
-        st.markdown(
-            f'<div style="display:flex;align-items:center;padding:12px 16px;margin-bottom:8px;'
-            f'border-radius:10px;background:#19293a;border-left:3px solid #00b4a6;">'
-            f'<span style="color:#8ab0c8;font-size:0.8rem;width:52px;flex-shrink:0;">{s["dia"]}</span>'
-            f'<span style="color:#e8f4ff;font-weight:600;flex:1;">{s["materia"]}</span>'
-            f'<span style="color:#8ab0c8;font-size:0.8rem;">{s["tipo"]}</span>'
-            f'<span style="color:#00b4a6;font-weight:700;margin-left:12px;">{s["duracao"]}</span>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.info(
-        f"**Área:** {dict([(k,v) for k,v,_ in AREAS]).get(area, area)}  |  "
-        f"**Perfil:** {'Iniciante' if perfil=='zero' else 'Estudante' if perfil=='tempo_por_materia' else 'Com histórico'}  |  "
-        f"**Carga:** {horas:.0f}h/dia × {dias} dias"
-    )
-
-    if st.button("Ir para o Dashboard →", key="ob_finalizar", use_container_width=True, type="primary"):
-        # Limpa estado do onboarding
-        for k in list(st.session_state.keys()):
-            if k.startswith("ob_"):
-                del st.session_state[k]
-        st.session_state.onboarding_concluido = True
-        st.session_state.pagina = "dashboard"
-        st.rerun()
+        else:
+            st.error(f"Erro ao salvar perfil ({r.status_code}). Tente novamente.")
+    except Exception as e:
+        st.error(f"Não foi possível conectar à API. Verifique se o servidor está rodando.\n{e}")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def render():
-    # Pré-seleciona fiscal e vai direto para Tela 2 em novos usuários
+    st.markdown(_CSS, unsafe_allow_html=True)
+
     if "ob_area" not in st.session_state:
         st.session_state.ob_area = "fiscal"
-        st.session_state.ob_tela = 2
-        st.rerun()
+        st.session_state.ob_tela = 1
 
     tela = st.session_state.get("ob_tela", 1)
 
-    # Full-screen: oculta sidebar, perfil e expande layout
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"]          { display: none !important; }
-    [data-testid="stSidebarNav"]       { display: none !important; }
-    [data-testid="stPopover"]          { display: none !important; }
-    .block-container                   { max-width: 900px !important; margin: 0 auto !important;
-                                         padding-top: 2rem !important; }
-    .stApp                             { background: linear-gradient(160deg,#0a1520 0%,#0f1e2a 100%) !important; }
-
-    /* :has() para Chrome 105+ — todos os tipos de card */
-    .element-container:has(.area-btn,.ob-card,.perfil-btn,.plat-btn)
-        + .element-container [data-testid="stButton"] button,
-    .element-container:has(.area-btn-ativo,.ob-card-ativo,.perfil-btn-ativo,.plat-btn-ativo)
-        + .element-container [data-testid="stButton"] button {
-        height: auto !important;
-        border-radius: 16px !important; white-space: pre-wrap !important;
-        padding: 20px 16px !important; line-height: 1.6 !important;
-        font-size: 0.95rem !important; font-weight: 600 !important;
-    }
-    .element-container:has(.area-btn,.ob-card,.perfil-btn)
-        + .element-container [data-testid="stButton"] button {
-        min-height: 280px !important;
-        border: 1.5px solid #1e4a6a !important;
-        background: #19293a !important; color: #e8f4ff !important;
-    }
-    .element-container:has(.area-btn-ativo,.ob-card-ativo,.perfil-btn-ativo)
-        + .element-container [data-testid="stButton"] button {
-        min-height: 280px !important;
-        border: 2px solid #00b4a6 !important;
-        background: #0d2535 !important; color: #00b4a6 !important;
-    }
-    /* Cards de plataforma: compactos */
-    .element-container:has(.plat-btn)
-        + .element-container [data-testid="stButton"] button {
-        min-height: 110px !important;
-        border: 1.5px solid #1e4a6a !important;
-        background: #162535 !important; color: #e8f4ff !important;
-    }
-    .element-container:has(.plat-btn-ativo)
-        + .element-container [data-testid="stButton"] button {
-        min-height: 110px !important;
-        border: 2px solid #00b4a6 !important;
-        background: #0d2535 !important; color: #00b4a6 !important;
-    }
-
-    /* Botoes de navegacao (Voltar / Continuar) — altura normal */
-    .element-container:has(.area-btn,.ob-card,.perfil-btn,.plat-btn) ~ * [data-testid="stButton"] button,
-    .element-container:has(.area-btn-ativo,.ob-card-ativo,.perfil-btn-ativo,.plat-btn-ativo) ~ * [data-testid="stButton"] button {
-        min-height: unset !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # JS via components.html — única forma garantida de executar JS no Streamlit
-    # parent.document acessa o DOM principal (mesma origem em localhost)
-    components.html("""
-    <script>
-    (function() {
-        var NAV = ['Voltar','Continuar','Dashboard','Gerar','Entrar','Sair','Resetar','Meu Perfil'];
-        var DONE = new WeakSet();
-
-        function buildCard(btn) {
-            if (DONE.has(btn)) return;
-            var txt = (btn.innerText || btn.textContent || '').trim();
-            if (!txt) return;
-            if (NAV.some(function(n){ return txt.includes(n); })) return;
-            var lines = txt.split('\\n').map(function(l){ return l.trim(); }).filter(Boolean);
-            if (lines.length < 2) return;
-
-            var emoji  = lines[0];
-            var titulo = lines[1];
-            var desc   = lines.slice(2).join(' ').replace(/\u2713.*/, '').trim();
-            var ativo  = txt.indexOf('\u2713') !== -1;
-
-            // Detecta card compacto (plataformas): descrição curta ou ausente
-            var isCompact = desc.length < 50;
-
-            if (isCompact) {
-                // Card compacto — layout horizontal com ícone menor
-                btn.innerHTML =
-                    '<div style="display:flex;flex-direction:column;align-items:center;' +
-                    'justify-content:center;height:100%;padding:14px 12px;gap:6px;">' +
-                      '<div style="font-size:2rem;line-height:1;">' + emoji + '</div>' +
-                      '<div style="font-size:0.9rem;font-weight:700;text-align:center;">' + titulo + '</div>' +
-                      (desc ? '<div style="font-size:0.74rem;text-align:center;opacity:0.65;line-height:1.35;">' + desc + '</div>' : '') +
-                      (ativo ? '<div style="font-size:0.7rem;font-weight:800;color:#00b4a6;margin-top:2px;">✓ Ativo</div>' : '') +
-                    '</div>';
-                Object.assign(btn.style, {
-                    height: 'auto', borderRadius: '14px', padding: '0',
-                    whiteSpace: 'normal', lineHeight: '1',
-                    background: ativo ? '#0d2535' : '#162535',
-                    color:      ativo ? '#00b4a6' : '#d0e4f0',
-                    border:     ativo ? '2px solid #00b4a6' : '1.5px solid #1e3a5c'
-                });
-            } else {
-                // Card padrão — layout vertical com ícone grande
-                btn.innerHTML =
-                    '<div style="display:flex;flex-direction:column;align-items:center;' +
-                    'justify-content:flex-start;height:100%;padding:28px 16px 24px;">' +
-                      '<div style="font-size:3.4rem;line-height:1;margin-bottom:28px;">' + emoji + '</div>' +
-                      '<div style="font-size:1.05rem;font-weight:700;text-align:center;margin-bottom:10px;">' + titulo + '</div>' +
-                      (desc ? '<div style="font-size:0.82rem;text-align:center;opacity:0.6;line-height:1.45;">' + desc + '</div>' : '') +
-                    '</div>';
-                Object.assign(btn.style, {
-                    minHeight: '280px', height: 'auto',
-                    borderRadius: '20px', padding: '0',
-                    whiteSpace: 'normal', lineHeight: '1',
-                    background: ativo ? '#0d2535' : '#19293a',
-                    color:      ativo ? '#00b4a6' : '#e8f4ff',
-                    border:     ativo ? '2px solid #00b4a6' : '1.5px solid #1e4a6a'
-                });
-            }
-            DONE.add(btn);
-        }
-
-        function apply() {
-            try {
-                parent.document.querySelectorAll('[data-testid="stButton"] button')
-                    .forEach(buildCard);
-            } catch(e) {}
-        }
-
-        apply();
-        try {
-            new MutationObserver(apply)
-                .observe(parent.document.body, {childList:true, subtree:true});
-        } catch(e) {}
-    })();
-    </script>
-    """, height=0)
-
-    st.markdown(
-        '<div style="padding:0 0 32px 0;">',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div style="padding:0 0 40px 0;">', unsafe_allow_html=True)
 
     if tela == 1:
         _tela1()
@@ -610,9 +331,5 @@ def render():
         _tela3()
     elif tela == 4:
         _tela4()
-    elif tela == 5:
-        _tela5_disp()
-    elif tela == 6:
-        _tela6()
 
     st.markdown("</div>", unsafe_allow_html=True)

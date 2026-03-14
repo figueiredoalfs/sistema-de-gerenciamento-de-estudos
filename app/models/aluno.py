@@ -56,3 +56,4 @@ class Aluno(Base):
     metas_semanais = relationship("MetaSemanal", back_populates="aluno", cascade="all, delete-orphan")
     padroes_cognitivos = relationship("PadraoCognitivo", back_populates="aluno", cascade="all, delete-orphan")
     simulados = relationship("Simulado", back_populates="aluno", cascade="all, delete-orphan")
+    perfil_estudo = relationship("PerfilEstudo", back_populates="aluno", uselist=False, cascade="all, delete-orphan")
