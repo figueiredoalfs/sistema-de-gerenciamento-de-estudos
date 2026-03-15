@@ -74,7 +74,7 @@ div[data-testid="stButton"] button.ob-card-ativo {
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _step_indicator(atual: int, total: int = 4):
+def _step_indicator(atual: int, total: int = 5):
     pontos = ""
     for i in range(1, total + 1):
         if i < atual:
@@ -262,11 +262,13 @@ def _tela4():
             st.session_state.ob_tela = 3
             st.rerun()
     with col_n:
-        if st.button("Concluir →", key="ob_concluir", use_container_width=True, type="primary"):
+        if st.button("Continuar →", key="ob_avancar_5", use_container_width=True, type="primary"):
             if not selecionadas:
                 st.warning("Selecione ao menos uma funcionalidade.")
             else:
-                _enviar_onboarding(list(selecionadas))
+                st.session_state.ob_funcionalidades = list(selecionadas)
+                st.session_state.ob_tela = 5
+                st.rerun()
 
 
 # ── Envio para a API ──────────────────────────────────────────────────────────
@@ -298,6 +300,17 @@ def _enviar_onboarding(funcionalidades: list):
             dados = r.json()
             st.session_state["perfil_estudo_id"] = dados.get("perfil_estudo_id")
             tasks_geradas = dados.get("tasks_geradas", 0)
+
+            # Salva disponibilidade de estudo
+            horas = st.session_state.get("ob_horas_por_dia", 1.0)
+            dias  = st.session_state.get("ob_dias_por_semana", 5)
+            _requests.patch(
+                f"{_API_BASE}/auth/me",
+                json={"horas_por_dia": horas, "dias_por_semana": float(dias)},
+                headers=headers,
+                timeout=5,
+            )
+
             st.session_state.onboarding_concluido = True
             # Marca plano como ativo no banco SQLite local
             from database import salvar_perfil
@@ -314,6 +327,65 @@ def _enviar_onboarding(funcionalidades: list):
             st.error(f"Erro ao salvar perfil ({r.status_code}). Tente novamente.")
     except Exception as e:
         st.error(f"Não foi possível conectar à API. Verifique se o servidor está rodando.\n{e}")
+
+
+# ── Tela 5 — Disponibilidade de estudo ───────────────────────────────────────
+
+def _tela5():
+    _step_indicator(5)
+    _titulo(
+        "⏰",
+        "Qual é a sua disponibilidade?",
+        "Usaremos isso para montar seu cronograma semanal",
+    )
+
+    horas_atual = float(st.session_state.get("ob_horas_por_dia", 1.0))
+    dias_atual  = int(st.session_state.get("ob_dias_por_semana", 5))
+
+    col1, col2 = st.columns(2)
+    with col1:
+        horas = st.number_input(
+            "Horas de estudo por dia",
+            min_value=0.5,
+            max_value=16.0,
+            value=horas_atual,
+            step=0.5,
+            key="ob_input_horas",
+            help="Quantas horas você consegue estudar por dia",
+        )
+    with col2:
+        dias = st.number_input(
+            "Dias de estudo por semana",
+            min_value=1,
+            max_value=7,
+            value=dias_atual,
+            step=1,
+            key="ob_input_dias",
+            help="Quantos dias por semana você pretende estudar",
+        )
+
+    tasks_semana = int(horas) * dias
+    st.markdown(
+        f'<div style="background:#19293a;border-radius:10px;padding:14px 18px;'
+        f'margin:16px 0;border-left:3px solid #00b4a6;">'
+        f'<span style="color:#8ab0c8;font-size:0.85rem;">Com essa disponibilidade, seu cronograma terá:</span><br>'
+        f'<span style="color:#00b4a6;font-size:1.5rem;font-weight:700;">{tasks_semana} tasks por semana</span>'
+        f'<span style="color:#8ab0c8;font-size:0.78rem;"> ({int(horas)}h/dia × {dias} dias)</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_v, col_n = st.columns([1, 1])
+    with col_v:
+        if st.button("← Voltar", key="nav_voltar_4", use_container_width=True):
+            st.session_state.ob_tela = 4
+            st.rerun()
+    with col_n:
+        if st.button("Concluir →", key="ob_concluir", use_container_width=True, type="primary"):
+            st.session_state.ob_horas_por_dia   = horas
+            st.session_state.ob_dias_por_semana = dias
+            _enviar_onboarding(list(st.session_state.get("ob_funcionalidades", [])))
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -337,5 +409,7 @@ def render():
         _tela3()
     elif tela == 4:
         _tela4()
+    elif tela == 5:
+        _tela5()
 
     st.markdown("</div>", unsafe_allow_html=True)
