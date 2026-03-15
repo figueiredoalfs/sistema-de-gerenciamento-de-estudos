@@ -42,6 +42,10 @@ class StudyTask(Base):
     task_code         = Column(String(20), ForeignKey("task_conteudo.task_code"), nullable=True, index=True)
     numero_cronograma = Column(Integer, nullable=True)
 
+    # Cronograma semanal
+    week_number   = Column(Integer, nullable=True)  # número da semana (1, 2, 3, ...)
+    order_in_week = Column(Integer, nullable=True)  # posição dentro da semana (1..N)
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     aluno    = relationship("Aluno", foreign_keys=[aluno_id])

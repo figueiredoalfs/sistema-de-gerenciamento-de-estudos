@@ -50,6 +50,8 @@ class StudyTaskResponse(BaseModel):
     questoes_json:        Optional[str] = None
     task_code:            Optional[str] = None
     numero_cronograma:    Optional[int] = None
+    week_number:          Optional[int] = None
+    order_in_week:        Optional[int] = None
     created_at:           datetime
     desempenho_subtopicos: Optional[List[DesempenhoSubtopicoItem]] = None
     tarefas_geradas:      Optional[List[TaskGeradaItem]] = None

@@ -99,6 +99,8 @@ def _to_response(task: StudyTask, desempenho=None, tarefas_geradas=None) -> Stud
         tipo=task.tipo,
         status=task.status,
         questoes_json=task.questoes_json,
+        week_number=task.week_number,
+        order_in_week=task.order_in_week,
         created_at=task.created_at,
         desempenho_subtopicos=desempenho,
         tarefas_geradas=geradas,
