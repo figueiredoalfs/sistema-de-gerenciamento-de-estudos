@@ -3,6 +3,8 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel
 
+from app.schemas.question_subtopic import SubtopicoInfo
+
 RespostaCorreta = Literal["A", "B", "C", "D", "E"]
 
 
@@ -43,5 +45,6 @@ class QuestaoBancoResponse(BaseModel):
     board: Optional[str]
     year: Optional[int]
     created_at: datetime
+    subtopicos: List[SubtopicoInfo] = []
 
     model_config = {"from_attributes": True}

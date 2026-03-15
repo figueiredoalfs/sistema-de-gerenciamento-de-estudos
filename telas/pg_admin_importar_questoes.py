@@ -1,5 +1,5 @@
 """
-telas/pg_admin_importar_questoes.py — Tela de importação de questões em lote.
+telas/pg_admin_importar_questoes.py — Tela de importação e classificação de questões.
 """
 
 import csv
@@ -20,7 +20,6 @@ def _headers() -> dict:
 # ─── Parsers ──────────────────────────────────────────────────────────────────
 
 def _parse_json(conteudo: bytes) -> tuple[list, str | None]:
-    """Retorna (questoes, erro)."""
     try:
         dados = json.loads(conteudo.decode("utf-8"))
         if not isinstance(dados, list):
@@ -31,9 +30,6 @@ def _parse_json(conteudo: bytes) -> tuple[list, str | None]:
 
 
 def _parse_csv(conteudo: bytes) -> tuple[list, str | None]:
-    """Converte CSV para o mesmo formato do JSON. Colunas esperadas:
-    subject, board, year, statement, alternatives_A..E, correct_answer
-    """
     try:
         texto = conteudo.decode("utf-8")
         reader = csv.DictReader(io.StringIO(texto))
@@ -59,7 +55,6 @@ def _parse_csv(conteudo: bytes) -> tuple[list, str | None]:
 
 
 def _validar_questoes(questoes: list) -> list[str]:
-    """Retorna lista de erros de validação."""
     erros = []
     campos_obrigatorios = {"subject", "statement", "alternatives", "correct_answer"}
     alternativas_validas = {"A", "B", "C", "D", "E"}
@@ -81,7 +76,7 @@ def _validar_questoes(questoes: list) -> list[str]:
     return erros
 
 
-# ─── Chamadas de API ──────────────────────────────────────────────────────────
+# ─── Chamadas de API — importação ─────────────────────────────────────────────
 
 def _importar(disciplina_sigla: str, questoes: list) -> dict:
     payload = {"disciplina_sigla": disciplina_sigla, "questoes": questoes}
@@ -123,7 +118,132 @@ def _fetch_historico(subject="", board="", year=None, sigla="") -> list:
     return []
 
 
-# ─── Render ───────────────────────────────────────────────────────────────────
+# ─── Chamadas de API — subtópicos ─────────────────────────────────────────────
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _fetch_topicos_nivel2(token: str) -> list:
+    """Carrega todos os subtópicos (nivel=2) ativos. Cache de 2 minutos."""
+    try:
+        r = requests.get(
+            f"{_API_BASE}/admin/topicos",
+            params={"nivel": 2, "apenas_ativos": "true"},
+            headers={"Authorization": f"Bearer {token}"} if token else {},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return []
+
+
+def _fetch_subtopicos_questao(question_id: str) -> list:
+    try:
+        r = requests.get(
+            f"{_API_BASE}/admin/questoes-banco/{question_id}/subtopicos",
+            headers=_headers(),
+            timeout=5,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return []
+
+
+def _associar_subtopicos(question_id: str, subtopic_ids: list) -> tuple[list, str | None]:
+    try:
+        r = requests.post(
+            f"{_API_BASE}/admin/questoes-banco/{question_id}/subtopicos",
+            json={"subtopic_ids": subtopic_ids},
+            headers=_headers(),
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return r.json(), None
+        return [], r.json().get("detail", "Erro ao associar")
+    except Exception as exc:
+        return [], str(exc)
+
+
+def _remover_subtopico(question_id: str, subtopic_id: str) -> str | None:
+    try:
+        r = requests.delete(
+            f"{_API_BASE}/admin/questoes-banco/{question_id}/subtopicos/{subtopic_id}",
+            headers=_headers(),
+            timeout=5,
+        )
+        if r.status_code == 204:
+            return None
+        return r.json().get("detail", "Erro ao remover")
+    except Exception as exc:
+        return str(exc)
+
+
+# ─── Sub-componente: painel de subtópicos por questão ─────────────────────────
+
+def _painel_subtopicos(question_id: str, question_code: str, todos_nivel2: list):
+    """Renderiza o expander de subtópicos para uma questão."""
+    subtopicos_atuais = _fetch_subtopicos_questao(question_id)
+    ids_atuais = {s["id"] for s in subtopicos_atuais}
+
+    with st.expander(f"🏷️  {question_code} — subtópicos ({len(subtopicos_atuais)} associado(s))"):
+
+        # Subtópicos já associados
+        if subtopicos_atuais:
+            st.markdown("**Associados:**")
+            for sub in subtopicos_atuais:
+                col_nome, col_btn = st.columns([5, 1])
+                col_nome.markdown(
+                    f'<span style="font-size:.85rem;color:#c8dff0;">{sub["nome"]}</span>',
+                    unsafe_allow_html=True,
+                )
+                if col_btn.button("✕", key=f"rm_{question_id}_{sub['id']}", help="Remover"):
+                    erro = _remover_subtopico(question_id, sub["id"])
+                    if erro:
+                        st.error(erro)
+                    else:
+                        st.toast(f"Subtópico '{sub['nome']}' removido.")
+                        st.rerun()
+        else:
+            st.markdown(
+                '<span style="color:#4a6a8a;font-size:.83rem;">Nenhum subtópico associado.</span>',
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Seletor para adicionar novos
+        opcoes_disponiveis = [t for t in todos_nivel2 if t["id"] not in ids_atuais]
+
+        if opcoes_disponiveis:
+            opcoes_map = {t["id"]: t["nome"] for t in opcoes_disponiveis}
+            selecionados = st.multiselect(
+                "Adicionar subtópicos",
+                options=list(opcoes_map.keys()),
+                format_func=lambda x: opcoes_map[x],
+                key=f"ms_{question_id}",
+                placeholder="Selecione um ou mais subtópicos...",
+            )
+
+            if st.button("➕ Salvar", key=f"save_{question_id}", type="primary"):
+                if selecionados:
+                    _, erro = _associar_subtopicos(question_id, selecionados)
+                    if erro:
+                        st.error(erro)
+                    else:
+                        st.toast(f"{len(selecionados)} subtópico(s) associado(s).")
+                        st.rerun()
+                else:
+                    st.info("Selecione ao menos um subtópico.")
+        else:
+            st.markdown(
+                '<span style="color:#4a6a8a;font-size:.83rem;">Todos os subtópicos disponíveis já estão associados.</span>',
+                unsafe_allow_html=True,
+            )
+
+
+# ─── Render principal ─────────────────────────────────────────────────────────
 
 def render():
     if st.session_state.get("usuario", {}).get("role") != "administrador":
@@ -137,36 +257,32 @@ def render():
         unsafe_allow_html=True,
     )
 
-    aba_import, aba_historico = st.tabs(["📤 Importar", "📋 Histórico"])
+    aba_import, aba_historico = st.tabs(["📤 Importar", "📋 Histórico & Subtópicos"])
 
     # ── Aba: Importar ─────────────────────────────────────────────────────────
     with aba_import:
-        with st.container():
-            st.markdown("#### Configuração da importação")
+        st.markdown("#### Configuração da importação")
 
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                disciplina_sigla = st.text_input(
-                    "Sigla da disciplina",
-                    placeholder="Ex: DTRIB",
-                    help="Prefixo usado no código da questão (ex: DTRIB-FGV-2021-0001)",
-                ).strip().upper()
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            disciplina_sigla = st.text_input(
+                "Sigla da disciplina",
+                placeholder="Ex: DTRIB",
+                help="Prefixo usado no código da questão (ex: DTRIB-FGV-2021-0001)",
+            ).strip().upper()
 
-            with col2:
-                arquivo = st.file_uploader(
-                    "Arquivo de questões",
-                    type=["json", "csv"],
-                    help="JSON (array de objetos) ou CSV com colunas: subject, board, year, statement, alternatives_A..E, correct_answer",
-                )
+        with col2:
+            arquivo = st.file_uploader(
+                "Arquivo de questões",
+                type=["json", "csv"],
+                help="JSON (array de objetos) ou CSV com colunas: subject, board, year, statement, alternatives_A..E, correct_answer",
+            )
 
         if arquivo and disciplina_sigla:
             conteudo = arquivo.read()
             ext = arquivo.name.rsplit(".", 1)[-1].lower()
 
-            if ext == "json":
-                questoes_raw, erro_parse = _parse_json(conteudo)
-            else:
-                questoes_raw, erro_parse = _parse_csv(conteudo)
+            questoes_raw, erro_parse = _parse_json(conteudo) if ext == "json" else _parse_csv(conteudo)
 
             if erro_parse:
                 st.error(f"Erro ao ler arquivo: {erro_parse}")
@@ -181,7 +297,6 @@ def render():
                     st.markdown(f"_...e mais {len(erros_validacao) - 10} erros._")
                 st.stop()
 
-            # Pré-visualização
             st.markdown(f"#### Pré-visualização — {len(questoes_raw)} questão(ões) encontrada(s)")
 
             col_h1, col_h2, col_h3, col_h4 = st.columns([3, 1, 1, 1])
@@ -211,8 +326,7 @@ def render():
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            if st.button("✅ Confirmar Importação", type="primary", use_container_width=False):
-                # Normaliza correct_answer para maiúsculo
+            if st.button("✅ Confirmar Importação", type="primary"):
                 for q in questoes_raw:
                     if "correct_answer" in q:
                         q["correct_answer"] = q["correct_answer"].strip().upper()
@@ -235,7 +349,6 @@ def render():
         elif arquivo and not disciplina_sigla:
             st.info("Informe a sigla da disciplina para prosseguir.")
         else:
-            # Instrução de uso
             st.markdown(
                 '<div style="background:#0f1e2e;border:1px solid #1a3a55;border-radius:10px;padding:20px 24px;">'
                 '<p style="color:#5a7a96;margin:0 0 12px 0;font-weight:600;">Formato JSON esperado:</p>'
@@ -265,7 +378,7 @@ def render():
                 unsafe_allow_html=True,
             )
 
-    # ── Aba: Histórico ────────────────────────────────────────────────────────
+    # ── Aba: Histórico & Subtópicos ───────────────────────────────────────────
     with aba_historico:
         st.markdown("#### Questões importadas")
 
@@ -281,6 +394,10 @@ def render():
 
         questoes = _fetch_historico(f_subject, f_board, f_year, f_sigla)
 
+        # Carrega subtópicos nível 2 uma única vez (com cache)
+        token = st.session_state.get("api_token", "")
+        todos_nivel2 = _fetch_topicos_nivel2(token)
+
         if not questoes:
             st.info("Nenhuma questão encontrada. Ajuste os filtros ou importe questões na aba anterior.")
         else:
@@ -293,7 +410,7 @@ def render():
             h3.markdown("**Enunciado**")
             h4.markdown("**Banca/Ano**")
             h5.markdown("**Gabarito**")
-            st.markdown('<hr style="margin:2px 0 6px 0;border-color:#1a3a55;">', unsafe_allow_html=True)
+            st.markdown('<hr style="margin:2px 0 4px 0;border-color:#1a3a55;">', unsafe_allow_html=True)
 
             for q in questoes:
                 c1, c2, c3, c4, c5 = st.columns([1.5, 2, 3, 1, 1])
@@ -321,3 +438,7 @@ def render():
                     f'{q.get("correct_answer","")}</span>',
                     unsafe_allow_html=True,
                 )
+
+                # Expander de subtópicos abaixo de cada linha
+                _painel_subtopicos(q["id"], q["question_code"], todos_nivel2)
+                st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)

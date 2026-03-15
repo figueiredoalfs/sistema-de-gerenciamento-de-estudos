@@ -20,6 +20,7 @@ from app.models.perfil_estudo import PerfilEstudo
 from app.models.ciclo_materia import CicloMateria
 from app.models.explicacao_subtopico import ExplicacaoSubtopico
 from app.models.questao_banco import QuestaoBanco
+from app.models.question_subtopic import QuestionSubtopic
 
 __all__ = [
     "Aluno",
@@ -44,4 +45,5 @@ __all__ = [
     "CicloMateria",
     "ExplicacaoSubtopico",
     "QuestaoBanco",
+    "QuestionSubtopic",
 ]

@@ -2,18 +2,22 @@ import json
 import uuid
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import require_admin
 from app.models.aluno import Aluno
 from app.models.questao_banco import QuestaoBanco
+from app.models.question_subtopic import QuestionSubtopic
+from app.models.topico import Topico
 from app.schemas.questao_banco import (
     ImportacaoRequest,
     ImportacaoResponse,
     QuestaoBancoResponse,
 )
+from app.schemas.question_subtopic import AssociarSubtopicoRequest, SubtopicoInfo
 
 router = APIRouter(prefix="/admin", tags=["admin — importação de questões"])
 
@@ -34,7 +38,25 @@ def _gerar_question_code(disciplina: str, banca: str, ano: Optional[int], db: Se
     return f"{prefix}-{seq}"
 
 
-# ─── Endpoints ────────────────────────────────────────────────────────────────
+def _subtopicos_da_questao(question_id: str, db: Session) -> List[SubtopicoInfo]:
+    """Retorna os subtópicos associados a uma questão."""
+    rows = (
+        db.query(Topico)
+        .join(QuestionSubtopic, QuestionSubtopic.subtopic_id == Topico.id)
+        .filter(QuestionSubtopic.question_id == question_id)
+        .all()
+    )
+    return [SubtopicoInfo(id=t.id, nome=t.nome, nivel=t.nivel) for t in rows]
+
+
+def _questao_response(q: QuestaoBanco, db: Session) -> QuestaoBancoResponse:
+    """Monta QuestaoBancoResponse com subtópicos populados."""
+    data = QuestaoBancoResponse.model_validate(q)
+    data.subtopicos = _subtopicos_da_questao(q.id, db)
+    return data
+
+
+# ─── Endpoints — importação ───────────────────────────────────────────────────
 
 @router.post("/importar-questoes", response_model=ImportacaoResponse, status_code=201)
 def importar_questoes(
@@ -63,7 +85,7 @@ def importar_questoes(
                 year=item.year,
             )
             db.add(questao)
-            db.flush()  # garante que o question_code único é resolvido antes da próxima iteração
+            db.flush()
             importadas += 1
 
         except Exception as exc:
@@ -94,4 +116,83 @@ def listar_questoes_banco(
     if disciplina_sigla:
         q = q.filter(QuestaoBanco.question_code.like(f"{disciplina_sigla.upper()}-%"))
 
-    return q.order_by(QuestaoBanco.created_at.desc()).all()
+    questoes = q.order_by(QuestaoBanco.created_at.desc()).all()
+    return [_questao_response(questao, db) for questao in questoes]
+
+
+# ─── Endpoints — subtópicos ───────────────────────────────────────────────────
+
+@router.get("/questoes-banco/{question_id}/subtopicos", response_model=List[SubtopicoInfo])
+def listar_subtopicos_questao(
+    question_id: str,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: lista os subtópicos associados a uma questão."""
+    questao = db.query(QuestaoBanco).filter(QuestaoBanco.id == question_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    return _subtopicos_da_questao(question_id, db)
+
+
+@router.post("/questoes-banco/{question_id}/subtopicos", response_model=List[SubtopicoInfo])
+def associar_subtopicos(
+    question_id: str,
+    body: AssociarSubtopicoRequest,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: associa um ou mais subtópicos a uma questão (ignora duplicatas)."""
+    questao = db.query(QuestaoBanco).filter(QuestaoBanco.id == question_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    for subtopic_id in body.subtopic_ids:
+        topico = db.query(Topico).filter(Topico.id == subtopic_id, Topico.nivel == 2).first()
+        if not topico:
+            raise HTTPException(
+                status_code=422,
+                detail=f"subtopic_id '{subtopic_id}' não encontrado ou não é um subtópico (nivel=2)",
+            )
+
+        assoc = QuestionSubtopic(
+            id=str(uuid.uuid4()),
+            question_id=question_id,
+            subtopic_id=subtopic_id,
+        )
+        db.add(assoc)
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()  # ignora duplicata silenciosamente
+
+    db.commit()
+    return _subtopicos_da_questao(question_id, db)
+
+
+@router.delete(
+    "/questoes-banco/{question_id}/subtopicos/{subtopic_id}",
+    status_code=204,
+    response_class=Response,
+)
+def remover_subtopico(
+    question_id: str,
+    subtopic_id: str,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: remove a associação entre uma questão e um subtópico."""
+    assoc = (
+        db.query(QuestionSubtopic)
+        .filter(
+            QuestionSubtopic.question_id == question_id,
+            QuestionSubtopic.subtopic_id == subtopic_id,
+        )
+        .first()
+    )
+    if not assoc:
+        raise HTTPException(status_code=404, detail="Associação não encontrada")
+
+    db.delete(assoc)
+    db.commit()
