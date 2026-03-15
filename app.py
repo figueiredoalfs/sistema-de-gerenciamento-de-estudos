@@ -109,9 +109,6 @@ else:
     # INTERFACE DO ALUNO
     # ══════════════════════════════════════════════════════════════════════════
 
-    # Timer de estudo no topo (client-side JS)
-    st.markdown(timer_bar(), unsafe_allow_html=True)
-
     # Importa as telas
     from telas.pg_dashboard       import render as pg_dashboard
     from telas.pg_lancar_bateria  import render as pg_lancar
@@ -135,6 +132,10 @@ else:
             if "ob_tela" not in st.session_state:
                 st.session_state.ob_tela = 1
             st.session_state.pagina = "onboarding"
+
+    # Timer de estudo no topo — apenas fora do onboarding
+    if st.session_state.get("onboarding_concluido"):
+        st.markdown(timer_bar(), unsafe_allow_html=True)
 
     # Inicializa o estado de navegacao
     if "pagina" not in st.session_state:
