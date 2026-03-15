@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
-from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes
+from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes, admin_importar_questoes
 from app.modules.conteudo.router import router as conteudo_router
 
 # Importar todos os models para o Alembic detectar
@@ -63,6 +63,7 @@ app.include_router(questoes.router)
 app.include_router(respostas.router)
 app.include_router(study_tasks.router)
 app.include_router(explicacoes.router)
+app.include_router(admin_importar_questoes.router)
 
 
 @app.get("/", tags=["health"])

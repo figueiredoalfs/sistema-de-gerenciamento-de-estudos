@@ -100,3 +100,9 @@ def render():
             "admin_usuarios",
             cor="#06d6a0",
         )
+        _card_ferramenta(
+            "📥", "Importar Questões",
+            "Importe questões em lote via arquivo JSON ou CSV.",
+            "admin_importar_questoes",
+            cor="#f77f00",
+        )

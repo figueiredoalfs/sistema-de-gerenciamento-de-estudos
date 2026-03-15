@@ -45,19 +45,21 @@ if _role == "administrador":
     # ══════════════════════════════════════════════════════════════════════════
     # INTERFACE DO ADMINISTRADOR
     # ══════════════════════════════════════════════════════════════════════════
-    from telas.pg_admin_hub      import render as pg_admin_hub
-    from telas.pg_admin_ciclos   import render as pg_admin_ciclos
-    from telas.pg_admin_topicos  import render as pg_admin_topicos
-    from telas.pg_admin_usuarios import render as pg_admin_usuarios
+    from telas.pg_admin_hub                  import render as pg_admin_hub
+    from telas.pg_admin_ciclos               import render as pg_admin_ciclos
+    from telas.pg_admin_topicos              import render as pg_admin_topicos
+    from telas.pg_admin_usuarios             import render as pg_admin_usuarios
+    from telas.pg_admin_importar_questoes    import render as pg_admin_importar_questoes
 
     if "pagina" not in st.session_state:
         st.session_state.pagina = "admin_hub"
 
     ADMIN_MENU = [
-        ("admin_hub",      "🏠", "Painel"),
-        ("admin_ciclos",   "🔄", "Ciclos de Matérias"),
-        ("admin_topicos",  "📂", "Tópicos"),
-        ("admin_usuarios", "👥", "Usuários"),
+        ("admin_hub",               "🏠", "Painel"),
+        ("admin_ciclos",            "🔄", "Ciclos de Matérias"),
+        ("admin_topicos",           "📂", "Tópicos"),
+        ("admin_usuarios",          "👥", "Usuários"),
+        ("admin_importar_questoes", "📥", "Importar Questões"),
     ]
 
     with st.sidebar:
@@ -99,6 +101,8 @@ if _role == "administrador":
         pg_admin_usuarios()
     elif pagina == "admin_topicos":
         pg_admin_topicos()
+    elif pagina == "admin_importar_questoes":
+        pg_admin_importar_questoes()
 
 else:
     # ══════════════════════════════════════════════════════════════════════════
