@@ -52,6 +52,7 @@ class StudyTaskResponse(BaseModel):
     numero_cronograma:    Optional[int] = None
     week_number:          Optional[int] = None
     order_in_week:        Optional[int] = None
+    goal_id:              Optional[str] = None
     created_at:           datetime
     desempenho_subtopicos: Optional[List[DesempenhoSubtopicoItem]] = None
     tarefas_geradas:      Optional[List[TaskGeradaItem]] = None

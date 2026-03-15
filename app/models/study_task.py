@@ -46,6 +46,9 @@ class StudyTask(Base):
     week_number   = Column(Integer, nullable=True)  # número da semana (1, 2, 3, ...)
     order_in_week = Column(Integer, nullable=True)  # posição dentro da semana (1..N)
 
+    # Meta pedagógica à qual esta task pertence (nullable: tasks antigas não têm meta)
+    goal_id = Column(String(36), ForeignKey("metas.id"), nullable=True, index=True)
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     aluno    = relationship("Aluno", foreign_keys=[aluno_id])
@@ -53,3 +56,4 @@ class StudyTask(Base):
     topic    = relationship("Topico", foreign_keys=[topic_id])
     subtopic = relationship("Topico", foreign_keys=[subtopic_id])
     conteudo = relationship("TaskConteudo", foreign_keys=[task_code])
+    meta     = relationship("Meta", back_populates="tasks", foreign_keys=[goal_id])

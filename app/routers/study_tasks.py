@@ -34,6 +34,7 @@ from app.schemas.study_task import (
 )
 from app.services.desempenho_diagnostico import calcular_e_salvar_desempenho_diagnostico
 from app.services.plano_pos_diagnostico import gerar_tasks_pos_diagnostico
+from app.services.engine_pedagogica import verificar_encerramento_meta
 
 router = APIRouter(tags=["tasks"])
 
@@ -205,6 +206,10 @@ def atualizar_status(
             desempenho=desempenho,
             db=db,
         )
+
+    # Encerramento automático da Meta quando todas as tasks são concluídas
+    if body.status == "completed" and task.goal_id and not ja_concluida:
+        verificar_encerramento_meta(db, task.goal_id)
 
     return _to_response(task, desempenho, tarefas_geradas)
 

@@ -24,6 +24,8 @@ from app.models.question_subtopic import QuestionSubtopic
 from app.models.task_conteudo import TaskConteudo
 from app.models.task_video import TaskVideo
 from app.models.task_video_avaliacao import TaskVideoAvaliacao
+from app.models.meta import Meta
+from app.models.subtopico_estado import SubtopicoEstado
 
 __all__ = [
     "Aluno",
@@ -52,4 +54,6 @@ __all__ = [
     "TaskConteudo",
     "TaskVideo",
     "TaskVideoAvaliacao",
+    "Meta",
+    "SubtopicoEstado",
 ]
