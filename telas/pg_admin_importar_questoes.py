@@ -85,7 +85,7 @@ def _importar(disciplina_sigla: str, questoes: list) -> dict:
             f"{_API_BASE}/admin/importar-questoes",
             json=payload,
             headers=_headers(),
-            timeout=30,
+            timeout=120,
         )
         if r.status_code == 201:
             return r.json()
@@ -187,15 +187,22 @@ def _painel_subtopicos(question_id: str, question_code: str, todos_nivel2: list)
     subtopicos_atuais = _fetch_subtopicos_questao(question_id)
     ids_atuais = {s["id"] for s in subtopicos_atuais}
 
-    with st.expander(f"🏷️  {question_code} — subtópicos ({len(subtopicos_atuais)} associado(s))"):
+    n_ia = sum(1 for s in subtopicos_atuais if s.get("fonte") == "ia")
+    label_ia = f" · {n_ia} 🤖 IA" if n_ia else ""
+    with st.expander(f"🏷️  {question_code} — subtópicos ({len(subtopicos_atuais)} associado(s)){label_ia}"):
 
         # Subtópicos já associados
         if subtopicos_atuais:
             st.markdown("**Associados:**")
             for sub in subtopicos_atuais:
                 col_nome, col_btn = st.columns([5, 1])
+                badge = (
+                    '<span style="background:#1a472a;color:#5fbf7a;font-size:.70rem;'
+                    'padding:1px 6px;border-radius:10px;margin-left:6px;">IA</span>'
+                    if sub.get("fonte") == "ia" else ""
+                )
                 col_nome.markdown(
-                    f'<span style="font-size:.85rem;color:#c8dff0;">{sub["nome"]}</span>',
+                    f'<span style="font-size:.85rem;color:#c8dff0;">{sub["nome"]}</span>{badge}',
                     unsafe_allow_html=True,
                 )
                 if col_btn.button("✕", key=f"rm_{question_id}_{sub['id']}", help="Remover"):
@@ -336,10 +343,16 @@ def render():
 
                 importadas = resultado.get("importadas", 0)
                 erros_api = resultado.get("erros", [])
+                avisos_ia = resultado.get("avisos_ia", [])
 
                 if importadas > 0:
                     st.success(f"{importadas} questão(ões) importada(s) com sucesso!")
                     st.toast(f"✅ {importadas} questões importadas")
+
+                if avisos_ia:
+                    with st.expander(f"⚠️ Avisos de classificação IA ({len(avisos_ia)})"):
+                        for a in avisos_ia:
+                            st.markdown(f"- {a}")
 
                 if erros_api:
                     st.warning(f"{len(erros_api)} erro(s) durante a importação:")

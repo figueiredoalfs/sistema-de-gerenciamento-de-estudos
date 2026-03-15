@@ -10,6 +10,7 @@ Mudanças:
 """
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import inspect
 
 revision = "g1h2i3j4k5l6"
 down_revision = "f1a2b3c4d5e6"
@@ -18,17 +19,23 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "explicacoes_subtopico",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("topico_id", sa.String(36), sa.ForeignKey("topicos.id"), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-        sa.UniqueConstraint("topico_id", name="uq_explicacao_topico"),
-    )
-    op.create_index("ix_explicacoes_subtopico_topico_id", "explicacoes_subtopico", ["topico_id"])
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if "explicacoes_subtopico" not in inspector.get_table_names():
+        op.create_table(
+            "explicacoes_subtopico",
+            sa.Column("id", sa.String(36), primary_key=True),
+            sa.Column("topico_id", sa.String(36), sa.ForeignKey("topicos.id"), nullable=False),
+            sa.Column("content", sa.Text(), nullable=False),
+            sa.Column("created_at", sa.DateTime(), nullable=True),
+            sa.UniqueConstraint("topico_id", name="uq_explicacao_topico"),
+        )
+        op.create_index("ix_explicacoes_subtopico_topico_id", "explicacoes_subtopico", ["topico_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_explicacoes_subtopico_topico_id", table_name="explicacoes_subtopico")
-    op.drop_table("explicacoes_subtopico")
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if "explicacoes_subtopico" in inspector.get_table_names():
+        op.drop_index("ix_explicacoes_subtopico_topico_id", table_name="explicacoes_subtopico")
+        op.drop_table("explicacoes_subtopico")

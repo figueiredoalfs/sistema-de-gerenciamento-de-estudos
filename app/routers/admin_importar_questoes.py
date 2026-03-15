@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.ai_provider import get_ai_provider
 from app.core.database import get_db
 from app.core.security import require_admin
 from app.models.aluno import Aluno
@@ -18,6 +19,7 @@ from app.schemas.questao_banco import (
     QuestaoBancoResponse,
 )
 from app.schemas.question_subtopic import AssociarSubtopicoRequest, SubtopicoInfo
+from app.services.sugestao_subtopicos import salvar_sugestoes, sugerir_subtopicos
 
 router = APIRouter(prefix="/admin", tags=["admin — importação de questões"])
 
@@ -39,14 +41,14 @@ def _gerar_question_code(disciplina: str, banca: str, ano: Optional[int], db: Se
 
 
 def _subtopicos_da_questao(question_id: str, db: Session) -> List[SubtopicoInfo]:
-    """Retorna os subtópicos associados a uma questão."""
+    """Retorna os subtópicos associados a uma questão, incluindo a fonte (ia|manual)."""
     rows = (
-        db.query(Topico)
+        db.query(Topico, QuestionSubtopic.fonte)
         .join(QuestionSubtopic, QuestionSubtopic.subtopic_id == Topico.id)
         .filter(QuestionSubtopic.question_id == question_id)
         .all()
     )
-    return [SubtopicoInfo(id=t.id, nome=t.nome, nivel=t.nivel) for t in rows]
+    return [SubtopicoInfo(id=t.id, nome=t.nome, nivel=t.nivel, fonte=fonte) for t, fonte in rows]
 
 
 def _questao_response(q: QuestaoBanco, db: Session) -> QuestaoBancoResponse:
@@ -67,7 +69,9 @@ def importar_questoes(
     """Admin: importa questões em lote a partir de estrutura JSON/CSV pré-processada."""
     importadas = 0
     erros: list[str] = []
+    questoes_importadas: list[QuestaoBanco] = []
 
+    # Fase 1: salvar todas as questões
     for i, item in enumerate(body.questoes, start=1):
         try:
             question_code = _gerar_question_code(
@@ -86,13 +90,30 @@ def importar_questoes(
             )
             db.add(questao)
             db.flush()
+            questoes_importadas.append(questao)
             importadas += 1
 
         except Exception as exc:
             erros.append(f"Questão {i}: {str(exc)}")
 
     db.commit()
-    return ImportacaoResponse(importadas=importadas, erros=erros)
+
+    # Fase 2: classificação IA (best-effort, após commit das questões)
+    avisos_ia: list[str] = []
+    subtopicos_nivel2 = (
+        db.query(Topico).filter(Topico.nivel == 2, Topico.ativo == True).all()
+    )
+    if subtopicos_nivel2 and questoes_importadas:
+        ai = get_ai_provider()
+        for questao in questoes_importadas:
+            ids_sugeridos = sugerir_subtopicos(questao, subtopicos_nivel2, ai)
+            if ids_sugeridos:
+                salvar_sugestoes(str(questao.id), ids_sugeridos, db)
+            else:
+                avisos_ia.append(f"{questao.question_code}: sem classificação IA")
+        db.commit()
+
+    return ImportacaoResponse(importadas=importadas, erros=erros, avisos_ia=avisos_ia)
 
 
 @router.get("/questoes-banco", response_model=List[QuestaoBancoResponse])
@@ -160,6 +181,7 @@ def associar_subtopicos(
             id=str(uuid.uuid4()),
             question_id=question_id,
             subtopic_id=subtopic_id,
+            fonte="manual",
         )
         db.add(assoc)
         try:

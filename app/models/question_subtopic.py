@@ -21,6 +21,7 @@ class QuestionSubtopic(Base):
         nullable=False,
         index=True,
     )
+    fonte = Column(String(10), nullable=False, server_default="manual")
 
     __table_args__ = (
         UniqueConstraint("question_id", "subtopic_id", name="uq_question_subtopic"),

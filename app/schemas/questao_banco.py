@@ -33,6 +33,7 @@ class ImportacaoRequest(BaseModel):
 class ImportacaoResponse(BaseModel):
     importadas: int
     erros: List[str]
+    avisos_ia: List[str] = []
 
 
 class QuestaoBancoResponse(BaseModel):
