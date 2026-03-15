@@ -3,56 +3,55 @@ pg_evolucao_mensal.py
 Grafico de linha interativo: % de acertos por materia ao longo dos meses.
 """
 
-import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from database import ler_lancamentos
-from telas.components import page_title, _injetar_css
+import streamlit as st
+
+from api_client import api_obter_evolucao
+from telas.components import _injetar_css, page_title
 
 
 def render():
     _injetar_css()
     page_title("Evolução Mensal", "% de acerto por matéria ao longo dos meses")
 
-    df = ler_lancamentos(st.session_state.usuario["id"])
+    pontos = api_obter_evolucao()
 
-    if df.empty:
-        st.info("Sem dados para exibir o grafico.")
+    if not pontos:
+        st.info("Sem dados para exibir o gráfico.")
         return
 
-    # Agrupa por mes e materia
-    df = df.copy()
-    df["_dt"] = pd.to_datetime(df["Data"], dayfirst=True, errors="coerce")
-    df = df.dropna(subset=["_dt"])
-    df["Mes"] = df["_dt"].dt.to_period("M").astype(str)
+    resumo = pd.DataFrame(pontos)  # columns: materia, mes, acertos, total, perc
 
-    resumo = (
-        df.groupby(["Mes", "Materia"])
-        .agg(Acertos=("Acertos", "sum"), Total=("Total", "sum"))
-        .reset_index()
+    materias = sorted(resumo["materia"].unique())
+
+    # ── Filtro de matérias ────────────────────────────────────────────────────
+    selecionadas = st.multiselect(
+        "Filtrar matérias",
+        options=materias,
+        default=materias[:10],  # limita padrão a 10 para não poluir
+        key="evo_mat_filter",
     )
-    resumo["Perc"] = (resumo["Acertos"] / resumo["Total"] * 100).fillna(0).round(1)
-
-    materias = sorted(resumo["Materia"].unique())
+    if selecionadas:
+        resumo = resumo[resumo["materia"].isin(selecionadas)]
 
     # ── Grafico Plotly ────────────────────────────────────────────────────────
     fig = go.Figure()
 
-    for mat in materias:
-        sub = resumo[resumo["Materia"] == mat].sort_values("Mes")
+    for mat in sorted(resumo["materia"].unique()):
+        sub = resumo[resumo["materia"] == mat].sort_values("mes")
         fig.add_trace(go.Scatter(
-            x=sub["Mes"],
-            y=sub["Perc"],
+            x=sub["mes"],
+            y=sub["perc"],
             mode="lines+markers",
             name=mat,
             hovertemplate=(
                 f"<b>{mat}</b><br>"
-                "Mes: %{x}<br>"
+                "Mês: %{x}<br>"
                 "Acertos: %{y:.1f}%<extra></extra>"
             ),
         ))
 
-    # Linhas de referencia de desempenho
     fig.add_hline(
         y=80, line_dash="dash", line_color="green",
         annotation_text="Meta 80%", annotation_position="right",
@@ -63,10 +62,10 @@ def render():
     )
 
     fig.update_layout(
-        xaxis_title="Mes",
+        xaxis_title="Mês",
         yaxis_title="% de Acertos",
         yaxis_range=[0, 108],
-        legend_title="Materia",
+        legend_title="Matéria",
         hovermode="x unified",
         paper_bgcolor="#0d1b2a",
         plot_bgcolor="#0a1628",

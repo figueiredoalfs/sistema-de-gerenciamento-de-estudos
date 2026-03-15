@@ -28,7 +28,8 @@
       "Bash(xargs grep:*)",
       "Bash(alembic upgrade:*)",
       "Bash(alembic stamp:*)",
-      "Bash(alembic current:*)"
+      "Bash(alembic current:*)",
+      "Bash(ls -lh /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/app/models/*.py)"
     ]
   }
 }

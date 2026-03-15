@@ -47,6 +47,7 @@ if _role == "administrador":
     # ══════════════════════════════════════════════════════════════════════════
     from telas.pg_admin_hub      import render as pg_admin_hub
     from telas.pg_admin_ciclos   import render as pg_admin_ciclos
+    from telas.pg_admin_topicos  import render as pg_admin_topicos
     from telas.pg_admin_usuarios import render as pg_admin_usuarios
 
     if "pagina" not in st.session_state:
@@ -97,7 +98,7 @@ if _role == "administrador":
     elif pagina == "admin_usuarios":
         pg_admin_usuarios()
     elif pagina == "admin_topicos":
-        st.info("Tela de gerenciamento de tópicos em desenvolvimento.")
+        pg_admin_topicos()
 
 else:
     # ══════════════════════════════════════════════════════════════════════════

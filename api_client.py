@@ -270,20 +270,16 @@ def api_listar_tasks(tipo: str = None, status: str = None) -> list:
     return []
 
 
-def api_get_questoes_task(subject_id: str, questao_ids: list[str]) -> list:
-    """Busca as questões de uma task diagnóstica filtrando por IDs."""
-    if not questao_ids:
-        return []
-    ids_set = set(questao_ids)
+def api_get_questoes_task(task_id: str, subject_id: str = None, questao_ids: list[str] = None) -> list:
+    """Busca as questões de uma task diagnóstica via endpoint dedicado."""
     try:
         r = requests.get(
-            f"{API_BASE}/questoes",
-            params={"subject_id": subject_id, "apenas_ativas": True},
+            f"{API_BASE}/tasks/{task_id}/questoes",
             headers=_headers(),
             timeout=TIMEOUT,
         )
         if r.status_code == 200:
-            return [q for q in r.json() if q["id"] in ids_set]
+            return r.json()
     except Exception:
         pass
     return []
@@ -333,3 +329,50 @@ def api_atualizar_status_erro(erro_id: str, novo_status: str) -> bool:
         return r.status_code == 200
     except Exception:
         return False
+
+
+def api_obter_evolucao() -> list:
+    """Retorna a evolução mensal de desempenho por matéria."""
+    try:
+        r = requests.get(
+            f"{API_BASE}/desempenho/evolucao",
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return []
+
+
+def api_atualizar_perfil(dados: dict) -> dict | None:
+    """Atualiza campos do perfil (nome, email, nivel_desafio, horas_por_dia, dias_por_semana, area)."""
+    try:
+        r = requests.patch(
+            f"{API_BASE}/auth/me",
+            json=dados,
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
+def api_alterar_senha(senha_atual: str, nova_senha: str) -> dict:
+    """Altera senha do usuário. Retorna dict com 'ok' ou 'erro'."""
+    try:
+        r = requests.post(
+            f"{API_BASE}/auth/alterar-senha",
+            json={"senha_atual": senha_atual, "nova_senha": nova_senha},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return {"ok": True}
+        return {"ok": False, "erro": r.json().get("detail", "Erro desconhecido")}
+    except Exception:
+        return {"ok": False, "erro": "API indisponível"}

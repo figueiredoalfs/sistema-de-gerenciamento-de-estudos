@@ -35,6 +35,14 @@ class DesempenhoResponse(BaseModel):
     por_materia: list[MateriaDesempenho]
 
 
+class EvolucaoPonto(BaseModel):
+    materia: str
+    mes: str  # "YYYY-MM"
+    acertos: int
+    total: int
+    perc: float
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _agrupar_por_materia(registros: list[Proficiencia]) -> dict:
@@ -147,3 +155,36 @@ def get_desempenho(
         perc_geral=_perc(total_a, total_q),
         por_materia=por_materia,
     )
+
+
+@router.get("/desempenho/evolucao", response_model=list[EvolucaoPonto])
+def get_evolucao(
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """
+    Retorna a evolução mensal de desempenho por matéria.
+    Cada ponto representa o % de acertos em um mês para uma matéria.
+    """
+    from collections import defaultdict
+
+    todos = db.query(Proficiencia).filter(Proficiencia.aluno_id == usuario.id).all()
+
+    agrup: dict[tuple, dict] = defaultdict(lambda: {"acertos": 0, "total": 0})
+    for r in todos:
+        if not r.data or not r.materia:
+            continue
+        chave = (r.materia, r.data.strftime("%Y-%m"))
+        agrup[chave]["acertos"] += r.acertos or 0
+        agrup[chave]["total"] += r.total or 0
+
+    return [
+        EvolucaoPonto(
+            materia=mat,
+            mes=mes,
+            acertos=v["acertos"],
+            total=v["total"],
+            perc=_perc(v["acertos"], v["total"]),
+        )
+        for (mat, mes), v in sorted(agrup.items(), key=lambda x: (x[0][1], x[0][0]))
+    ]

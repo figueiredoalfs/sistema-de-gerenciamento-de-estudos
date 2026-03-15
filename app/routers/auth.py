@@ -10,7 +10,7 @@ from app.core.security import (
     verify_password,
 )
 from app.models.aluno import Aluno
-from app.schemas.auth import AlunoCreate, AlunoResponse, TokenResponse
+from app.schemas.auth import AlunoCreate, AlunoResponse, AlunoUpdate, AlterarSenhaRequest, TokenResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -46,3 +46,48 @@ def register(body: AlunoCreate, db: Session = Depends(get_db)):
 @router.get("/me", response_model=AlunoResponse)
 def me(current_user: Aluno = Depends(get_current_user)):
     return current_user
+
+
+@router.patch("/me", response_model=AlunoResponse)
+def atualizar_perfil(
+    body: AlunoUpdate,
+    db: Session = Depends(get_db),
+    current_user: Aluno = Depends(get_current_user),
+):
+    """Atualiza campos do perfil do usuário autenticado."""
+    NIVEIS_VALIDOS = {"conservador", "moderado", "agressivo"}
+    if body.email and body.email != current_user.email:
+        if db.query(Aluno).filter(Aluno.email == body.email).first():
+            raise HTTPException(status_code=400, detail="E-mail já cadastrado")
+        current_user.email = body.email
+    if body.nome is not None:
+        current_user.nome = body.nome
+    if body.nivel_desafio is not None:
+        if body.nivel_desafio not in NIVEIS_VALIDOS:
+            raise HTTPException(status_code=400, detail=f"nivel_desafio inválido. Use: {NIVEIS_VALIDOS}")
+        current_user.nivel_desafio = body.nivel_desafio
+    if body.horas_por_dia is not None:
+        current_user.horas_por_dia = body.horas_por_dia
+    if body.dias_por_semana is not None:
+        current_user.dias_por_semana = body.dias_por_semana
+    if body.area is not None:
+        current_user.area = body.area
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.post("/alterar-senha", status_code=200)
+def alterar_senha(
+    body: AlterarSenhaRequest,
+    db: Session = Depends(get_db),
+    current_user: Aluno = Depends(get_current_user),
+):
+    """Altera a senha do usuário autenticado."""
+    if not verify_password(body.senha_atual, current_user.senha_hash):
+        raise HTTPException(status_code=400, detail="Senha atual incorreta")
+    if len(body.nova_senha) < 6:
+        raise HTTPException(status_code=400, detail="A nova senha deve ter pelo menos 6 caracteres")
+    current_user.senha_hash = hash_password(body.nova_senha)
+    db.commit()
+    return {"mensagem": "Senha alterada com sucesso"}

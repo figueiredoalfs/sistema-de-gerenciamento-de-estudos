@@ -11,11 +11,15 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+import json
+
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.aluno import Aluno
+from app.models.questao import Questao
 from app.models.study_task import StudyTask
 from app.models.topico import Topico
+from app.schemas.questao import QuestaoResponse
 from app.schemas.study_task import (
     StudyTaskCreate,
     StudyTaskListResponse,
@@ -191,3 +195,32 @@ def atualizar_status(
         )
 
     return _to_response(task, desempenho, tarefas_geradas)
+
+
+@router.get("/tasks/{task_id}/questoes", response_model=list[QuestaoResponse])
+def listar_questoes_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """Retorna as questões de uma task diagnóstica pelo IDs armazenados em questoes_json."""
+    task = db.query(StudyTask).filter(
+        StudyTask.id == task_id,
+        StudyTask.aluno_id == usuario.id,
+    ).first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task não encontrada")
+    if not task.questoes_json:
+        return []
+
+    try:
+        ids = json.loads(task.questoes_json)
+    except (ValueError, TypeError):
+        return []
+
+    if not ids:
+        return []
+
+    questoes = db.query(Questao).filter(Questao.id.in_(ids), Questao.ativo == True).all()
+    return [QuestaoResponse.model_validate(q) for q in questoes]

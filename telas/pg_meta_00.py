@@ -157,7 +157,7 @@ def _render_task(task: dict):
     cache_key = f"meta00_questoes_{tid}"
     if cache_key not in st.session_state:
         with st.spinner("Carregando questões..."):
-            questoes = api_get_questoes_task(task["subject_id"], questoes_ids)
+            questoes = api_get_questoes_task(tid)
             # Ordena conforme a sequência original do questoes_json
             ordem = {qid: i for i, qid in enumerate(questoes_ids)}
             questoes.sort(key=lambda q: ordem.get(q["id"], 999))

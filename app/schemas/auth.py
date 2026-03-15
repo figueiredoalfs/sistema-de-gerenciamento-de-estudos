@@ -65,3 +65,17 @@ class AlunoMentoradoResponse(BaseModel):
 
 class AtribuirMentorRequest(BaseModel):
     mentor_id: Optional[str]
+
+
+class AlunoUpdate(BaseModel):
+    nome: Optional[str] = None
+    email: Optional[EmailStr] = None
+    nivel_desafio: Optional[str] = None
+    horas_por_dia: Optional[float] = None
+    dias_por_semana: Optional[float] = None
+    area: Optional[str] = None
+
+
+class AlterarSenhaRequest(BaseModel):
+    senha_atual: str
+    nova_senha: str
