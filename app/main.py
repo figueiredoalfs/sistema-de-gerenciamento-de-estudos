@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
-from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks
+from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes
 from app.modules.conteudo.router import router as conteudo_router
 
 # Importar todos os models para o Alembic detectar
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     lifespan=lifespan,
-    title="ConcursoAI API",
+    title="Skolai API",
     description="Plataforma de gestão de estudos para concursos públicos com IA",
     version="0.1.0",
 )
@@ -62,8 +62,9 @@ app.include_router(conhecimento.router)
 app.include_router(questoes.router)
 app.include_router(respostas.router)
 app.include_router(study_tasks.router)
+app.include_router(explicacoes.router)
 
 
 @app.get("/", tags=["health"])
 def health():
-    return {"status": "ok", "app": "ConcursoAI"}
+    return {"status": "ok", "app": "Skolai"}

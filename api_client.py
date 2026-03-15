@@ -376,3 +376,21 @@ def api_alterar_senha(senha_atual: str, nova_senha: str) -> dict:
         return {"ok": False, "erro": r.json().get("detail", "Erro desconhecido")}
     except Exception:
         return {"ok": False, "erro": "API indisponível"}
+
+
+def api_obter_explicacao(topico_id: str) -> str | None:
+    """
+    Busca a explicação de um subtópico (cache ou geração via IA).
+    Timeout maior pois a primeira chamada pode levar até ~15s (geração pela IA).
+    """
+    try:
+        r = requests.get(
+            f"{API_BASE}/explicacoes/topico/{topico_id}",
+            headers=_headers(),
+            timeout=30,
+        )
+        if r.status_code == 200:
+            return r.json().get("content")
+    except Exception:
+        pass
+    return None

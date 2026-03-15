@@ -1,7 +1,7 @@
 """
 telas/pg_login.py
 Layout split com features animadas no painel esquerdo.
-Nome "AprovAI" é provisório.
+Nome "Skolai".
 """
 
 import os
@@ -23,7 +23,7 @@ def render() -> bool:
         img_b64 = base64.b64encode(open(logo_path, "rb").read()).decode()
         logo_html = f'<img src="data:image/png;base64,{img_b64}" style="width:80px;display:block;margin-bottom:28px;" />'
     else:
-        logo_html = '<div style="font-size:1.8rem;font-weight:900;color:#00b4a6;margin-bottom:28px;">AprovAI</div>'
+        logo_html = '<div style="font-size:1.8rem;font-weight:900;color:#00b4a6;margin-bottom:28px;">Skolai</div>'
 
     # ── CSS ───────────────────────────────────────────────────────────────────
     st.markdown("""<style>
@@ -157,7 +157,7 @@ footer{display:none!important}
 <div class="feat-item"><div class="feat-dot">&#127919;</div><span class="feat-text">Cronograma adaptativo até a data da sua prova</span></div>
 </div>""", unsafe_allow_html=True)
 
-        st.markdown(f'<p style="color:#2a4a6a;font-size:.7rem;margin-top:8px;">AprovAI &copy; 2025 &nbsp;&middot;&nbsp; by {APP_AUTHOR}</p>', unsafe_allow_html=True)
+        st.markdown(f'<p style="color:#2a4a6a;font-size:.7rem;margin-top:8px;">Skolai &copy; 2025 &nbsp;&middot;&nbsp; by {APP_AUTHOR}</p>', unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════════════════════
     # PAINEL DIREITO

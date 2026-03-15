@@ -29,8 +29,8 @@ def seed_admin() -> None:
         db.query(Aluno).filter(Aluno.role == "student").update({"role": "estudante"})
         db.commit()
 
-        # Remove admin@concursoai.com legado
-        for old_email in ("admin@concursoai.com", "admin@aprovai.com"):
+        # Remove emails admin legados
+        for old_email in ("admin@concursoai.com", "admin@aprovai.com", "admin@skolai.com"):
             legado = db.query(Aluno).filter(Aluno.email == old_email).first()
             if legado:
                 db.delete(legado)

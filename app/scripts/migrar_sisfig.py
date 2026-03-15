@@ -1,5 +1,5 @@
 """
-Script de migração: sisfig.db (SQLite legado) → ConcursoAI (dev.db ou Postgres)
+Script de migração: sisfig.db (SQLite legado) → Skolai (dev.db ou Postgres)
 
 Uso:
     python -m app.scripts.migrar_sisfig <caminho_sisfig.db> <aluno_id>
@@ -23,7 +23,7 @@ from app.models.proficiencia import PESO_POR_FONTE, Proficiencia
 from app.models.topico import Topico
 from app.services.decay import get_decay_rate
 
-# Mapeamento de fonte do SISFIG → enum ConcursoAI
+# Mapeamento de fonte do SISFIG → enum Skolai
 FONTE_MAP = {
     "qconcursos": "qconcursos",
     "tec concursos": "tec",

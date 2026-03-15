@@ -183,7 +183,7 @@ def inicializar_banco():
             );
         """)
         # Remove admins antigos e garante admin único com login "admin"
-        for old in ("admin@aprovai.com", "admin@concursoai.com"):
+        for old in ("admin@aprovai.com", "admin@concursoai.com", "admin@skolai.com"):
             conn.execute("DELETE FROM usuarios WHERE email = ?", (old,))
         existe = conn.execute(
             "SELECT 1 FROM usuarios WHERE email = 'admin'"

@@ -4,7 +4,7 @@ Tela principal: meta semanal, KPIs, tabela de atividades por prioridade.
 """
 import streamlit as st
 from database import get_perfil
-from api_client import api_get_agenda, api_concluir_sessao, api_adiar_meta, api_listar_tasks
+from api_client import api_get_agenda, api_concluir_sessao, api_adiar_meta, api_listar_tasks, api_obter_explicacao
 from telas.components import page_header, kpi_card, score_to_stars, tipo_badge, tipo_label, _injetar_css
 
 
@@ -101,9 +101,9 @@ def _render_tabela(sessoes: list, prefix: str = "at"):
         return
 
     # Cabeçalho
-    cols = st.columns([0.4, 1.8, 1.2, 2.8, 1.3, 0.8, 0.9, 1.1])
+    cols = st.columns([0.4, 1.8, 1.2, 2.8, 1.3, 0.8, 0.9, 0.8, 0.8])
     for label, col in zip(
-        ["#", "Matéria", "Tipo", "Tópico", "Relevância", "Duração", "Desempenho", ""],
+        ["#", "Matéria", "Tipo", "Tópico", "Relevância", "Duração", "Desempenho", "", ""],
         cols,
     ):
         col.markdown(f"<small><b>{label}</b></small>", unsafe_allow_html=True)
@@ -115,6 +115,7 @@ def _render_tabela(sessoes: list, prefix: str = "at"):
         concluida = st.session_state.get(f"ok_{sid}", False)
         materia = s.get("materia") or s.get("area", "—")
         topico  = s.get("topico_nome", "—")
+        topico_id = s.get("topico_id")
         tipo    = s.get("tipo", "")
         dur     = s.get("duracao_planejada_min", 50)
         score   = s.get("score", 0)
@@ -125,7 +126,7 @@ def _render_tabela(sessoes: list, prefix: str = "at"):
         opacity = "0.45" if concluida else "1"
         row_bg  = "#122033" if concluida else ("transparent" if i % 2 == 0 else "#0e1d2b")
 
-        cols = st.columns([0.4, 1.8, 1.2, 2.8, 1.3, 0.8, 0.9, 1.1])
+        cols = st.columns([0.4, 1.8, 1.2, 2.8, 1.3, 0.8, 0.9, 0.8, 0.8])
         style = f"opacity:{opacity};"
 
         cols[0].markdown(f"<span style='{style}color:#8ab0c8;'>{i}</span>", unsafe_allow_html=True)
@@ -143,9 +144,26 @@ def _render_tabela(sessoes: list, prefix: str = "at"):
                 st.session_state[f"modal_{sid}"] = True
                 st.rerun()
 
+        if topico_id:
+            expl_key = f"expl_{sid}"
+            expl_active = st.session_state.get(expl_key, False)
+            if cols[8].button("📖", key=f"{prefix}_expl_{sid}", help="Ver explicação do tópico"):
+                st.session_state[expl_key] = not expl_active
+                st.rerun()
+
         # Modal inline abaixo da linha
         if st.session_state.get(f"modal_{sid}"):
             _modal_concluir(s, key_suffix=f"{prefix}_{sid[:8]}")
+
+        # Painel de explicação
+        if topico_id and st.session_state.get(f"expl_{sid}"):
+            with st.expander(f"📖 {topico[:60]}", expanded=True):
+                cache_key = f"expl_content_{topico_id}"
+                if cache_key not in st.session_state:
+                    with st.spinner("Gerando explicação..."):
+                        content = api_obter_explicacao(topico_id)
+                    st.session_state[cache_key] = content or "Não foi possível gerar a explicação no momento."
+                st.markdown(st.session_state[cache_key])
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

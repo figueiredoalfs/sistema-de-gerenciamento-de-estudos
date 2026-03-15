@@ -1,6 +1,6 @@
 """
 services/priorizacao.py
-Algoritmo de priorização de sessões — ConcursoAI
+Algoritmo de priorização de sessões — Skolai
 
 Fórmula (docs/ALGORITMO.md):
   Score = W1*Urgencia + W2*Lacuna + W3*Peso + W4*FatorErros
