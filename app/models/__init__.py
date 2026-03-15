@@ -21,6 +21,9 @@ from app.models.ciclo_materia import CicloMateria
 from app.models.explicacao_subtopico import ExplicacaoSubtopico
 from app.models.questao_banco import QuestaoBanco
 from app.models.question_subtopic import QuestionSubtopic
+from app.models.task_conteudo import TaskConteudo
+from app.models.task_video import TaskVideo
+from app.models.task_video_avaliacao import TaskVideoAvaliacao
 
 __all__ = [
     "Aluno",
@@ -46,4 +49,7 @@ __all__ = [
     "ExplicacaoSubtopico",
     "QuestaoBanco",
     "QuestionSubtopic",
+    "TaskConteudo",
+    "TaskVideo",
+    "TaskVideoAvaliacao",
 ]

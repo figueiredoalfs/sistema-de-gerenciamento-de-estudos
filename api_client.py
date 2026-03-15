@@ -394,3 +394,97 @@ def api_obter_explicacao(topico_id: str) -> str | None:
     except Exception:
         pass
     return None
+
+
+# ── Task Conteudo & Cronograma ────────────────────────────────────────────────
+
+def api_listar_cronograma() -> list:
+    """Retorna tasks do cronograma semanal ordenadas por numero_cronograma."""
+    try:
+        r = requests.get(
+            f"{API_BASE}/tasks",
+            params={"cronograma": "true"},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json().get("itens", [])
+    except Exception:
+        pass
+    return []
+
+
+def api_obter_task_conteudo(task_code: str) -> dict | None:
+    """Retorna conteúdo compartilhado da task (objetivo, instrucoes). Gera via IA se necessário."""
+    try:
+        r = requests.get(
+            f"{API_BASE}/task-conteudo/{task_code}",
+            headers=_headers(),
+            timeout=30,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
+def api_gerar_pdf_task(task_code: str) -> str | None:
+    """Gera (ou retorna cache de) PDF do subtópico via IA."""
+    try:
+        r = requests.post(
+            f"{API_BASE}/task-conteudo/{task_code}/gerar-pdf",
+            headers=_headers(),
+            timeout=35,
+        )
+        if r.status_code == 200:
+            return r.json().get("conteudo_pdf")
+    except Exception:
+        pass
+    return None
+
+
+def api_listar_videos_task(task_code: str) -> list:
+    """Lista vídeos cadastrados para a task, ordenados por avaliação."""
+    try:
+        r = requests.get(
+            f"{API_BASE}/task-conteudo/{task_code}/videos",
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return []
+
+
+def api_buscar_videos_task(task_code: str) -> list:
+    """Solicita à IA que busque vídeos para a task e salva no banco."""
+    try:
+        r = requests.post(
+            f"{API_BASE}/task-conteudo/{task_code}/videos/buscar",
+            headers=_headers(),
+            timeout=35,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return []
+
+
+def api_avaliar_video(video_id: str, nota: int) -> dict | None:
+    """Registra ou atualiza a avaliação (1–5) de um vídeo pelo aluno."""
+    try:
+        r = requests.post(
+            f"{API_BASE}/task-videos/{video_id}/avaliar",
+            json={"nota": nota},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None

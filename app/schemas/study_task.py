@@ -5,7 +5,10 @@ from pydantic import BaseModel
 
 from app.schemas.resposta_questao import DesempenhoSubtopicoItem
 
-TipoTask = Literal["study", "questions", "review", "diagnostico"]
+TipoTask = Literal[
+    "study", "questions", "review", "diagnostico",
+    "teoria", "revisao", "questionario", "simulado", "reforco",
+]
 StatusTask = Literal["pending", "in_progress", "completed"]
 
 
@@ -44,10 +47,12 @@ class StudyTaskResponse(BaseModel):
     subtopic_nome: Optional[str] = None
     tipo: str
     status: str
-    questoes_json: Optional[str] = None
-    created_at: datetime
+    questoes_json:        Optional[str] = None
+    task_code:            Optional[str] = None
+    numero_cronograma:    Optional[int] = None
+    created_at:           datetime
     desempenho_subtopicos: Optional[List[DesempenhoSubtopicoItem]] = None
-    tarefas_geradas: Optional[List[TaskGeradaItem]] = None
+    tarefas_geradas:      Optional[List[TaskGeradaItem]] = None
 
     model_config = {"from_attributes": True}
 

@@ -123,6 +123,7 @@ else:
     from telas.pg_onboarding      import render as pg_onboarding
     from telas.pg_plano           import render as pg_plano
     from telas.pg_meta_00         import render as pg_meta_00
+    from telas.pg_cronograma      import render as pg_cronograma
 
     # Onboarding: redireciona novos usuarios
     if not st.session_state.get("onboarding_concluido"):
@@ -168,6 +169,7 @@ else:
 
         MENU_ITEMS = [
             ("plano",          "🏠", "Agenda do Dia"),
+            ("cronograma",     "📅", "Cronograma Semanal"),
             ("meta_00",        "🎯", "Diagnóstico (Meta 00)"),
             ("dashboard",      "📊", "Desempenho"),
             ("lancar",         "✏️",  "Lançar Bateria"),
@@ -274,3 +276,5 @@ else:
         pg_onboarding()
     elif pagina == "plano":
         pg_plano()
+    elif pagina == "cronograma":
+        pg_cronograma()

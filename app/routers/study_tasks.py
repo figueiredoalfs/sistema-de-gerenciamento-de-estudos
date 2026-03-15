@@ -11,6 +11,11 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+TIPOS_VALIDOS = {
+    "study", "questions", "review", "diagnostico",
+    "teoria", "revisao", "questionario", "simulado", "reforco",
+}
+
 import json
 
 from app.core.database import get_db
@@ -137,8 +142,9 @@ def criar_task(
 
 @router.get("/tasks", response_model=StudyTaskListResponse)
 def listar_tasks(
-    tipo: Optional[str] = Query(None, description="Filtrar por tipo: study, questions, review"),
+    tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
     status: Optional[str] = Query(None, description="Filtrar por status: pending, in_progress, completed"),
+    cronograma: Optional[bool] = Query(None, description="Se True, retorna apenas tasks do cronograma ordenadas"),
     db: Session = Depends(get_db),
     usuario: Aluno = Depends(get_current_user),
 ):
@@ -146,8 +152,8 @@ def listar_tasks(
     q = db.query(StudyTask).filter(StudyTask.aluno_id == usuario.id)
 
     if tipo:
-        if tipo not in {"study", "questions", "review", "diagnostico"}:
-            raise HTTPException(status_code=422, detail="tipo inválido. Use: study, questions, review, diagnostico")
+        if tipo not in TIPOS_VALIDOS:
+            raise HTTPException(status_code=422, detail=f"tipo inválido. Use: {', '.join(sorted(TIPOS_VALIDOS))}")
         q = q.filter(StudyTask.tipo == tipo)
 
     if status:
@@ -155,7 +161,11 @@ def listar_tasks(
             raise HTTPException(status_code=422, detail="status inválido. Use: pending, in_progress, completed")
         q = q.filter(StudyTask.status == status)
 
-    tasks = q.order_by(StudyTask.created_at.desc()).all()
+    if cronograma:
+        q = q.filter(StudyTask.numero_cronograma.isnot(None)).order_by(StudyTask.numero_cronograma.asc())
+        tasks = q.all()
+    else:
+        tasks = q.order_by(StudyTask.created_at.desc()).all()
 
     return StudyTaskListResponse(
         total=len(tasks),

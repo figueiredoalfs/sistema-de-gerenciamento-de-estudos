@@ -12,19 +12,43 @@ import streamlit as st
 # ── Tipos de sessão ───────────────────────────────────────────────────────────
 
 TIPO_LABELS: dict[str, str] = {
-    "teoria_pdf":     "Teoria",
-    "exercicios":     "Questões",
-    "video":          "Vídeo",
-    "flashcard_texto":"Revisão",
-    "calibracao":     "Calibração",
+    # Tipos de sessão (legados)
+    "teoria_pdf":      "Teoria",
+    "exercicios":      "Questões",
+    "video":           "Vídeo",
+    "flashcard_texto": "Revisão",
+    "calibracao":      "Calibração",
+    # Tipos de task (novos)
+    "teoria":          "Teoria",
+    "revisao":         "Revisão",
+    "questionario":    "Questionário",
+    "simulado":        "Simulado",
+    "reforco":         "Reforço",
+    # Tipos legados de StudyTask
+    "study":           "Estudo",
+    "questions":       "Questões",
+    "review":          "Revisão",
+    "diagnostico":     "Diagnóstico",
 }
 
 TIPO_CORES: dict[str, str] = {
-    "teoria_pdf":     "#3a86ff",
-    "exercicios":     "#06d6a0",
-    "video":          "#f77f00",
-    "flashcard_texto":"#9b5de5",
-    "calibracao":     "#8ab0c8",
+    # Tipos de sessão (legados)
+    "teoria_pdf":      "#3a86ff",
+    "exercicios":      "#06d6a0",
+    "video":           "#f77f00",
+    "flashcard_texto": "#9b5de5",
+    "calibracao":      "#8ab0c8",
+    # Tipos de task (novos)
+    "teoria":          "#3a86ff",
+    "revisao":         "#9b5de5",
+    "questionario":    "#06d6a0",
+    "simulado":        "#f77f00",
+    "reforco":         "#e63946",
+    # Tipos legados de StudyTask
+    "study":           "#3a86ff",
+    "questions":       "#06d6a0",
+    "review":          "#9b5de5",
+    "diagnostico":     "#8ab0c8",
 }
 
 
@@ -104,6 +128,51 @@ def _injetar_css():
         border-bottom: 1px solid #1e3040;
     }
     .row-atividade:hover { background: #1a2d3d; }
+
+    /* Task cards — cronograma */
+    .task-card {
+        background: #19293a;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 6px;
+        border-left: 3px solid #00b4a6;
+    }
+    .task-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        flex-wrap: wrap;
+    }
+    .task-num {
+        background: #0f2a3a;
+        border: 1px solid #00b4a6;
+        color: #00b4a6;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        min-width: 34px;
+        text-align: center;
+    }
+    .task-code-badge {
+        font-family: monospace;
+        font-size: 0.72rem;
+        color: #8ab0c8;
+        background: #0a1628;
+        border-radius: 4px;
+        padding: 2px 6px;
+        margin-left: auto;
+    }
+    .task-tipo-badge {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #fff;
+    }
+    .task-sep { color: #2a4a60; }
 
     /* Header de página */
     .page-header-nome  { font-size: 1.6rem; font-weight: 700; color: #e8f4ff; }
@@ -194,6 +263,31 @@ def tipo_badge(tipo: str) -> str:
 def tipo_label(tipo: str) -> str:
     """Retorna label legível para o tipo de sessão."""
     return TIPO_LABELS.get(tipo, tipo)
+
+
+def task_card_fechado(task: dict, numero: int) -> str:
+    """Retorna HTML do card fechado de uma task do cronograma."""
+    _injetar_css()
+    subject  = task.get("subject_nome", "")
+    subtopic = task.get("subtopic_nome") or task.get("topic_nome", "")
+    tipo     = task.get("tipo", "")
+    code     = task.get("task_code", "")
+    label    = TIPO_LABELS.get(tipo, tipo).upper()
+    cor      = TIPO_CORES.get(tipo, "#8ab0c8")
+    num_str  = f"#{numero:02d}"
+    return (
+        f'<div class="task-card">'
+        f'  <div class="task-card-header">'
+        f'    <span class="task-num">{num_str}</span>'
+        f'    <span style="color:#e8f4ff;font-weight:600;">{subject}</span>'
+        f'    <span class="task-sep">|</span>'
+        f'    <span style="color:#c8d6e5;">{subtopic}</span>'
+        f'    <span class="task-sep">|</span>'
+        f'    <span class="task-tipo-badge" style="background:{cor};">{label}</span>'
+        f'    <span class="task-code-badge">{code}</span>'
+        f'  </div>'
+        f'</div>'
+    )
 
 
 def timer_bar() -> str:
