@@ -34,6 +34,7 @@ class Aluno(Base):
     data_prova = Column(DateTime)
 
     ativo = Column(Boolean, default=True)
+    diagnostico_pendente = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relacionamentos

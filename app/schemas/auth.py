@@ -30,7 +30,10 @@ class AlunoResponse(BaseModel):
     role: str
     nivel_desafio: str
     horas_por_dia: float
+    dias_por_semana: float = 5.0
+    area: Optional[str] = None
     ativo: bool
+    diagnostico_pendente: bool = False
 
     model_config = {"from_attributes": True}
 
