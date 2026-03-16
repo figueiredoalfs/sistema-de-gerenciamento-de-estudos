@@ -12,7 +12,7 @@ import streamlit as st
 from database import inicializar_banco
 from style import aplicar_estilo
 from config_app import APP_NAME, APP_SLOGAN, APP_AUTHOR, LOGO_FILE
-from telas.components import timer_bar
+from telas.components import _injetar_css
 
 # ── Configuracao da pagina ────────────────────────────────────────────────────
 st.set_page_config(
@@ -21,8 +21,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-aplicar_estilo()
-inicializar_banco()
+if not st.session_state.get("_app_init_done"):
+    inicializar_banco()
+    st.session_state["_app_init_done"] = True
+
+if not st.session_state.get("_estilo_injetado"):
+    aplicar_estilo()
+    st.session_state["_estilo_injetado"] = True
 
 # ── Autenticacao ──────────────────────────────────────────────────────────────
 if not st.session_state.get("autenticado"):
@@ -133,9 +138,9 @@ else:
                 st.session_state.ob_tela = 1
             st.session_state.pagina = "onboarding"
 
-    # Timer de estudo no topo — apenas fora do onboarding
+    # CSS global injetado uma vez por sessão
     if st.session_state.get("onboarding_concluido"):
-        st.markdown(timer_bar(), unsafe_allow_html=True)
+        _injetar_css()
 
     # Inicializa o estado de navegacao
     if "pagina" not in st.session_state:
@@ -145,7 +150,9 @@ else:
     with st.sidebar:
         logo_path = os.path.join(os.path.dirname(__file__), LOGO_FILE)
         if os.path.exists(logo_path):
-            img_b64 = base64.b64encode(open(logo_path, "rb").read()).decode()
+            if "_logo_b64" not in st.session_state:
+                st.session_state["_logo_b64"] = base64.b64encode(open(logo_path, "rb").read()).decode()
+            img_b64 = st.session_state["_logo_b64"]
             st.markdown(
                 f'<div style="display:flex;justify-content:center;padding:20px 0 4px 0;">'
                 f'<img src="data:image/png;base64,{img_b64}" style="width:140px;object-fit:contain;" />'

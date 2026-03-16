@@ -28,3 +28,10 @@ class MetaListResponse(BaseModel):
     abertas: int      # metas com status="aberta"
     encerradas: int   # metas com status="encerrada" (histórico)
     metas: List[MetaResponse]
+
+
+class GoalActiveResponse(BaseModel):
+    goal_id: str
+    tasks_total: int
+    tasks_completed: int
+    progress_percentage: int

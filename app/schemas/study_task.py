@@ -63,3 +63,8 @@ class StudyTaskResponse(BaseModel):
 class StudyTaskListResponse(BaseModel):
     total: int
     itens: List[StudyTaskResponse]
+
+
+class TasksTodayResponse(BaseModel):
+    daily_limit: int
+    tasks: List[StudyTaskResponse]

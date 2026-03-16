@@ -39,35 +39,6 @@ _CSS = """
     padding-top: 2rem !important;
 }
 .stApp { background: linear-gradient(160deg,#0a1520 0%,#0f1e2a 100%) !important; }
-
-/* Cards de seleção */
-div[data-testid="stButton"] button.ob-card {
-    min-height: 160px !important;
-    height: auto !important;
-    border-radius: 16px !important;
-    white-space: pre-wrap !important;
-    padding: 24px 16px !important;
-    line-height: 1.6 !important;
-    font-size: 0.95rem !important;
-    font-weight: 600 !important;
-    border: 1.5px solid #1e4a6a !important;
-    background: #19293a !important;
-    color: #e8f4ff !important;
-    transition: border-color 0.15s, background 0.15s !important;
-}
-div[data-testid="stButton"] button.ob-card-ativo {
-    min-height: 160px !important;
-    height: auto !important;
-    border-radius: 16px !important;
-    white-space: pre-wrap !important;
-    padding: 24px 16px !important;
-    line-height: 1.6 !important;
-    font-size: 0.95rem !important;
-    font-weight: 600 !important;
-    border: 2px solid #00b4a6 !important;
-    background: #0d2535 !important;
-    color: #00b4a6 !important;
-}
 </style>
 """
 
@@ -112,14 +83,41 @@ def _card_btn(chave: str, emoji: str, titulo: str, desc: str, ativo: bool, btn_k
     """Renderiza um botão no estilo card e retorna True se clicado."""
     check = "  ✓" if ativo else ""
     label = f"{emoji}\n{titulo}\n{desc}{check}"
-    css = "ob-card-ativo" if ativo else "ob-card"
-    # Injeta classe via markdown antes do botão (hack CSS :has() alternativo)
-    st.markdown(f'<style>#{btn_key} button {{ }}</style>', unsafe_allow_html=True)
-    clicked = st.button(label, key=btn_key, use_container_width=True)
-    return clicked
+
+    border    = "#00b4a6" if ativo else "#1e4a6a"
+    border_w  = "2px"     if ativo else "1.5px"
+    bg        = "#0d2535" if ativo else "#19293a"
+    color     = "#00b4a6" if ativo else "#e8f4ff"
+    hover_brd = "#00cfc0" if ativo else "#2d6a9a"
+    hover_bg  = "#0f2f42" if ativo else "#1d3245"
+
+    marker = f"card-{btn_key}"
+    sel    = f'div[data-testid="element-container"]:has(#{marker}) + div[data-testid="element-container"] button'
+
+    st.markdown(
+        f'<span id="{marker}" style="display:none"></span>'
+        f'<style>'
+        f'{sel} {{'
+        f'  min-height:160px!important; height:auto!important;'
+        f'  border-radius:16px!important; white-space:pre-wrap!important;'
+        f'  padding:24px 16px!important; line-height:1.6!important;'
+        f'  font-size:0.95rem!important; font-weight:600!important;'
+        f'  border:{border_w} solid {border}!important;'
+        f'  background:{bg}!important; color:{color}!important;'
+        f'  cursor:pointer!important;'
+        f'  transition:border-color 0.15s,background 0.15s!important;'
+        f'}}'
+        f'{sel}:hover {{'
+        f'  border-color:{hover_brd}!important;'
+        f'  background:{hover_bg}!important;'
+        f'}}'
+        f'</style>',
+        unsafe_allow_html=True,
+    )
+    return st.button(label, key=btn_key, use_container_width=True)
 
 
-def _nav(tela_anterior: int | None, tela_proxima: int | None, label_avancar: str = "Continuar →"):
+def _nav(tela_anterior: int | None, tela_proxima: int | None, label_avancar: str = "Continuar →", disabled: bool = False):
     """Botões de navegação Voltar / Continuar."""
     cols = st.columns([1, 1] if tela_anterior else [1])
     if tela_anterior is not None:
@@ -128,9 +126,8 @@ def _nav(tela_anterior: int | None, tela_proxima: int | None, label_avancar: str
                 st.session_state.ob_tela = tela_anterior
                 st.rerun()
     if tela_proxima is not None:
-        col_av = cols[-1]
-        with col_av:
-            if st.button(label_avancar, key=f"nav_avancar_{tela_proxima}", use_container_width=True, type="primary"):
+        with cols[-1]:
+            if st.button(label_avancar, key=f"nav_avancar_{tela_proxima}", use_container_width=True, type="primary", disabled=disabled):
                 return True
     return False
 
@@ -160,7 +157,7 @@ def _tela1():
 # ── Tela 2 — Fase de estudo ───────────────────────────────────────────────────
 
 def _tela2():
-    _step_indicator(2)
+    _step_indicator(1, total=4)
     _titulo("📋", "Qual é a sua fase de estudo?")
 
     fase = st.session_state.get("ob_fase_estudo")
@@ -177,19 +174,16 @@ def _tela2():
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
-    avancar = _nav(tela_anterior=1, tela_proxima=3)
+    avancar = _nav(tela_anterior=1, tela_proxima=3, disabled=not bool(fase))
     if avancar:
-        if not fase:
-            st.warning("Selecione uma fase antes de continuar.")
-        else:
-            st.session_state.ob_tela = 3
-            st.rerun()
+        st.session_state.ob_tela = 3
+        st.rerun()
 
 
 # ── Tela 3 — Experiência ──────────────────────────────────────────────────────
 
 def _tela3():
-    _step_indicator(3)
+    _step_indicator(2, total=4)
     _titulo("🎓", "Qual é a sua experiência?", "Isso ajuda a calibrar o nível do seu plano de estudos")
 
     exp = st.session_state.get("ob_experiencia")
@@ -221,21 +215,17 @@ def _tela3():
         st.session_state.ob_tempo_estudo = opcoes_val[opcoes_label.index(sel)]
 
     st.markdown("<br>", unsafe_allow_html=True)
-    avancar = _nav(tela_anterior=2, tela_proxima=4)
+    tem_tempo = exp != "tempo_de_estudo" or bool(st.session_state.get("ob_tempo_estudo"))
+    avancar = _nav(tela_anterior=2, tela_proxima=4, disabled=not (bool(exp) and tem_tempo))
     if avancar:
-        if not exp:
-            st.warning("Selecione uma opção antes de continuar.")
-        elif exp == "tempo_de_estudo" and not st.session_state.get("ob_tempo_estudo"):
-            st.warning("Informe há quanto tempo estuda.")
-        else:
-            st.session_state.ob_tela = 4
-            st.rerun()
+        st.session_state.ob_tela = 4
+        st.rerun()
 
 
 # ── Tela 4 — Funcionalidades ──────────────────────────────────────────────────
 
 def _tela4():
-    _step_indicator(4)
+    _step_indicator(3, total=4)
     _titulo("⚙️", "O que você quer usar?", "Selecione as funcionalidades desejadas (pode alterar depois)")
 
     selecionadas: set = set(st.session_state.get("ob_funcionalidades", []))
@@ -262,13 +252,10 @@ def _tela4():
             st.session_state.ob_tela = 3
             st.rerun()
     with col_n:
-        if st.button("Continuar →", key="ob_avancar_5", use_container_width=True, type="primary"):
-            if not selecionadas:
-                st.warning("Selecione ao menos uma funcionalidade.")
-            else:
-                st.session_state.ob_funcionalidades = list(selecionadas)
-                st.session_state.ob_tela = 5
-                st.rerun()
+        if st.button("Continuar →", key="ob_avancar_5", use_container_width=True, type="primary", disabled=not bool(selecionadas)):
+            st.session_state.ob_funcionalidades = list(selecionadas)
+            st.session_state.ob_tela = 5
+            st.rerun()
 
 
 # ── Envio para a API ──────────────────────────────────────────────────────────
@@ -332,7 +319,7 @@ def _enviar_onboarding(funcionalidades: list):
 # ── Tela 5 — Disponibilidade de estudo ───────────────────────────────────────
 
 def _tela5():
-    _step_indicator(5)
+    _step_indicator(4, total=4)
     _titulo(
         "⏰",
         "Qual é a sua disponibilidade?",
@@ -395,7 +382,7 @@ def render():
 
     if "ob_area" not in st.session_state:
         st.session_state.ob_area = "fiscal"
-        st.session_state.ob_tela = 1
+        st.session_state.ob_tela = 2  # pula Tela 1 — única opção já selecionada
 
     tela = st.session_state.get("ob_tela", 1)
 

@@ -3,7 +3,7 @@ telas/components.py
 Componentes reutilizáveis para todas as telas do sistema.
 
 Uso:
-    from telas.components import page_header, kpi_card, score_to_stars, tipo_badge, timer_bar
+    from telas.components import page_header, kpi_card, score_to_stars, tipo_badge, task_card_fechado
 """
 
 import streamlit as st
@@ -54,13 +54,10 @@ TIPO_CORES: dict[str, str] = {
 
 # ── CSS global injetado uma vez por sessão ────────────────────────────────────
 
-_CSS_INJETADO = False
-
 def _injetar_css():
-    global _CSS_INJETADO
-    if _CSS_INJETADO:
+    if st.session_state.get("_css_injetado"):
         return
-    _CSS_INJETADO = True
+    st.session_state["_css_injetado"] = True
     st.markdown("""
     <style>
     /* KPI Cards */
@@ -203,6 +200,47 @@ def _injetar_css():
     }
     .timer-btn:hover { background: #2a4a60; }
     .timer-label { font-size: 0.75rem; color: #8ab0c8; }
+
+    /* Trilha de aprendizado */
+    .hero-card {
+        background: linear-gradient(135deg, #0f2a3a 0%, #19293a 100%);
+        border: 1px solid #00b4a6;
+        border-radius: 16px;
+        padding: 24px 28px;
+        margin-bottom: 20px;
+    }
+    .hero-title { font-size: 0.78rem; color: #00b4a6; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .hero-materia { font-size: 1.4rem; font-weight: 700; color: #e8f4ff; margin-bottom: 4px; }
+    .hero-subtema { font-size: 0.95rem; color: #8ab0c8; margin-bottom: 16px; }
+
+    .trail-card {
+        background: #19293a;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 2px;
+        border-left: 3px solid #1e3040;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+    .trail-card.pending { border-left-color: #00b4a6; }
+    .trail-card.completed { border-left-color: #27ae60; opacity: 0.55; }
+    .trail-card-header { display: flex; align-items: center; gap: 10px; }
+    .trail-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .trail-dot.pending { background: #00b4a6; }
+    .trail-dot.completed { background: #27ae60; }
+    .trail-materia { font-size: 0.85rem; font-weight: 700; color: #e8f4ff; }
+    .trail-subtema { font-size: 0.78rem; color: #8ab0c8; }
+
+    .progress-header {
+        background: #19293a;
+        border-radius: 12px;
+        padding: 18px 22px;
+        margin-bottom: 16px;
+    }
+    .progress-title { font-size: 0.78rem; color: #8ab0c8; margin-bottom: 4px; }
+    .progress-value { font-size: 0.95rem; font-weight: 700; color: #e8f4ff; margin-bottom: 10px; }
+    .progress-bar-bg { background: #0a1628; border-radius: 6px; height: 10px; overflow: hidden; }
+    .progress-bar-fill { height: 10px; border-radius: 6px; transition: width 0.3s; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -290,42 +328,3 @@ def task_card_fechado(task: dict, numero: int) -> str:
     )
 
 
-def timer_bar() -> str:
-    """Retorna HTML+JS do timer de estudo fixo no topo da página."""
-    return """
-<div id="timer-bar">
-  <span class="timer-label">⏱ Cronômetro</span>
-  <span id="timer-display">00:00</span>
-  <button class="timer-btn" onclick="timerToggle()">▶ Iniciar</button>
-  <button class="timer-btn" onclick="timerReset()">↺ Reiniciar</button>
-  <span id="timer-status" class="timer-label"></span>
-</div>
-<script>
-(function() {
-  var _s = 0, _running = false, _iv = null;
-  function pad(n) { return n < 10 ? '0'+n : ''+n; }
-  function update() {
-    var m = Math.floor(_s/60), sec = _s%60;
-    document.getElementById('timer-display').textContent = pad(m)+':'+pad(sec);
-  }
-  window.timerToggle = function() {
-    if (_running) {
-      clearInterval(_iv); _running = false;
-      document.querySelector('#timer-bar .timer-btn').textContent = '▶ Continuar';
-      document.getElementById('timer-status').textContent = 'pausado';
-    } else {
-      _iv = setInterval(function(){ _s++; update(); }, 1000);
-      _running = true;
-      document.querySelector('#timer-bar .timer-btn').textContent = '⏸ Pausar';
-      document.getElementById('timer-status').textContent = '';
-    }
-  };
-  window.timerReset = function() {
-    clearInterval(_iv); _running = false; _s = 0; update();
-    document.querySelector('#timer-bar .timer-btn').textContent = '▶ Iniciar';
-    document.getElementById('timer-status').textContent = '';
-  };
-})();
-</script>
-<style>body { margin-top: 44px !important; }</style>
-"""

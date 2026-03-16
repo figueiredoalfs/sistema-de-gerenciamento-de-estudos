@@ -9,7 +9,7 @@ PATCH /tasks/{id}/status  — atualiza status da task
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 TIPOS_VALIDOS = {
     "study", "questions", "review", "diagnostico",
@@ -31,6 +31,7 @@ from app.schemas.study_task import (
     StudyTaskResponse,
     StudyTaskStatusUpdate,
     TaskGeradaItem,
+    TasksTodayResponse,
 )
 from app.services.desempenho_diagnostico import calcular_e_salvar_desempenho_diagnostico
 from app.services.plano_pos_diagnostico import gerar_tasks_pos_diagnostico
@@ -152,7 +153,15 @@ def listar_tasks(
     usuario: Aluno = Depends(get_current_user),
 ):
     """Lista todas as tasks do usuário autenticado, com filtros opcionais."""
-    q = db.query(StudyTask).filter(StudyTask.aluno_id == usuario.id)
+    q = (
+        db.query(StudyTask)
+        .options(
+            joinedload(StudyTask.subject),
+            joinedload(StudyTask.topic),
+            joinedload(StudyTask.subtopic),
+        )
+        .filter(StudyTask.aluno_id == usuario.id)
+    )
 
     if tipo:
         if tipo not in TIPOS_VALIDOS:
@@ -173,6 +182,34 @@ def listar_tasks(
     return StudyTaskListResponse(
         total=len(tasks),
         itens=[_to_response(t) for t in tasks],
+    )
+
+
+@router.get("/tasks/today", response_model=TasksTodayResponse)
+def tasks_hoje(
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """Retorna as tasks do dia limitadas por horas_por_dia do usuário."""
+    limite = max(1, int(usuario.horas_por_dia or 1))
+    tasks = (
+        db.query(StudyTask)
+        .options(
+            joinedload(StudyTask.subject),
+            joinedload(StudyTask.topic),
+            joinedload(StudyTask.subtopic),
+        )
+        .filter(
+            StudyTask.aluno_id == usuario.id,
+            StudyTask.status.in_(["pending", "in_progress"]),
+        )
+        .order_by(StudyTask.order_in_week.asc())
+        .limit(limite)
+        .all()
+    )
+    return TasksTodayResponse(
+        daily_limit=limite,
+        tasks=[_to_response(t) for t in tasks],
     )
 
 

@@ -22,15 +22,6 @@ def _headers() -> dict:
     return {"Authorization": f"Bearer {token}"} if token else {}
 
 
-def _api_online() -> bool:
-    """Verifica se o FastAPI está respondendo."""
-    try:
-        r = requests.get(f"{API_BASE}/", timeout=2)
-        return r.status_code == 200
-    except Exception:
-        return False
-
-
 # ── Autenticação ──────────────────────────────────────────────────────────────
 
 def api_login(email: str, senha: str, nome: str = "") -> str | None:
@@ -301,6 +292,22 @@ def api_responder_questao(questao_id: str, resposta_dada: str) -> dict | None:
     return None
 
 
+def api_iniciar_task(task_id: str) -> dict | None:
+    """Marca uma StudyTask como in_progress."""
+    try:
+        r = requests.patch(
+            f"{API_BASE}/tasks/{task_id}/status",
+            json={"status": "in_progress"},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
 def api_concluir_task(task_id: str) -> dict | None:
     """Marca uma StudyTask como completed e retorna o resultado com tarefas_geradas."""
     try:
@@ -311,6 +318,22 @@ def api_concluir_task(task_id: str) -> dict | None:
             timeout=15,
         )
         if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
+def api_gerar_meta() -> dict | None:
+    """Gera uma nova meta semanal de estudo."""
+    try:
+        r = requests.post(
+            f"{API_BASE}/metas/gerar",
+            json={},
+            headers=_headers(),
+            timeout=15,
+        )
+        if r.status_code == 201:
             return r.json()
     except Exception:
         pass
@@ -397,6 +420,36 @@ def api_obter_explicacao(topico_id: str) -> str | None:
 
 
 # ── Task Conteudo & Cronograma ────────────────────────────────────────────────
+
+def api_get_tasks_hoje() -> dict:
+    """Retorna tasks do dia limitadas por horas_por_dia do usuário."""
+    try:
+        r = requests.get(
+            f"{API_BASE}/tasks/today",
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return {"daily_limit": 0, "tasks": []}
+
+
+def api_get_meta_ativa() -> dict | None:
+    """Retorna meta ativa com progresso calculado."""
+    try:
+        r = requests.get(
+            f"{API_BASE}/metas/active",
+            headers=_headers(),
+            timeout=TIMEOUT,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
 
 def api_listar_cronograma() -> list:
     """Retorna tasks do cronograma semanal ordenadas por numero_cronograma."""

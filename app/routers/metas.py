@@ -9,6 +9,7 @@ PATCH /metas/{meta_id}/encerrar — encerra manualmente uma meta aberta
 
 from typing import List, Optional
 
+import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -17,7 +18,7 @@ from app.core.security import get_current_user
 from app.models.aluno import Aluno
 from app.models.meta import Meta
 from app.models.study_task import StudyTask
-from app.schemas.meta import MetaGerarRequest, MetaListResponse, MetaResponse
+from app.schemas.meta import GoalActiveResponse, MetaGerarRequest, MetaListResponse, MetaResponse
 from app.schemas.study_task import StudyTaskResponse
 from app.services.engine_pedagogica import gerar_meta
 
@@ -111,6 +112,39 @@ def listar(
         abertas=abertas,
         encerradas=encerradas,
         metas=[_meta_to_response(m) for m in metas],
+    )
+
+
+@router.get("/active", response_model=GoalActiveResponse)
+def meta_ativa(
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """Retorna a meta ativa com progresso calculado via agregação SQL."""
+    meta = (
+        db.query(Meta)
+        .filter(Meta.aluno_id == usuario.id, Meta.status == "aberta")
+        .first()
+    )
+    if not meta:
+        raise HTTPException(status_code=404, detail="Nenhuma meta ativa.")
+
+    row = db.query(
+        sa.func.count(StudyTask.id).label("tasks_total"),
+        sa.func.count(
+            sa.case((StudyTask.status == "completed", StudyTask.id))
+        ).label("tasks_completed"),
+    ).filter(StudyTask.goal_id == meta.id).one()
+
+    total = row.tasks_total or 0
+    completed = row.tasks_completed or 0
+    pct = int(completed / max(1, total) * 100)
+
+    return GoalActiveResponse(
+        goal_id=meta.id,
+        tasks_total=total,
+        tasks_completed=completed,
+        progress_percentage=pct,
     )
 
 

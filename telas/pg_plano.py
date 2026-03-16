@@ -1,169 +1,163 @@
 """
-pg_plano.py — Agenda do Dia
-Tela principal: meta semanal, KPIs, tabela de atividades por prioridade.
+pg_plano.py — Trilha de Aprendizado
+Exibe a meta semanal, o hero card da próxima task e a timeline do dia.
 """
 import streamlit as st
-from database import get_perfil
-from api_client import api_get_agenda, api_concluir_sessao, api_adiar_meta, api_listar_tasks, api_obter_explicacao
-from telas.components import page_header, kpi_card, score_to_stars, tipo_badge, tipo_label, _injetar_css
+from api_client import (
+    api_get_tasks_hoje,
+    api_get_meta_ativa,
+    api_listar_tasks,
+    api_concluir_task,
+    api_iniciar_task,
+    api_gerar_meta,
+)
+from telas.components import page_header, tipo_label, _injetar_css, TIPO_CORES
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Componentes de layout ─────────────────────────────────────────────────────
 
-def _horas_str(minutos: int) -> str:
-    h = minutos // 60
-    m = minutos % 60
-    if h and m:
-        return f"{h}h {m}min"
-    return f"{h}h" if h else f"{m}min"
-
-
-def _render_meta_progress(sessoes: list, horas: float, dias: int):
+def _render_progress_header(meta: dict | None):
     """Barra de progresso da meta semanal."""
-    total_meta = max(1, int(horas * dias * 60 / 50))
-    concluidas = sum(1 for s in sessoes if st.session_state.get(f"ok_{s['sessao_id']}"))
-    pct = min(int(concluidas / total_meta * 100), 100)
+    if not meta:
+        return
+    total = meta.get("tasks_total", 0)
+    concluidas = meta.get("tasks_completed", 0)
+    pct = meta.get("progress_percentage", 0)
     cor = "#27ae60" if pct >= 70 else "#f59e0b" if pct >= 40 else "#e74c3c"
-
     st.markdown(
-        f'<div class="meta-card">'
-        f'  <span class="meta-tag">Meta Semanal</span>'
-        f'  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-        f'    <span style="color:#8ab0c8;font-size:0.8rem;">{concluidas} de {total_meta} sessões</span>'
-        f'    <span style="color:{cor};font-weight:700;">{pct}%</span>'
+        f'<div class="progress-header">'
+        f'  <div class="progress-title">Meta semanal</div>'
+        f'  <div class="progress-value">{concluidas} de {total} tasks concluídas</div>'
+        f'  <div class="progress-bar-bg">'
+        f'    <div class="progress-bar-fill" style="width:{pct}%;background:{cor};"></div>'
         f'  </div>'
-        f'  <div style="background:#0a1628;border-radius:6px;height:10px;">'
-        f'    <div style="background:{cor};width:{pct}%;height:10px;border-radius:6px;transition:width 0.3s;"></div>'
-        f'  </div>'
-        f'  <div class="meta-info">{int(horas * dias)}h planejadas por semana · {dias} dias</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
 
 
-def _render_proxima_sessao(sessoes: list):
-    """Painel lateral com a próxima sessão pendente em destaque."""
-    pendente = next(
-        (s for s in sessoes if not st.session_state.get(f"ok_{s['sessao_id']}")),
-        None,
+def _render_hero(task: dict):
+    """Card em destaque da próxima task pendente."""
+    materia = task.get("subject_nome", "—")
+    subtema = task.get("subtopic_nome") or task.get("topic_nome", "—")
+    tipo = task.get("tipo", "")
+    cor = TIPO_CORES.get(tipo, "#8ab0c8")
+    label = tipo_label(tipo)
+    st.markdown(
+        f'<div class="hero-card">'
+        f'  <div class="hero-title">PRÓXIMA TASK</div>'
+        f'  <div class="hero-materia">{materia}</div>'
+        f'  <div class="hero-subtema">{subtema}</div>'
+        f'  <span style="display:inline-block;padding:3px 12px;border-radius:20px;'
+        f'background:{cor};color:#fff;font-size:0.78rem;font-weight:700;">{label.upper()}</span>'
+        f'</div>',
+        unsafe_allow_html=True,
     )
-    if pendente:
-        materia = pendente.get("materia") or pendente.get("area", "")
-        dur = pendente.get("duracao_planejada_min", 50)
+    if st.button("▶ Iniciar Estudo", key=f"hero_iniciar_{task['id']}", type="primary"):
+        api_iniciar_task(task["id"])
+        st.session_state["timer_task_id"] = task["id"]
+        st.rerun()
+
+
+def _render_timer_inline(task_id: str):
+    """Timer embutido dentro do card expandido."""
+    tid = task_id.replace("-", "_")
+    st.markdown(
+        f"""
+<div style="background:#0f1e2a;border:1px solid #1e3040;border-radius:8px;padding:10px 16px;
+display:flex;align-items:center;gap:16px;font-family:monospace;margin:8px 0 12px 0;">
+  <span style="font-size:0.75rem;color:#8ab0c8;">⏱ Cronômetro</span>
+  <span id="tdsp_{tid}" style="font-size:1.1rem;font-weight:700;color:#00b4a6;min-width:56px;">00:00</span>
+  <button onclick="tt_{tid}()" style="background:#1e3040;border:1px solid #2a4a60;
+color:#e8f4ff;padding:3px 12px;border-radius:6px;cursor:pointer;font-size:0.8rem;" id="tbtn_{tid}">▶ Iniciar</button>
+  <button onclick="tr_{tid}()" style="background:#1e3040;border:1px solid #2a4a60;
+color:#e8f4ff;padding:3px 12px;border-radius:6px;cursor:pointer;font-size:0.8rem;">↺ Reiniciar</button>
+</div>
+<script>
+(function(){{
+  var s=0,r=false,iv=null;
+  var d=document.getElementById('tdsp_{tid}');
+  var b=document.getElementById('tbtn_{tid}');
+  function p(n){{return n<10?'0'+n:''+n;}}
+  function u(){{var m=Math.floor(s/60),sc=s%60;if(d)d.textContent=p(m)+':'+p(sc);}}
+  window.tt_{tid}=function(){{
+    if(r){{clearInterval(iv);r=false;if(b)b.textContent='▶ Continuar';}}
+    else{{iv=setInterval(function(){{s++;u();}},1000);r=true;if(b)b.textContent='⏸ Pausar';}}
+  }};
+  window.tr_{tid}=function(){{clearInterval(iv);r=false;s=0;u();if(b)b.textContent='▶ Iniciar';}};
+}})();
+</script>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_trail(tasks: list):
+    """Timeline vertical de cards expansíveis."""
+    if not tasks:
+        st.info("Nenhuma task para hoje. Gere uma nova meta para continuar estudando.")
+        return
+
+    for i, task in enumerate(tasks):
+        tid = task["id"]
+        status = task.get("status", "pending")
+        materia = task.get("subject_nome", "—")
+        subtema = task.get("subtopic_nome") or task.get("topic_nome", "—")
+        tipo = task.get("tipo", "")
+        cor_tipo = TIPO_CORES.get(tipo, "#8ab0c8")
+        label_tipo = tipo_label(tipo)
+        concluida = status == "completed"
+        status_css = "completed" if concluida else "pending"
+        timer_ativo = st.session_state.get("timer_task_id") == tid
+        feito_html = '<span style="color:#27ae60;font-size:0.85rem;margin-left:8px;">✓ Feito</span>' if concluida else ""
+
+        # Card visual
         st.markdown(
-            f'<div class="prox-card">'
-            f'  <div class="prox-titulo">Próxima Sessão</div>'
-            f'  <div style="font-size:0.85rem;color:#e8f4ff;font-weight:600;margin-bottom:4px;">{materia}</div>'
-            f'  <div style="font-size:0.75rem;color:#8ab0c8;">{tipo_label(pendente.get("tipo",""))} · {dur}min</div>'
-            f'  <div class="prox-data">{score_to_stars(pendente.get("score", 0))}</div>'
+            f'<div class="trail-card {status_css}">'
+            f'  <div class="trail-card-header">'
+            f'    <span class="trail-dot {status_css}"></span>'
+            f'    <div style="flex:1;">'
+            f'      <span class="trail-materia">{materia}</span>'
+            f'      <span style="color:#2a4a60;margin:0 6px;">—</span>'
+            f'      <span class="trail-subtema">{subtema}</span>'
+            f'    </div>'
+            f'    <span style="display:inline-block;padding:2px 9px;border-radius:20px;'
+            f'background:{cor_tipo};color:#fff;font-size:0.72rem;font-weight:700;">{label_tipo.upper()}</span>'
+            f'    {feito_html}'
+            f'  </div>'
             f'</div>',
             unsafe_allow_html=True,
         )
-    else:
-        st.markdown(
-            '<div class="prox-card">'
-            '  <div class="prox-titulo">Meta</div>'
-            '  <div class="prox-data">✅</div>'
-            '  <div style="font-size:0.75rem;color:#8ab0c8;margin-top:6px;">Todas concluídas!</div>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
 
+        # Expansão apenas para tasks não concluídas
+        if not concluida:
+            with st.expander("Ações", expanded=timer_ativo):
+                if timer_ativo:
+                    _render_timer_inline(tid)
 
-def _modal_concluir(s: dict, key_suffix: str):
-    """Formulário inline para registrar conclusão de sessão."""
-    sid = s["sessao_id"]
-    dur = s.get("duracao_planejada_min", 50)
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("▶ Iniciar Estudo", key=f"trail_iniciar_{tid}"):
+                        api_iniciar_task(tid)
+                        st.session_state["timer_task_id"] = tid
+                        st.rerun()
+                with col2:
+                    if st.button("✓ Concluir", key=f"trail_concluir_{tid}", type="primary"):
+                        resultado = api_concluir_task(tid)
+                        if st.session_state.get("timer_task_id") == tid:
+                            del st.session_state["timer_task_id"]
+                        if resultado:
+                            geradas = resultado.get("tarefas_geradas") or []
+                            if geradas:
+                                st.toast(f"✅ {len(geradas)} nova(s) task(s) gerada(s) para você!")
+                        st.rerun()
 
-    with st.expander(f"✓ Concluir: {s.get('topico_nome','')[:40]}", expanded=True):
-        c1, c2 = st.columns(2)
-        perc  = c1.slider("% de acerto", 0, 100, 70, key=f"perc_{key_suffix}")
-        dur_r = c2.number_input("Tempo real (min)", 5, 180, dur, key=f"dur_{key_suffix}")
-        b1, b2 = st.columns(2)
-        if b1.button("Salvar", key=f"salvar_{key_suffix}", type="primary"):
-            res = api_concluir_sessao(sid, percentual=float(perc), duracao_real_min=int(dur_r))
-            st.session_state[f"ok_{sid}"] = True
-            st.session_state.pop(f"modal_{sid}", None)
-            if res and res.get("reforco_inserido"):
-                st.session_state["_reforco_msg"] = s.get("topico_nome", "")[:35]
-            st.rerun()
-        if b2.button("Pular", key=f"skip_{key_suffix}"):
-            api_concluir_sessao(sid, percentual=0, duracao_real_min=0)
-            st.session_state[f"ok_{sid}"] = True
-            st.session_state.pop(f"modal_{sid}", None)
-            st.rerun()
-
-
-def _render_tabela(sessoes: list, prefix: str = "at"):
-    """Tabela compacta de sessões com colunas: #, Matéria, Tipo, Tópico, Relevância, Duração, Desempenho, Ação."""
-    if not sessoes:
-        st.info("Nenhuma sessão pendente. Complete o onboarding para gerar seu plano.")
-        return
-
-    # Cabeçalho
-    cols = st.columns([0.4, 1.8, 1.2, 2.8, 1.3, 0.8, 0.9, 0.8, 0.8])
-    for label, col in zip(
-        ["#", "Matéria", "Tipo", "Tópico", "Relevância", "Duração", "Desempenho", "", ""],
-        cols,
-    ):
-        col.markdown(f"<small><b>{label}</b></small>", unsafe_allow_html=True)
-
-    st.markdown('<hr style="margin:4px 0 8px 0;border-color:#1e3040;">', unsafe_allow_html=True)
-
-    for i, s in enumerate(sessoes, 1):
-        sid     = s["sessao_id"]
-        concluida = st.session_state.get(f"ok_{sid}", False)
-        materia = s.get("materia") or s.get("area", "—")
-        topico  = s.get("topico_nome", "—")
-        topico_id = s.get("topico_id")
-        tipo    = s.get("tipo", "")
-        dur     = s.get("duracao_planejada_min", 50)
-        score   = s.get("score", 0)
-        desemp  = s.get("desempenho")
-        desemp_txt = f"{desemp:.0f}%" if desemp is not None else "—"
-        estrelas = score_to_stars(score)
-
-        opacity = "0.45" if concluida else "1"
-        row_bg  = "#122033" if concluida else ("transparent" if i % 2 == 0 else "#0e1d2b")
-
-        cols = st.columns([0.4, 1.8, 1.2, 2.8, 1.3, 0.8, 0.9, 0.8, 0.8])
-        style = f"opacity:{opacity};"
-
-        cols[0].markdown(f"<span style='{style}color:#8ab0c8;'>{i}</span>", unsafe_allow_html=True)
-        cols[1].markdown(f"<span style='{style}color:#e8f4ff;font-weight:600;'>{materia[:22]}</span>", unsafe_allow_html=True)
-        cols[2].markdown(tipo_badge(tipo) if not concluida else f"<span style='color:#8ab0c8;font-size:0.75rem;'>{tipo_label(tipo)}</span>", unsafe_allow_html=True)
-        cols[3].markdown(f"<span style='{style}color:#c8d6e5;'>{topico[:38]}</span>", unsafe_allow_html=True)
-        cols[4].markdown(f"<span style='{style}color:#f0c040;'>{estrelas}</span>", unsafe_allow_html=True)
-        cols[5].markdown(f"<span style='{style}color:#8ab0c8;'>{dur}min</span>", unsafe_allow_html=True)
-        cols[6].markdown(f"<span style='{style}color:#8ab0c8;'>{desemp_txt}</span>", unsafe_allow_html=True)
-
-        if concluida:
-            cols[7].markdown("<span style='color:#27ae60;font-size:0.8rem;'>✓ Feito</span>", unsafe_allow_html=True)
-        else:
-            if cols[7].button("✓", key=f"{prefix}_btn_{sid}", help="Concluir sessão"):
-                st.session_state[f"modal_{sid}"] = True
-                st.rerun()
-
-        if topico_id:
-            expl_key = f"expl_{sid}"
-            expl_active = st.session_state.get(expl_key, False)
-            if cols[8].button("📖", key=f"{prefix}_expl_{sid}", help="Ver explicação do tópico"):
-                st.session_state[expl_key] = not expl_active
-                st.rerun()
-
-        # Modal inline abaixo da linha
-        if st.session_state.get(f"modal_{sid}"):
-            _modal_concluir(s, key_suffix=f"{prefix}_{sid[:8]}")
-
-        # Painel de explicação
-        if topico_id and st.session_state.get(f"expl_{sid}"):
-            with st.expander(f"📖 {topico[:60]}", expanded=True):
-                cache_key = f"expl_content_{topico_id}"
-                if cache_key not in st.session_state:
-                    with st.spinner("Gerando explicação..."):
-                        content = api_obter_explicacao(topico_id)
-                    st.session_state[cache_key] = content or "Não foi possível gerar a explicação no momento."
-                st.markdown(st.session_state[cache_key])
+        # Linha conectora entre cards
+        if i < len(tasks) - 1:
+            st.markdown(
+                '<div style="width:2px;height:12px;background:#1e3040;margin-left:4px;"></div>',
+                unsafe_allow_html=True,
+            )
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -171,128 +165,56 @@ def _render_tabela(sessoes: list, prefix: str = "at"):
 def render():
     _injetar_css()
 
-    usuario_id = st.session_state.usuario["id"]
-    perfil = get_perfil(usuario_id)
-    horas  = float(perfil.get("horas_dia") or 3.0)
-    dias   = int(perfil.get("dias_semana") or 5)
-
-    # Verificações de estado
-    if not perfil.get("plano") == "ativo":
-        page_header("Agenda do Dia", "Configure seu plano para começar")
-        st.info("Você ainda não configurou seu plano de estudos.")
-        if st.button("Configurar agora →", type="primary"):
-            st.session_state.ob_tela = 1
-            st.session_state.pagina  = "onboarding"
-            st.rerun()
-        return
-
     if not st.session_state.get("api_token"):
-        page_header("Agenda do Dia", "")
+        page_header("Trilha de Hoje", "")
         st.warning("Sessão expirada. Saia e entre novamente para continuar.")
         if st.button("Sair", key="plano_logout"):
             st.session_state.clear()
             st.rerun()
         return
 
-    # Header
-    page_header("Agenda do Dia", "Acompanhe seu progresso e veja o que falta para atingir sua meta")
+    page_header("Trilha de Hoje", "Veja seu progresso e conclua as tasks do dia")
 
-    # Banner: diagnóstico inicial pendente
-    diagnosticos_pendentes = api_listar_tasks(tipo="diagnostico", status="pending")
-    if diagnosticos_pendentes:
-        n = len(diagnosticos_pendentes)
-        st.markdown(
-            f'<div style="background:#1a2e1a;border:1px solid #27ae60;border-radius:10px;'
-            f'padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">'
-            f'<span style="font-size:1.4rem;">🎯</span>'
-            f'<div>'
-            f'<p style="color:#06d6a0;font-weight:700;margin:0 0 2px 0;">Diagnóstico Inicial Pendente</p>'
-            f'<p style="color:#8ab0c8;font-size:0.82rem;margin:0;">'
-            f'Você tem {n} {"matéria" if n == 1 else "matérias"} para diagnosticar. '
-            f'Complete a Meta 00 para gerar seu plano de estudos personalizado.</p>'
-            f'</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-        if st.button("Fazer Diagnóstico Agora →", type="primary", key="btn_ir_meta00"):
-            st.session_state.pagina = "meta_00"
-            st.rerun()
-        st.divider()
+    # Progresso da meta semanal
+    meta = api_get_meta_ativa()
+    _render_progress_header(meta)
 
-    # Busca sessões da API
-    sessoes_por_dia = max(1, int(horas * 60 / 50))
-    total_buscar    = min(sessoes_por_dia * dias + 10, 50)
-    with st.spinner("Calculando prioridades..."):
-        sessoes = api_get_agenda(top=total_buscar)
+    # Tasks do dia
+    resultado = api_get_tasks_hoje()
+    tasks = resultado.get("tasks", [])
 
-    # Meta + próxima sessão
-    col_meta, col_prox = st.columns([3, 1])
-    with col_meta:
-        _render_meta_progress(sessoes, horas, dias)
-    with col_prox:
-        _render_proxima_sessao(sessoes)
-
-    # Notificação de reforço inserido
-    msg_reforco = st.session_state.pop("_reforco_msg", None)
-    if msg_reforco:
-        st.warning(f"Reforço inserido: Flashcard adicionado para '{msg_reforco}' (desempenho < 60%).")
-
-    # KPIs
-    total_sessoes   = len(sessoes)
-    concluidas_hoje = sum(1 for s in sessoes if st.session_state.get(f"ok_{s['sessao_id']}"))
-    scores          = [s.get("score", 0) for s in sessoes if s.get("score")]
-    desemp_medio    = sum(scores) / len(scores) * 100 if scores else 0
-    carga_plan_min  = sum(s.get("duracao_planejada_min", 50) for s in sessoes if not st.session_state.get(f"ok_{s['sessao_id']}"))
-
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        kpi_card("Sessões pendentes", str(total_sessoes - concluidas_hoje), "📋", "#3a86ff")
-    with c2:
-        kpi_card("Concluídas hoje", str(concluidas_hoje), "✅", "#06d6a0")
-    with c3:
-        kpi_card("Prioridade média", f"{desemp_medio:.0f}%", "🎯", "#f77f00")
-    with c4:
-        kpi_card("Carga pendente", _horas_str(carga_plan_min), "⏱", "#9b5de5")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Separar atividades normais de reforços (flashcard gerado automaticamente)
-    reforcos   = [s for s in sessoes if s.get("tipo") == "flashcard_texto" and s.get("score", 1) < 0.3]
-    atividades = [s for s in sessoes if s not in reforcos]
-
-    # Abas
-    tab_ativ, tab_ref, tab_adiar = st.tabs([
-        f"Atividades | {len(atividades)}",
-        f"Reforços | {len(reforcos)}",
-        "⚙️ Opções",
-    ])
-
-    with tab_ativ:
-        _render_tabela(atividades, prefix="at")
-
-    with tab_ref:
-        if reforcos:
-            _render_tabela(reforcos, prefix="rf")
-        else:
-            st.info("Nenhum reforço pendente. Os reforços aparecem quando você tem desempenho < 60% em uma sessão.")
-
-    with tab_adiar:
-        st.markdown("##### Adiar todas as sessões")
-        st.caption("Use com moderação — adia as sessões pendentes em N dias.")
-        dias_adiar = st.selectbox("Adiar em", [1, 3, 7], index=0, key="dias_adiar_sel")
-        if st.button(f"Adiar em {dias_adiar} dia(s)", key="btn_adiar"):
-            if api_adiar_meta(dias=dias_adiar):
-                st.toast(f"Sessões adiadas em {dias_adiar} dia(s).")
-                for k in list(st.session_state.keys()):
-                    if k.startswith("ok_") or k.startswith("exp_") or k.startswith("modal_"):
-                        del st.session_state[k]
+    if not tasks:
+        # Checar se há diagnóstico pendente
+        diag = api_listar_tasks(tipo="diagnostico", status="pending")
+        if diag:
+            st.info("Complete o diagnóstico inicial para gerar seu plano de estudos personalizado.")
+            if st.button("Fazer Diagnóstico →", type="primary", key="btn_diagnostico"):
+                st.session_state.pagina = "meta_00"
                 st.rerun()
+        else:
+            st.info("Todas as tasks concluídas! Gere uma nova meta para continuar.")
+            if st.button("🎯 Gerar Nova Meta", type="primary", key="btn_nova_meta"):
+                with st.spinner("Gerando nova meta..."):
+                    r = api_gerar_meta()
+                if r:
+                    st.toast("✅ Nova meta criada!")
+                    st.rerun()
+                else:
+                    st.error("Não foi possível gerar nova meta. Verifique se o servidor está rodando.")
+        return
 
-        st.markdown("---")
-        st.markdown("##### Recalcular plano")
-        if st.button("Recalcular", key="btn_recalc"):
-            prefixes = ("ok_", "fb_", "exp_", "modal_", "qr_", "qativo_", "perc_", "dur_")
-            for k in list(st.session_state.keys()):
-                if any(k.startswith(p) for p in prefixes):
-                    del st.session_state[k]
-            st.rerun()
+    # Hero: próxima task pendente
+    proxima = next((t for t in tasks if t.get("status") != "completed"), None)
+    if proxima:
+        _render_hero(proxima)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # Contador
+    st.markdown(
+        f'<div style="font-size:0.8rem;color:#8ab0c8;margin-bottom:8px;">'
+        f'Tasks de hoje — {len(tasks)} {"task" if len(tasks) == 1 else "tasks"}</div>',
+        unsafe_allow_html=True,
+    )
+
+    # Timeline
+    _render_trail(tasks)
