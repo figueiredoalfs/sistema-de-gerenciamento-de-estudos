@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -40,6 +40,13 @@ class QuestaoIACreate(BaseModel):
     resposta_correta: RespostaCorreta
     banca: Optional[str] = None
     ano: Optional[int] = None
+
+
+class ImportacaoLoteResponse(BaseModel):
+    importadas: int
+    erros: List[str]
+
+    model_config = {"from_attributes": True}
 
 
 class QuestaoUpdate(BaseModel):

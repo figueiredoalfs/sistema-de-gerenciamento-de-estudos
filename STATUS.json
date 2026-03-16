@@ -1,20 +1,20 @@
 {
-  "concluidas": 0,
+  "concluidas": 2,
   "em_andamento": 0,
   "total": 20,
-  "proxima": 0,
+  "proxima": 2,
   "tarefas": [
     {
       "fase": "FASE-0",
       "tarefa": "Importação de questões — endpoint backend em lote",
       "nota": "Confirmar que POST /questoes aceita array. Validar e salvar em lote.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-0",
       "tarefa": "Importação de questões — tela React no painel admin",
       "nota": "Upload JSON/CSV, preview, validação, feedback. Formato documentado na tela.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-1",

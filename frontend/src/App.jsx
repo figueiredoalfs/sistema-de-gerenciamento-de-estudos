@@ -5,6 +5,7 @@ import Sidebar from './components/layout/Sidebar'
 import Login from './pages/Login'
 import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
+import AdminImportar from './pages/AdminImportar'
 
 function AppLayout({ children }) {
   return (
@@ -19,7 +20,8 @@ function OnboardingGuard({ children }) {
   const { user, loading } = useAuth()
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
-  if (user.area) return <Navigate to="/" replace /> // já fez onboarding
+  if (user.role === 'administrador' || user.role === 'mentor') return <Navigate to="/" replace />
+  if (user.area) return <Navigate to="/" replace />
   return children
 }
 
@@ -43,6 +45,17 @@ export default function App() {
           <ProtectedRoute>
             <AppLayout>
               <Dashboard />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/importar"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AppLayout>
+              <AdminImportar />
             </AppLayout>
           </ProtectedRoute>
         }

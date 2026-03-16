@@ -16,7 +16,9 @@ export default function Login() {
     setLoading(true)
     try {
       const user = await login(email, senha)
-      if (!user.area) {
+      if (user.role === 'administrador' || user.role === 'mentor') {
+        navigate('/')
+      } else if (!user.area) {
         navigate('/onboarding')
       } else {
         navigate('/')
@@ -44,7 +46,7 @@ export default function Login() {
           <div>
             <label className="block text-sm font-medium text-brand-muted mb-1.5">E-mail</label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

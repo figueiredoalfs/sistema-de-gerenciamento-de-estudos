@@ -10,7 +10,7 @@ from app.core.security import get_current_user, require_admin
 from app.models.aluno import Aluno
 from app.models.questao import Questao
 from app.models.topico import Topico
-from app.schemas.questao import FONTES_ADMIN, QuestaoCreate, QuestaoResponse, QuestaoUpdate
+from app.schemas.questao import FONTES_ADMIN, ImportacaoLoteResponse, QuestaoCreate, QuestaoResponse, QuestaoUpdate
 
 router = APIRouter(prefix="/questoes", tags=["questões"])
 
@@ -69,6 +69,45 @@ def criar_questao(
     db.commit()
     db.refresh(questao)
     return questao
+
+
+@router.post("/lote", response_model=ImportacaoLoteResponse, status_code=201)
+def importar_questoes_lote(
+    body: List[QuestaoCreate],
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: importa lista de questões em lote para a tabela usada pela engine pedagógica."""
+    importadas = 0
+    erros: list[str] = []
+
+    for i, item in enumerate(body, start=1):
+        if item.fonte == "ia":
+            erros.append(f"Questão {i}: fonte 'ia' é reservada para criação automática")
+            continue
+        try:
+            _validar_hierarquia(item, db)
+        except HTTPException as exc:
+            erros.append(f"Questão {i}: {exc.detail}")
+            continue
+
+        questao = Questao(
+            id=str(uuid.uuid4()),
+            subject_id=item.subject_id,
+            topic_id=item.topic_id,
+            subtopic_id=item.subtopic_id,
+            enunciado=item.enunciado,
+            alternativas_json=json.dumps(item.alternativas.model_dump(), ensure_ascii=False),
+            resposta_correta=item.resposta_correta,
+            fonte=item.fonte,
+            banca=item.banca,
+            ano=item.ano,
+        )
+        db.add(questao)
+        importadas += 1
+
+    db.commit()
+    return ImportacaoLoteResponse(importadas=importadas, erros=erros)
 
 
 @router.get("", response_model=List[QuestaoResponse])
