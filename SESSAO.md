@@ -1,28 +1,27 @@
-# ConcursoAI — Arquivo de Sessão
+# SESSAO.md — Skolai
 
-> Leia só este arquivo no início de cada sessão.
-> Se AGORA.md existir na pasta, leia também — ele tem prioridade sobre o STATUS.json.
-> Consulte /docs apenas quando a tarefa em execução exigir.
+> Leia este arquivo no início de cada sessão.
+> Se AGORA.md existir, leia também — tem prioridade sobre o STATUS.json.
 
 ## Projeto
-Plataforma de estudos para concursos públicos com IA.
-Stack: FastAPI + SQLite(dev)/PostgreSQL(prod) + Celery/Redis + Gemini/Anthropic.
-Frontend: Streamlit. Deploy: Railway. Auth: JWT (roles: admin / aluno).
+Plataforma de estudos para concursos públicos.
+Backend: FastAPI + SQLAlchemy + SQLite(dev)/PostgreSQL(prod) + Gemini Flash.
+Frontend: React 18 + Vite + Tailwind + React Router v6.
+**Streamlit: abandonado. Tudo em React.**
 
-## Arquivos de referência (ler só quando necessário)
+## Arquivos de referência (ler só quando a task exigir)
 ```
-docs/MODELS.md      → schema completo do banco
-docs/ALGORITMO.md   → fórmula de priorização e pesos
-docs/SESSOES.md     → lógica sessões multimodais D-14
-docs/ONBOARDING.md  → fluxo UX-01 e calibração UX-02
-docs/IA.md          → camada AIProvider e prompts
-docs/PEDAG.md       → PEDAG-01, FSRS, diagnóstico de situação
-docs/REGRAS.md      → decisões tomadas — não questionar
+AGORA.md         ← planejamento completo + task list
+STATUS.json      ← progresso das tasks
+docs/MODELS.md   ← schema do banco
+docs/ALGORITMO.md← engine pedagógica
+docs/IA.md       ← camada de IA
+docs/REGRAS.md   ← decisões fixas
 ```
 
 ---
 
-## Rotina de sessão — siga sempre esta ordem
+## Rotina de sessão
 
 ### 1. Verificar progresso
 ```python
@@ -30,46 +29,40 @@ import json
 with open('STATUS.json', encoding='utf-8') as f:
     s = json.load(f)
 pendentes = [(i,t) for i,t in enumerate(s['tarefas']) if t['status'] != 'concluida']
-print(f"Progresso: {s['concluidas']}/{s['total']} | {s['em_andamento']} em andamento")
+print(f"Progresso: {s['concluidas']}/{s['total']}")
 prox_idx, prox = pendentes[0]
-print(f"\nPróxima [{prox_idx}]: [{prox['fase']}] {prox['tarefa']}")
+print(f"Próxima [{prox_idx}]: [{prox['fase']}] {prox['tarefa']}")
 if prox['nota']: print(f"Nota: {prox['nota']}")
 em_and = [t for _,t in pendentes if t['status']=='em_andamento']
 if em_and:
-    print("\nEm andamento:")
+    print("Em andamento:")
     for t in em_and: print(f"  [{t['fase']}] {t['tarefa'][:70]}")
 ```
 
 ### 2. Apresentar ao usuário
 ```
-📋 Progresso: X/135 concluídas
-
-⏭️ Próximo: [FASE] — [tarefa]
+📋 Progresso: X/Y
+⏭️ [FASE] — [tarefa]
 [nota se houver]
 
 O que será feito: [2-3 linhas objetivas]
-
 Deseja iniciar? [Sim / Não]
 ```
 **Aguarde confirmação. Não escreva código antes.**
 
 ### 3. Implementar (só após confirmação)
-- Marque como 🟡 em andamento no STATUS.json imediatamente
-- Consulte o doc de referência em /docs se a tarefa exigir
-- Ao concluir, avise:
-
+- Marque como em_andamento no STATUS.json
+- Consulte AGORA.md para contexto da task
+- Consulte /docs se precisar de detalhe técnico
+- Ao concluir:
 ```
 ✅ Feito
-Criado/alterado: [lista de arquivos]
-Para testar: [instruções diretas e objetivas]
-
+Criado/alterado: [arquivos]
+Para testar: [instruções diretas]
 ⚠️ Me avise quando ok ou se precisar de ajustes.
 ```
 
-### 4. Ciclo de ajustes
-Implemente quantos ajustes o usuário pedir antes de confirmar o passo.
-
-### 5. Quando usuário confirmar ok
+### 4. Quando usuário confirmar ok
 ```python
 import json
 with open('STATUS.json', encoding='utf-8') as f:
@@ -79,20 +72,18 @@ s['concluidas'] += 1
 s['em_andamento'] = max(0, s['em_andamento'] - 1)
 with open('STATUS.json', 'w', encoding='utf-8') as f:
     json.dump(s, f, ensure_ascii=False, indent=2)
-print("✅ STATUS.json atualizado")
 ```
-Depois pergunte:
+Depois:
 ```
 🎯 Registrado. Continuar ou encerrar? [Continuar / Encerrar]
 ```
-- **Continuar** → volte ao passo 1
-- **Encerrar** → resuma o que foi feito e encerre
 
 ---
 
 ## Regras
-1. Nunca implemente sem confirmação do usuário
+1. Nunca implemente sem confirmação
 2. Nunca avance sem o usuário confirmar que testou
-3. Nunca encerre sem atualizar o STATUS.json
-4. deficit_min é campo privado — nunca exibir ao aluno
-5. Se algo quebrar: avise claramente e aguarde — não corrija silenciosamente
+3. Nunca encerre sem atualizar STATUS.json
+4. Contrato quebrado → corrigir backend, nunca adaptar frontend
+5. Streamlit: deletar. Não criar nada novo em Streamlit.
+6. Se algo quebrar: avise e aguarde, não corrija silenciosamente

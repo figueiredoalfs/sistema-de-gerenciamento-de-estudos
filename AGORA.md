@@ -1,278 +1,363 @@
-# AGORA.md — Correções imediatas + próximos passos
-
-> Leia este arquivo junto com o SESSAO.md.
-> SESSAO.md = rotina de sessão.
-> AGORA.md = o que fazer agora e por quê.
-> Quando todas as tarefas aqui estiverem concluídas, arquive este arquivo.
+# AGORA.md — Skolai: Planejamento completo
+> Fonte única de verdade. Substitui IMPLEMENTATION_GUIDE.md.
+> Atualizado: 16/03/2026.
 
 ---
 
-## Estado atual do sistema (diagnóstico confirmado)
+## Visão do produto
 
-### O que está vivo e funcionando
-- React (Login, Onboarding, Dashboard) — código limpo
-- FastAPI: 4 routers usados pelo React: `auth`, `onboarding`, `study_tasks`, `metas`
-- Model `StudyTask` com status ENUM correto: `pending`, `in_progress`, `completed`
-- 221 tasks no banco: 204 `study` + 17 `diagnostico`
+Plataforma de estudos para concursos públicos com 3 perfis:
+- **Aluno** — trilha de estudo personalizada, análise de desempenho, revisões
+- **Admin** — gestão de conteúdo (questões, tópicos, usuários)
+- **Mentor** — acompanhamento de alunos mentorados
 
-### O que está morto (não deletar ainda — fazer depois das correções)
+Stack: FastAPI (backend) + React/Vite/Tailwind (frontend) + SQLite(dev)/PostgreSQL(prod) + Gemini Flash (IA)
+**Streamlit: abandonar completamente. Tudo em React.**
+
+---
+
+## Estado real do backend hoje
+
+### O que está implementado e funciona
+- Auth completo: registro, login JWT, /auth/me, alterar senha
+- Onboarding: cria/atualiza aluno, upsert PerfilEstudo, chama gerar_plano_inicial
+- Engine pedagógica: gera Meta com tasks priorizadas por estado do subtópico
+- Tasks: CRUD, GET /tasks/today, PATCH status, dispara lógica pós-diagnóstico
+- Metas: gerar, listar, active, encerrar
+- Desempenho: por matéria, evolução mensal
+- Questões: endpoints admin para criar/editar, listar por subtópico
+- Conteúdo: explicações por subtópico, vídeos com cache, PDF gerado por IA
+
+### Ponto crítico: banco de questões vazio
+A engine pedagógica gera tasks mas `questoes_json = null`.
+Sem questões, os fluxos de questionário, simulado e reforço não funcionam.
+**Importar questões é o desbloqueador de 80% das features.**
+
+### Dois sistemas de sessão coexistindo (legado)
+- `Sessao` — sistema antigo, usado por `priorizacao.py` (agenda legacy)
+- `StudyTask` — sistema novo, usado pela engine pedagógica
+O React usa apenas StudyTask. Sessao/priorizacao.py são legado.
+
+---
+
+## Estado real do frontend hoje
+
+### O que existe em React
+```
+Login.jsx         ✅ funcionando
+Onboarding.jsx    ✅ funcionando (4 steps)
+Dashboard.jsx     ⚠️ renderiza, TaskCard não expande
+useTasks.js       ✅ busca tasks + meta em paralelo
+AuthContext.jsx   ✅ login, logout, refreshUser
+api/              ✅ auth, tasks, metas, onboarding
+```
+
+### O que não existe em React ainda
+- Análise de desempenho
+- Banco de questões (admin)
+- Gestão de usuários (admin)
+- Gestão de tópicos/subtópicos (admin)
+- Fluxo de revisões
+- Painel do mentor
+- Expansão do TaskCard por tipo
+
+### Streamlit — deletar
 ```
 app.py, api_client.py, database.py, style.py
 config_app.py, config_fontes.py, config_materias.py
 migrar_dados.py, telas/
-app/routers/: bateria, erro_critico, desempenho, agenda, usuarios,
-              admin_topicos, admin_ciclos, admin_stats, conhecimento,
-              questoes, respostas, explicacoes, admin_importar_questoes,
-              task_conteudo, cronograma_semanal
-```
-
-### Causa raiz dos problemas de front
-O ENUM de `tipo` tem 9 valores de duas eras diferentes:
-- Era antiga (dados reais no banco): `study`, `diagnostico`
-- Era nova (só no código, nunca gerados): `teoria`, `revisao`, `questionario`, `simulado`, `reforco`
-
-O frontend espera os tipos novos para renderizar comportamentos diferentes.
-O banco só tem tipos antigos. Os dois mundos nunca se encontraram.
-
----
-
-## Correções de segurança — fazer ANTES de tudo
-
-### SEGURANÇA 1 — Verificar se .env foi commitado
-```bash
-git log --all --full-history -- .env
-```
-Se retornar qualquer commit: revogar a chave Gemini imediatamente em
-https://console.cloud.google.com → APIs & Services → Credentials
-Depois limpar o histórico:
-```bash
-git filter-branch --force --index-filter \
-  "git rm --cached --ignore-unmatch .env" \
-  --prune-empty --tag-name-filter cat -- --all
-```
-Confirmar que `.env` está no `.gitignore`:
-```bash
-grep ".env" .gitignore
-```
-
-### SEGURANÇA 2 — SECRET_KEY não pode ser hardcoded
-```bash
-grep -n "SECRET_KEY" app/core/config.py
-```
-Se retornar uma string fixa em vez de `os.getenv("SECRET_KEY")`:
-qualquer pessoa com acesso ao código pode forjar tokens JWT.
-Corrigir para ler obrigatoriamente do ambiente:
-```python
-SECRET_KEY = os.environ["SECRET_KEY"]  # levanta erro se não definido
-```
-
-### SEGURANÇA 3 — Restringir CORS antes do deploy
-Em `app/main.py`, o `allow_origins=["*"]` está ok em dev local.
-Antes do deploy no Railway, restringir para:
-```python
-allow_origins=[
-    "http://localhost:5173",       # dev local Vite
-    "https://seu-dominio.railway.app",  # produção
-],
-```
-Não fazer agora — fazer junto com o deploy.
-
----
-
-## Correções — execute nesta ordem exata
-
-### CORREÇÃO 1 — Migrar dados: `study` → `teoria`
-**Por que:** 204 tasks com tipo `study` são o equivalente direto de `teoria` no novo sistema.
-Fazer isso antes de mexer no ENUM evita erro de constraint no banco.
-
-```python
-# Rodar uma vez — pode ser no shell do Python
-from app.core.database import SessionLocal
-db = SessionLocal()
-db.execute("UPDATE study_tasks SET tipo = 'teoria' WHERE tipo = 'study'")
-db.commit()
-db.close()
-print("Migração concluída")
-```
-
-Verificar:
-```python
-from app.core.database import SessionLocal
-from app.models.study_task import StudyTask
-from sqlalchemy import func
-db = SessionLocal()
-rows = db.query(StudyTask.tipo, func.count()).group_by(StudyTask.tipo).all()
-for tipo, qtd in rows: print(f'{tipo}: {qtd}')
-db.close()
-# Esperado: teoria: 204 | diagnostico: 17
 ```
 
 ---
 
-### CORREÇÃO 2 — Limpar o ENUM no model
-**Por que:** ENUM com 9 valores de duas eras causa confusão e bugs silenciosos.
-Manter só os 6 válidos.
+## Contratos de API confirmados
 
-Em `app/models/study_task.py`, substituir o campo `tipo` por:
+| Endpoint | Response relevante |
+|---|---|
+| POST /auth/login | { access_token, role, nome } |
+| GET /auth/me | AlunoResponse: { id, nome, email, role, area, horas_por_dia, dias_por_semana, nivel_desafio, ativo, diagnostico_pendente } |
+| POST /onboarding | { aluno_id, perfil_estudo_id, funcionalidades, tasks_geradas } |
+| GET /tasks/today | { daily_limit, tasks: [...] } |
+| PATCH /tasks/{id}/status | task atualizada; se diagnostico→completed dispara engine |
+| GET /metas | { metas: [{ id, status, numero_semana, tasks_meta, tasks_concluidas }] } |
+| GET /metas/active | meta com status='aberta' |
+| POST /metas/gerar | meta criada com tasks |
+| GET /desempenho | por matéria |
+| GET /desempenho/evolucao | mensal |
 
-```python
-tipo = Column(
-    Enum(
-        "diagnostico",
-        "teoria",
-        "revisao",
-        "questionario",
-        "simulado",
-        "reforco",
-        name="study_task_tipo_enum",
-    ),
-    nullable=False,
-)
-```
+**Regra:** contrato quebrado → corrigir backend. Nunca adaptar frontend.
 
 ---
 
-### CORREÇÃO 3 — Migration Alembic
-**Por que:** o banco precisa refletir o ENUM limpo.
+## TASK LIST
 
-```bash
-alembic revision --autogenerate -m "limpar_enum_tipo_task"
-alembic upgrade head
-```
+### FASE 0 — Desbloqueador crítico
 
-Se o Alembic não detectar a mudança do ENUM automaticamente
-(SQLite não suporta ALTER TYPE), adicionar manualmente na migration:
+#### TASK 0.1 — Importação de questões (Admin)
+⬜ PENDING
+**Por que primeiro:** sem questões no banco, questionario/simulado/reforco não funcionam.
+Toda a engine pedagógica fica travada.
 
-```python
-# Em migrations/versions/xxxx_limpar_enum_tipo_task.py
-def upgrade():
-    # SQLite: recriar a tabela com o ENUM correto
-    # PostgreSQL: usar op.execute("ALTER TYPE ... RENAME VALUE ...")
-    pass  # Claude Code vai gerar o conteúdo correto para seu banco
-```
+Backend (já existe POST /questoes admin):
+- Confirmar que o endpoint aceita array de questões
+- Cada questão: { subtopico_id, enunciado, alternativas[5], gabarito, fonte, nivel }
+- Validar e salvar em lote
+
+Frontend (React — nova página admin):
+- Tela de upload JSON/CSV
+- Preview das questões antes de importar
+- Feedback de quantas foram importadas com sucesso
+- Formato esperado documentado na tela
+
+**Fluxo externo (fora do sistema):**
+Admin usa IA externa (ChatGPT/Claude) para converter PDF do Tec Concursos
+em JSON estruturado → importa pelo painel.
 
 ---
 
-### CORREÇÃO 4 — Confirmar schema de GET /tasks/today
-**Por que:** o frontend faz `data.tasks ?? data` — fallback defensivo que indica
-incerteza sobre o formato. Precisa confirmar e padronizar.
+### FASE 1 — Fluxo do aluno funcionando de ponta a ponta
 
-Subir o servidor e testar:
+#### TASK 1.1 — Confirmar /auth/me retorna `area`
+⬜ PENDING
+AlunoResponse já tem campo `area` no schema.
+Testar com servidor rodando:
 ```bash
-# Terminal 1
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-
-# Terminal 2 — pegar token
-curl -s -X POST http://localhost:8000/auth/login \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=teste@aprovai.com&password=senha123"
-
-# Terminal 2 — testar endpoint (substituir TOKEN)
-curl -s http://localhost:8000/tasks/today \
+curl -s http://localhost:8000/auth/me \
   -H "Authorization: Bearer TOKEN" | python3 -m json.tool
 ```
+OnboardingGuard verifica `user.area` — se não vier, loop infinito.
 
-**Formato esperado pelo frontend (tasks.js):**
+---
+
+#### TASK 1.2 — Expansão do TaskCard por tipo
+⬜ PENDING
+Estado atual: card mostra badge mas não expande, comportamento igual para todos os tipos.
+
+Card fechado: numero_cronograma + subject_nome + subtopic_nome + badge tipo + status
+
+Card expandido por tipo:
+
+**teoria:**
+- Descrição do que fazer
+- [ Vídeo Aula ] → GET /task-conteudo/{task_code}/videos
+- [ Gerar PDF ] → POST /task-conteudo/{task_code}/gerar-pdf
+- [ Iniciar Questões ] → abre 5 questões de validação obrigatórias
+- Só finaliza após responder as questões
+
+**revisao:**
+- Igual a teoria, 10 questões de validação
+
+**reforco:**
+- Igual a teoria, 10-15 questões
+
+**questionario:**
+- [ Iniciar ] → exibe questoes_json em sequência
+- Conclui automaticamente ao terminar
+
+**simulado:**
+- Igual a questionario com timer
+
+**diagnostico:**
+- [ Iniciar ] → exibe questões diagnósticas
+- Ao concluir dispara engine pedagógica automaticamente
+
+---
+
+#### TASK 1.3 — Tela de resolução de questões
+⬜ PENDING
+Componente QuestionFlow reutilizado por todos os tipos de task que têm questões.
+
+Props: questoes[], onComplete(resultado)
+- Exibe uma questão por vez
+- Alternativas clicáveis com feedback visual após resposta
+- Progresso: "Questão 3 de 10"
+- Ao finalizar: chama onComplete com { acertos, total, percentual }
+- Resultado atualiza status da task via PATCH /tasks/{id}/status
+
+---
+
+#### TASK 1.4 — Sistema de vídeos
+⬜ PENDING
+Backend já tem task_conteudo e task_video implementados.
+Frontend precisa:
+- Ao clicar "Vídeo Aula": GET /task-conteudo/{task_code}/videos
+- Se existirem: exibir lista com thumbnail + título + avaliação
+- Se não existirem: POST /task-conteudo/{task_code}/videos/buscar (IA busca YouTube)
+- Botão "Ver mais vídeos" → busca novos
+- Avaliação 1-5 estrelas por vídeo → POST /task-videos/{id}/avaliar
+
+---
+
+#### TASK 1.5 — Geração de PDF
+⬜ PENDING
+Backend já tem endpoint de geração.
+Frontend precisa:
+- Ao clicar "Gerar PDF": POST /task-conteudo/{task_code}/gerar-pdf
+- Loading com mensagem "Gerando conteúdo..." (pode levar ~15s)
+- Exibir conteúdo gerado em modal ou área expandida
+- Se já existir cache: GET /task-conteudo/{task_code} retorna direto
+
+---
+
+### FASE 2 — Análise de desempenho (Aluno)
+
+#### TASK 2.1 — Página de desempenho
+⬜ PENDING
+Nova rota React: /desempenho
+
+Seções:
+- KPIs gerais: total questões, % acerto geral, matéria mais forte, matéria mais fraca
+- Desempenho por matéria: tabela ou cards com % acerto + total questões
+- Evolução mensal: gráfico de linha por matéria (GET /desempenho/evolucao)
+
+Endpoints: GET /desempenho, GET /desempenho/evolucao
+
+---
+
+#### TASK 2.2 — Lançamento manual de bateria
+⬜ PENDING
+Aluno pode registrar resultado de questões feitas fora do sistema
+(ex: Qconcursos, TEC, prova anterior).
+
+Nova rota React: /lancar-bateria
+- Selecionar matéria + subtópico
+- Informar acertos/total/fonte
+- POST /bateria
+- Atualiza desempenho automaticamente
+
+---
+
+### FASE 3 — Painel Admin
+
+#### TASK 3.1 — Layout do painel admin
+⬜ PENDING
+Nova rota React: /admin (protegida por role === 'administrador')
+Sidebar separada do painel do aluno.
+Páginas: Questões | Tópicos | Usuários | Importar
+
+---
+
+#### TASK 3.2 — Gestão de questões
+⬜ PENDING
+- Listar questões com filtro por matéria/subtópico
+- Editar questão individual (PATCH /questoes/{id})
+- Deletar questão
+- Ver questões por subtópico
+
+---
+
+#### TASK 3.3 — Importação em lote (TASK 0.1 revisitada com UI completa)
+⬜ PENDING
+- Upload de arquivo JSON ou CSV
+- Preview com tabela das questões detectadas
+- Validação: destacar questões com campos faltando
+- Importar com feedback de progresso
+- Histórico de importações
+
+Formato JSON esperado:
 ```json
-{
-  "daily_limit": 3,
-  "tasks": [
-    {
-      "id": "...",
-      "tipo": "teoria",
-      "status": "pending",
-      "subject_nome": "Direito Administrativo",
-      "subtopic_nome": "Atos Administrativos",
-      "numero_cronograma": 1,
-      "task_code": "DA-ATOS-001"
-    }
-  ]
-}
-```
-
-Se o formato real for diferente, ajustar o router `study_tasks.py`
-para retornar exatamente esse schema — não mexer no frontend.
-
----
-
-### CORREÇÃO 5 — Remover dailyLimit duplicado do frontend
-**Por que:** backend já limita por `horas_por_dia`. Frontend faz `tasks.slice(0, dailyLimit)`
-em cima — duplicação que causa bugs silenciosos se os dois calcularem diferente.
-
-Em `frontend/src/hooks/useTasks.js`:
-- Remover o cálculo de `dailyLimit` no cliente
-- Remover o `tasks.slice(0, dailyLimit)`
-- Confiar no array que o backend retorna
-
----
-
-### CORREÇÃO 6 — Refetch após concluir task de diagnóstico
-**Por que:** quando aluno conclui task `diagnostico`, o backend gera novas tasks
-automaticamente. Mas o frontend não faz refetch — as tasks novas ficam no banco
-sem aparecer no dashboard até o aluno recarregar.
-
-Em `frontend/src/hooks/useTasks.js`, na função `concluirTask`:
-```javascript
-// Depois do PATCH, sempre fazer refetch
-await updateTaskStatus(taskId, 'completed')
-await refetch() // garantir que tasks novas aparecem imediatamente
+[{
+  "subtopico": "Atos Administrativos",
+  "materia": "Direito Administrativo",
+  "enunciado": "...",
+  "alternativas": ["A)...", "B)...", "C)...", "D)...", "E)..."],
+  "gabarito": "C",
+  "nivel": "medio",
+  "fonte": "CESPE 2023"
+}]
 ```
 
 ---
 
-## Próximos passos — após as 6 correções acima
+#### TASK 3.4 — Gestão de tópicos e subtópicos
+⬜ PENDING
+- Listar hierarquia: matéria → tópico → subtópico
+- Adicionar/editar/remover subtópico
+- Ajustar peso_edital por subtópico
+- Ver quantas questões cada subtópico tem
 
-### PRÓXIMO 1 — Expansão do TaskCard por tipo
-Esta é a feature central do produto. Após as correções, o card precisa expandir
-e mostrar ações diferentes por tipo:
+---
 
+#### TASK 3.5 — Gestão de usuários
+⬜ PENDING
+- Listar alunos com filtros
+- Ver perfil detalhado de cada aluno
+- Ativar/desativar aluno
+- Atribuir mentor
+- Ver progresso e última atividade
+
+---
+
+### FASE 4 — Painel do Mentor
+
+#### TASK 4.1 — Visão dos alunos mentorados
+⬜ PENDING
+Nova rota React: /mentor (protegida por role === 'mentor')
+- Lista dos alunos mentorados
+- Card por aluno: nome, área, % progresso meta atual, última atividade
+- Clicar no aluno → ver detalhes de desempenho
+
+---
+
+#### TASK 4.2 — Detalhes do aluno mentorado
+⬜ PENDING
+- Desempenho por matéria
+- Tasks concluídas na semana
+- Histórico de metas
+- Pontos fortes e fracos identificados pela engine
+
+---
+
+### FASE 5 — Limpeza e deploy
+
+#### TASK 5.1 — Deletar Streamlit
+⬜ PENDING
+```bash
+rm app.py api_client.py database.py style.py
+rm config_app.py config_fontes.py config_materias.py migrar_dados.py
+rm -rf telas/
+rm IMPLEMENTATION_GUIDE.md
 ```
-teoria / revisao:
-  [ Vídeo Aula ]  [ Gerar PDF ]  [ Concluir → abre questionário de 5 questões ]
 
-questionario / simulado:
-  [ Iniciar Questões ]  → conclui automaticamente ao terminar
+---
 
-reforco:
-  igual a teoria, mas questionário com 10-15 questões
+#### TASK 5.2 — Remover routers inativos do backend
+⬜ PENDING
+Confirmar quais routers o React não usa e remover do main.py:
+agenda.py, cronograma_semanal.py, conhecimento.py,
+admin_stats.py, explicacoes.py (verificar se React vai usar)
+
+**Atenção:** routers que serão usados nas fases 2-4 não deletar.
+
+---
+
+#### TASK 5.3 — CORS restrito
+⬜ PENDING
+Antes do deploy, substituir `allow_origins=["*"]` por:
+```python
+allow_origins=[
+    "http://localhost:5173",
+    "https://seu-dominio.railway.app",
+]
 ```
 
-**Campos que o backend já tem e o frontend ainda não usa:**
-- `task_code` — código único compartilhado entre alunos (cache de IA)
-- `questoes_json` — questões já geradas
-- `numero_cronograma` — posição na sequência semanal
+---
+
+#### TASK 5.4 — Deploy Railway
+⬜ PENDING
+1. Variáveis: DATABASE_URL, SECRET_KEY, GEMINI_API_KEY
+2. `railway run alembic upgrade head`
+3. Testar fluxo completo online
+4. Configurar domínio
 
 ---
 
-### PRÓXIMO 2 — Limpar código morto
-Só fazer depois que o fluxo básico estiver funcionando.
-Deletar os arquivos listados em "O que está morto" acima.
-Remover os 15 routers inativos do `main.py`.
+## Regras fixas
 
----
-
-### PRÓXIMO 3 — Features de conteúdo (vídeos + PDF)
-Após o card expansível funcionar:
-- Vídeos: busca YouTube via IA, salva no banco, reutiliza para outros alunos
-- PDF: geração via IA com cache por `task_code`
-- Questionário de validação: 5 questões obrigatórias para finalizar teoria/revisao
-
----
-
-## Referência rápida — contratos confirmados
-
-| Endpoint | Método | Usado por | Status |
-|---|---|---|---|
-| /auth/login | POST | Login.jsx | ✅ funcionando |
-| /auth/me | GET | AuthContext.jsx | ✅ mas confirmar campo `area` |
-| /onboarding | POST | Onboarding.jsx | ✅ mas confirmar salva `area` |
-| /tasks/today | GET | useTasks.js | ⚠️ formato não confirmado |
-| /tasks/{id}/status | PATCH | useTasks.js | ✅ ENUM correto |
-| /metas | GET | metas.js | ⚠️ confirmar status `aberta` |
-| /metas/gerar | POST | useTasks.js | ✅ |
-
-**Atenção:** após o onboarding, `GET /auth/me` precisa retornar o campo `area`.
-O guard `OnboardingGuard` em `App.jsx` verifica `user.area` para decidir se
-redireciona para `/onboarding` ou deixa entrar no dashboard.
-Se `area` não vier no response, loop infinito de onboarding.
-
+1. Streamlit: deletar. Tudo em React.
+2. Contrato quebrado → corrigir backend, nunca adaptar frontend
+3. Uma task por vez
+4. Testar endpoint antes de implementar o frontend correspondente
+5. Sem questões no banco → TASK 0.1 primeiro
+6. Código morto só deletar na FASE 5
+7. SQLite em dev, PostgreSQL no Railway
