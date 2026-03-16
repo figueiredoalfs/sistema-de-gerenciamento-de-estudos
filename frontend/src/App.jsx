@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
 import AdminImportar from './pages/AdminImportar'
+import TaskView from './pages/TaskView'
 
 function AppLayout({ children }) {
   return (
@@ -56,6 +57,17 @@ export default function App() {
           <ProtectedRoute requireAdmin>
             <AppLayout>
               <AdminImportar />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/tarefa/:taskId"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <TaskView />
             </AppLayout>
           </ProtectedRoute>
         }

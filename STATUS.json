@@ -1,8 +1,8 @@
 {
-  "concluidas": 2,
+  "concluidas": 7,
   "em_andamento": 0,
   "total": 20,
-  "proxima": 2,
+  "proxima": 7,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -20,31 +20,31 @@
       "fase": "FASE-1",
       "tarefa": "Confirmar GET /auth/me retorna campo area",
       "nota": "OnboardingGuard verifica user.area — se não vier, loop infinito no onboarding.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Expansão do TaskCard por tipo",
       "nota": "teoria/revisao: vídeo+PDF+questões. questionario/simulado: iniciar. reforco: teoria com mais questões. diagnostico: atual.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Componente QuestionFlow — resolução de questões",
       "nota": "Reutilizável por todos os tipos. Uma questão por vez, feedback visual, progresso, onComplete(resultado).",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Sistema de vídeos com cache",
       "nota": "GET videos por task_code. Se vazio: IA busca YouTube e salva. Avaliação 1-5 estrelas.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Geração de PDF com cache por task_code",
       "nota": "POST gerar-pdf com loading ~15s. Cache: se já existe retorna direto.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-2",

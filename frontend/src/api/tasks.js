@@ -9,3 +9,8 @@ export async function updateTaskStatus(taskId, status) {
   const { data } = await client.patch(`/tasks/${taskId}/status`, { status })
   return data
 }
+
+export async function getTaskQuestoes(taskId) {
+  const { data } = await client.get(`/tasks/${taskId}/questoes`)
+  return data
+}

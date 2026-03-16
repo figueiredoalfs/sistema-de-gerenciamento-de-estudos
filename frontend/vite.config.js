@@ -15,6 +15,8 @@ export default defineConfig({
       '/baterias': 'http://localhost:8000',
       '/questoes': 'http://localhost:8000',
       '/admin': 'http://localhost:8000',
+      '/task-conteudo': 'http://localhost:8000',
+      '/task-videos': 'http://localhost:8000',
     },
   },
 })
