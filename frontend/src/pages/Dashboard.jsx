@@ -13,9 +13,25 @@ function Spinner() {
   )
 }
 
+function AdminHub() {
+  const { user } = useAuth()
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-brand-text">
+          Olá, <span className="gradient-text">{user?.nome?.split(' ')[0]}</span>
+        </h1>
+        <p className="text-brand-muted text-sm mt-1">Painel de administração — use o menu lateral para navegar.</p>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
   const { tasks, meta, loading, error, heroTask, iniciarTask, concluirTask, criarMeta } = useTasks()
+
+  if (user?.role === 'administrador' || user?.role === 'mentor') return <AdminHub />
 
   if (loading) return <Spinner />
 
