@@ -7,6 +7,7 @@ import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
 import AdminImportar from './pages/AdminImportar'
 import TaskView from './pages/TaskView'
+import Desempenho from './pages/Desempenho'
 
 function AppLayout({ children }) {
   return (
@@ -57,6 +58,17 @@ export default function App() {
           <ProtectedRoute requireAdmin>
             <AppLayout>
               <AdminImportar />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/desempenho"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Desempenho />
             </AppLayout>
           </ProtectedRoute>
         }

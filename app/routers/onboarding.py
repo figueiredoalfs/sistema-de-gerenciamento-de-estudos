@@ -7,8 +7,10 @@ Fluxo:
    - área do concurso
    - fase de estudo (pre_edital / pos_edital)
    - experiência (iniciante / tempo_de_estudo)
+   - disponibilidade (horas_por_dia, dias_por_semana)
    - funcionalidades selecionadas
-3. Retorna aluno_id, perfil_estudo_id e funcionalidades confirmadas
+3. Gera a Meta 01 automaticamente via engine pedagógica
+4. Retorna aluno_id, perfil_estudo_id, funcionalidades confirmadas e tasks_geradas
 """
 
 import json
@@ -39,6 +41,8 @@ def onboarding(
     if current_user:
         aluno = current_user
         aluno.area = body.area
+        aluno.horas_por_dia = body.horas_por_dia or 3.0
+        aluno.dias_por_semana = body.dias_por_semana or 5.0
         db.flush()
     elif body.email and body.senha and body.nome:
         if db.query(Aluno).filter(Aluno.email == body.email).first():
@@ -48,6 +52,8 @@ def onboarding(
             email=body.email,
             senha_hash=hash_password(body.senha),
             area=body.area,
+            horas_por_dia=body.horas_por_dia or 3.0,
+            dias_por_semana=body.dias_por_semana or 5.0,
         )
         db.add(aluno)
         db.flush()
@@ -63,7 +69,6 @@ def onboarding(
     perfil = db.query(PerfilEstudo).filter(PerfilEstudo.aluno_id == aluno.id).first()
 
     if perfil:
-        # Atualiza perfil existente
         perfil.area = body.area
         perfil.fase_estudo = body.fase_estudo
         perfil.experiencia = body.experiencia
@@ -85,10 +90,17 @@ def onboarding(
     db.commit()
     db.refresh(perfil)
 
-    from app.services.plano_inicial import gerar_plano_inicial
-    tasks_geradas = gerar_plano_inicial(
-        db, aluno.id, body.area, body.fase_estudo, body.experiencia
-    )
+    # ── 3. Gerar Meta 01 via engine pedagógica ───────────────────────────
+    tasks_geradas = 0
+    try:
+        from app.services.engine_pedagogica import gerar_meta
+        meta = gerar_meta(db=db, aluno_id=aluno.id)
+        tasks_geradas = meta.tasks_meta
+    except HTTPException:
+        # Engine sem ciclo configurado ainda — aluno poderá gerar do Dashboard
+        pass
+    except Exception:
+        pass
 
     return OnboardingResponse(
         aluno_id=aluno.id,

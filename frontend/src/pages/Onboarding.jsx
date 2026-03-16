@@ -6,9 +6,10 @@ import StepIndicator from '../components/onboarding/StepIndicator'
 import StepArea from '../components/onboarding/steps/StepArea'
 import StepPhase from '../components/onboarding/steps/StepPhase'
 import StepExperience from '../components/onboarding/steps/StepExperience'
+import StepAvailability from '../components/onboarding/steps/StepAvailability'
 import StepFeatures from '../components/onboarding/steps/StepFeatures'
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 5
 
 export default function Onboarding() {
   const { refreshUser } = useAuth()
@@ -22,6 +23,8 @@ export default function Onboarding() {
     fase_estudo: '',
     experiencia: '',
     tempoEstudo: '',
+    horasPorDia: null,
+    diasPorSemana: null,
     funcionalidades: [],
   })
 
@@ -29,7 +32,8 @@ export default function Onboarding() {
     if (step === 1) return !!form.area
     if (step === 2) return !!form.fase_estudo
     if (step === 3) return !!form.experiencia && (form.experiencia === 'iniciante' || !!form.tempoEstudo)
-    if (step === 4) return form.funcionalidades.length > 0
+    if (step === 4) return form.horasPorDia !== null && form.diasPorSemana !== null
+    if (step === 5) return form.funcionalidades.length > 0
     return false
   }
 
@@ -47,6 +51,8 @@ export default function Onboarding() {
         fase_estudo: form.fase_estudo,
         experiencia: form.experiencia,
         tempo_estudo: form.tempoEstudo || null,
+        horas_por_dia: form.horasPorDia,
+        dias_por_semana: form.diasPorSemana,
         funcionalidades: form.funcionalidades,
       })
       await refreshUser()
@@ -67,7 +73,7 @@ export default function Onboarding() {
           <p className="text-brand-muted text-sm mt-1">Vamos configurar sua experiência</p>
         </div>
 
-        <StepIndicator currentStep={step} />
+        <StepIndicator currentStep={step} totalSteps={TOTAL_STEPS} />
 
         <div className="bg-brand-card border border-brand-border rounded-2xl p-8">
           {step === 1 && (
@@ -84,6 +90,13 @@ export default function Onboarding() {
             />
           )}
           {step === 4 && (
+            <StepAvailability
+              horasPorDia={form.horasPorDia}
+              diasPorSemana={form.diasPorSemana}
+              onChange={(field, value) => setForm((f) => ({ ...f, [field]: value }))}
+            />
+          )}
+          {step === 5 && (
             <StepFeatures
               selected={form.funcionalidades}
               onChange={(v) => setForm((f) => ({ ...f, funcionalidades: v }))}

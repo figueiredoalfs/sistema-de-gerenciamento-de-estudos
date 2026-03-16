@@ -14,6 +14,8 @@ export default function ProtectedRoute({ children, requireAdmin }) {
 
   if (!user) return <Navigate to="/login" replace />
   if (requireAdmin && user.role !== 'administrador') return <Navigate to="/" replace />
+  // Estudante sem área → forçar onboarding
+  if (user.role === 'estudante' && !user.area) return <Navigate to="/onboarding" replace />
 
   return children
 }

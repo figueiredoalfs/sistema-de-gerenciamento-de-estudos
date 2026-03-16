@@ -1,4 +1,4 @@
-const STEPS = ['Área', 'Fase', 'Experiência', 'Funcionalidades']
+const STEPS = ['Área', 'Fase', 'Experiência', 'Disponibilidade', 'Funcionalidades']
 
 export default function StepIndicator({ currentStep }) {
   return (
@@ -30,7 +30,7 @@ export default function StepIndicator({ currentStep }) {
               <span className={`text-xs mt-1 ${active ? 'text-brand-text' : 'text-brand-muted'}`}>{label}</span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className={`w-16 h-px mx-1 mb-5 transition-all duration-300 ${done ? 'bg-emerald-500' : 'bg-brand-border'}`} />
+              <div className={`w-12 h-px mx-1 mb-5 transition-all duration-300 ${done ? 'bg-emerald-500' : 'bg-brand-border'}`} />
             )}
           </div>
         )

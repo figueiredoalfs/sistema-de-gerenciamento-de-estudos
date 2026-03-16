@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getTodayTasks, updateTaskStatus } from '../api/tasks'
-import { getActiveMeta, gerarMeta } from '../api/metas'
+import { getActiveMeta, gerarMeta, resetAluno } from '../api/metas'
 import { useAuth } from '../context/AuthContext'
 
 export function useTasks() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [tasks, setTasks] = useState([])
   const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [metaError, setMetaError] = useState(null)
+  const [resetting, setResetting] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -49,10 +51,31 @@ export function useTasks() {
   }, [fetchData])
 
   const criarMeta = useCallback(async () => {
-    const nova = await gerarMeta()
-    setMeta(nova)
-    await fetchData()
+    setMetaError(null)
+    try {
+      const nova = await gerarMeta()
+      setMeta(nova)
+      await fetchData()
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Erro ao gerar meta. Tente novamente.'
+      setMetaError(msg)
+    }
   }, [fetchData])
 
-  return { tasks, meta, loading, error, heroTask, iniciarTask, concluirTask, criarMeta, refetch: fetchData }
+  const resetarDados = useCallback(async () => {
+    setResetting(true)
+    setMetaError(null)
+    try {
+      await resetAluno()
+      // Atualiza user no contexto — area fica null, frontend redirecionará para /onboarding
+      await refreshUser()
+      return { redirectToOnboarding: true }
+    } catch (err) {
+      setMetaError(err.response?.data?.detail || 'Erro ao resetar dados.')
+    } finally {
+      setResetting(false)
+    }
+  }, [refreshUser])
+
+  return { tasks, meta, loading, error, metaError, heroTask, iniciarTask, concluirTask, criarMeta, resetarDados, resetting, refetch: fetchData }
 }

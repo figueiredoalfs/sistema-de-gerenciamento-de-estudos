@@ -17,3 +17,8 @@ export async function getMetas() {
   const { data } = await client.get('/metas')
   return data
 }
+
+export async function resetAluno() {
+  const { data } = await client.post('/dev/reset-aluno')
+  return data
+}

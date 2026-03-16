@@ -211,7 +211,7 @@ def _selecionar_questoes(
     todas_ids: list[str] = [
         row[0]
         for row in db.query(Questao.id)
-        .filter(Questao.subtopico_id == subtopico_id, Questao.ativo == True)
+        .filter(Questao.subtopic_id == subtopico_id, Questao.ativo == True)
         .all()
     ]
 
@@ -476,6 +476,16 @@ def gerar_meta(db: Session, aluno_id: str) -> Meta:
     db.flush()  # obtém meta.id sem commit
 
     tasks = _build_tasks(db, aluno, meta, tasks_meta)
+
+    if not tasks:
+        db.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Não foi possível gerar tasks. "
+                "Verifique se os ciclos de matérias e subtópicos estão configurados para a área do aluno."
+            ),
+        )
 
     for task in tasks:
         db.add(task)

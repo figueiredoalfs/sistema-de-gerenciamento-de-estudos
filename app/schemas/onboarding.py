@@ -29,7 +29,11 @@ class OnboardingRequest(BaseModel):
     # Obrigatório quando experiencia == "tempo_de_estudo"; valores: "<1m", "1-3m", "3-6m", ">6m"
     tempo_estudo: Optional[str] = None
 
-    # Passo 4 — funcionalidades desejadas (pelo menos 1)
+    # Passo 4 — disponibilidade de estudo
+    horas_por_dia: Optional[float] = 3.0
+    dias_por_semana: Optional[float] = 5.0
+
+    # Passo 5 — funcionalidades desejadas (pelo menos 1)
     funcionalidades: List[str]
 
     @model_validator(mode="after")

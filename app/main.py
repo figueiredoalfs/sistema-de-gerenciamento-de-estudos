@@ -7,6 +7,7 @@ from app.core.database import Base, engine
 from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes, admin_importar_questoes, task_conteudo
 from app.routers import cronograma_semanal
 from app.routers import metas
+from app.routers import dev
 from app.modules.conteudo.router import router as conteudo_router
 
 # Importar todos os models para o Alembic detectar
@@ -69,6 +70,7 @@ app.include_router(admin_importar_questoes.router)
 app.include_router(task_conteudo.router)
 app.include_router(cronograma_semanal.router)
 app.include_router(metas.router)
+app.include_router(dev.router)
 
 
 @app.get("/", tags=["health"])

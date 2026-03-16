@@ -1,6 +1,6 @@
 {
   "concluidas": 7,
-  "em_andamento": 0,
+  "em_andamento": 1,
   "total": 20,
   "proxima": 7,
   "tarefas": [
@@ -50,7 +50,7 @@
       "fase": "FASE-2",
       "tarefa": "Página de desempenho — KPIs e por matéria",
       "nota": "Rota /desempenho. KPIs gerais + tabela por matéria. GET /desempenho.",
-      "status": "pendente"
+      "status": "em_andamento"
     },
     {
       "fase": "FASE-2",
