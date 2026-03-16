@@ -18,7 +18,8 @@ export function useTasks() {
         getTodayTasks(),
         getActiveMeta().catch(() => null),
       ])
-      setTasks(Array.isArray(tasksData) ? tasksData : [])
+      const lista = tasksData?.tasks ?? (Array.isArray(tasksData) ? tasksData : [])
+      setTasks(lista)
       setMeta(metaData)
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao carregar tarefas')
@@ -31,16 +32,9 @@ export function useTasks() {
     if (user) fetchData()
   }, [user, fetchData])
 
-  const dailyLimit = useMemo(() => Math.max(1, Math.floor(user?.horas_por_dia ?? 3)), [user])
-
-  const dailyTasks = useMemo(
-    () => tasks.slice(0, dailyLimit),
-    [tasks, dailyLimit]
-  )
-
   const heroTask = useMemo(
-    () => dailyTasks.find((t) => t.status === 'in_progress') ?? dailyTasks.find((t) => t.status === 'pending') ?? null,
-    [dailyTasks]
+    () => tasks.find((t) => t.status === 'in_progress') ?? tasks.find((t) => t.status === 'pending') ?? null,
+    [tasks]
   )
 
   const iniciarTask = useCallback(async (taskId) => {
@@ -50,9 +44,9 @@ export function useTasks() {
 
   const concluirTask = useCallback(async (taskId) => {
     await updateTaskStatus(taskId, 'completed')
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: 'completed' } : t)))
     setMeta((prev) => prev ? { ...prev, tasks_concluidas: prev.tasks_concluidas + 1 } : prev)
-  }, [])
+    await fetchData()
+  }, [fetchData])
 
   const criarMeta = useCallback(async () => {
     const nova = await gerarMeta()
@@ -60,5 +54,5 @@ export function useTasks() {
     await fetchData()
   }, [fetchData])
 
-  return { tasks: dailyTasks, allTasks: tasks, meta, loading, error, heroTask, iniciarTask, concluirTask, criarMeta, refetch: fetchData }
+  return { tasks, meta, loading, error, heroTask, iniciarTask, concluirTask, criarMeta, refetch: fetchData }
 }

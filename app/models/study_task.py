@@ -22,8 +22,12 @@ class StudyTask(Base):
 
     tipo = Column(
         Enum(
-            "study", "questions", "review", "diagnostico",
-            "teoria", "revisao", "questionario", "simulado", "reforco",
+            "diagnostico",
+            "teoria",
+            "revisao",
+            "questionario",
+            "simulado",
+            "reforco",
             name="study_task_tipo_enum",
         ),
         nullable=False,

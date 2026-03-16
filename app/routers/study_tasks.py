@@ -12,8 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 TIPOS_VALIDOS = {
-    "study", "questions", "review", "diagnostico",
-    "teoria", "revisao", "questionario", "simulado", "reforco",
+    "diagnostico", "teoria", "revisao", "questionario", "simulado", "reforco",
 }
 
 import json
@@ -101,8 +100,11 @@ def _to_response(task: StudyTask, desempenho=None, tarefas_geradas=None) -> Stud
         tipo=task.tipo,
         status=task.status,
         questoes_json=task.questoes_json,
+        task_code=task.task_code,
+        numero_cronograma=task.numero_cronograma,
         week_number=task.week_number,
         order_in_week=task.order_in_week,
+        goal_id=task.goal_id,
         created_at=task.created_at,
         desempenho_subtopicos=desempenho,
         tarefas_geradas=geradas,

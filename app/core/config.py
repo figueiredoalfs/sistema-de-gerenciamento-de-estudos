@@ -1,9 +1,13 @@
+import warnings
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_DEFAULT = "troque-em-producao"
 
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./dev.db"
-    SECRET_KEY: str = "troque-em-producao"
+    SECRET_KEY: str = _INSECURE_DEFAULT
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 dias
 
@@ -24,3 +28,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if settings.SECRET_KEY == _INSECURE_DEFAULT and not settings.DATABASE_URL.startswith("sqlite"):
+    raise RuntimeError("SECRET_KEY não pode ser o valor padrão em produção. Defina SECRET_KEY no ambiente.")

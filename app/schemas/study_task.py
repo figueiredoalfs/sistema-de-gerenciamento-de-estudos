@@ -6,8 +6,7 @@ from pydantic import BaseModel
 from app.schemas.resposta_questao import DesempenhoSubtopicoItem
 
 TipoTask = Literal[
-    "study", "questions", "review", "diagnostico",
-    "teoria", "revisao", "questionario", "simulado", "reforco",
+    "diagnostico", "teoria", "revisao", "questionario", "simulado", "reforco",
 ]
 StatusTask = Literal["pending", "in_progress", "completed"]
 
