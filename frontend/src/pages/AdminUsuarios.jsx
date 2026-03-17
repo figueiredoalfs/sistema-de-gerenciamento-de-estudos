@@ -290,8 +290,8 @@ export default function AdminUsuarios() {
     try {
       const atualizado = await atualizarUsuario(usuario.id, { ativo: !usuario.ativo })
       setUsuarios((prev) => prev.map((u) => (u.id === atualizado.id ? atualizado : u)))
-    } catch {
-      /* silencia */
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao alterar status do usuário.')
     } finally {
       setToggling(null)
     }
@@ -407,7 +407,7 @@ export default function AdminUsuarios() {
               return (
                 <tr
                   key={u.id}
-                  className={`transition-colors hover:bg-brand-surface/50 ${!u.ativo ? 'opacity-50' : ''}`}
+                  className={`transition-colors hover:bg-brand-surface/50 ${!u.ativo ? 'opacity-60' : ''}`}
                 >
                   <td className="px-4 py-3">
                     <div className="font-medium text-brand-text">{u.nome}</div>
@@ -458,21 +458,11 @@ export default function AdminUsuarios() {
                         title={u.ativo ? 'Desativar' : 'Ativar'}
                         onClick={() => toggleAtivo(u)}
                         disabled={toggling === u.id}
-                        className={`transition-colors p-1 rounded disabled:opacity-40 ${u.ativo ? 'text-brand-muted hover:text-red-400' : 'text-brand-muted hover:text-emerald-400'}`}
+                        className={`transition-colors px-2 py-1 rounded text-xs font-medium disabled:opacity-40 ${u.ativo ? 'text-red-400 hover:bg-red-400/10 border border-red-400/30' : 'text-emerald-400 hover:bg-emerald-400/10 border border-emerald-400/30 !opacity-100'}`}
                       >
                         {toggling === u.id ? (
-                          <div className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin" />
-                        ) : u.ativo ? (
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        )}
+                          <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                        ) : u.ativo ? 'Desativar' : 'Ativar'}
                       </button>
                     </div>
                   </td>
