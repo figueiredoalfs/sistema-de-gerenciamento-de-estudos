@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import AdminImportar from './pages/AdminImportar'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminQuestoes from './pages/AdminQuestoes'
+import AdminTopicos from './pages/AdminTopicos'
 import TaskView from './pages/TaskView'
 import Desempenho from './pages/Desempenho'
 import LancarBateria from './pages/LancarBateria'
@@ -83,6 +84,17 @@ export default function App() {
           <ProtectedRoute requireAdmin>
             <AppLayout>
               <AdminImportar />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/topicos"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AppLayout>
+              <AdminTopicos />
             </AppLayout>
           </ProtectedRoute>
         }

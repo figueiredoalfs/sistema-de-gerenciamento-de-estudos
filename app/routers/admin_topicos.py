@@ -1,12 +1,14 @@
 import uuid
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import require_admin
 from app.models.aluno import Aluno
+from app.models.question_subtopic import QuestionSubtopic
 from app.models.topico import Topico
 from app.schemas.topico import TopicoCreate, TopicoResponse, TopicoUpdate
 
@@ -66,6 +68,20 @@ def listar_topicos(
     if parent_id:
         q = q.filter(Topico.parent_id == parent_id)
     return q.order_by(Topico.nivel, Topico.nome).all()
+
+
+@router.get("/questoes-por-subtopico", response_model=Dict[str, int])
+def questoes_por_subtopico(
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: retorna contagem de questões por subtópico {subtopic_id: count}."""
+    rows = (
+        db.query(QuestionSubtopic.subtopic_id, func.count(QuestionSubtopic.question_id))
+        .group_by(QuestionSubtopic.subtopic_id)
+        .all()
+    )
+    return {row[0]: row[1] for row in rows}
 
 
 @router.get("/{topico_id}", response_model=TopicoResponse)

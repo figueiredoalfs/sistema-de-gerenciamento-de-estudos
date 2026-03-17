@@ -16,3 +16,8 @@ export async function editarQuestao(id, payload) {
 export async function deletarQuestao(id) {
   await client.delete(`/admin/questoes/${id}`)
 }
+
+export async function importarQuestoes({ disciplina_sigla, questoes }) {
+  const { data } = await client.post('/admin/importar-questoes', { disciplina_sigla, questoes })
+  return data
+}

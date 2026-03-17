@@ -1,8 +1,8 @@
 {
-  "concluidas": 11,
+  "concluidas": 13,
   "em_andamento": 0,
   "total": 21,
-  "proxima": 10,
+  "proxima": 12,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -74,13 +74,13 @@
       "fase": "FASE-3",
       "tarefa": "Importação em lote com UI completa",
       "nota": "Upload JSON/CSV, preview, validação visual, progresso, resultado com erros.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-3",
       "tarefa": "Gestão de tópicos e subtópicos",
       "nota": "Árvore matéria→tópico→subtópico. Editar peso_edital. Contador de questões por subtópico.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-3",
