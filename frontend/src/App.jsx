@@ -6,6 +6,8 @@ import Login from './pages/Login'
 import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
 import AdminImportar from './pages/AdminImportar'
+import AdminDashboard from './pages/AdminDashboard'
+import AdminQuestoes from './pages/AdminQuestoes'
 import TaskView from './pages/TaskView'
 import Desempenho from './pages/Desempenho'
 import LancarBateria from './pages/LancarBateria'
@@ -48,6 +50,28 @@ export default function App() {
           <ProtectedRoute>
             <AppLayout>
               <Dashboard />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AppLayout>
+              <AdminDashboard />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/questoes"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AppLayout>
+              <AdminQuestoes />
             </AppLayout>
           </ProtectedRoute>
         }

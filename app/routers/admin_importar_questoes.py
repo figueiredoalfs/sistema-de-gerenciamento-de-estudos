@@ -17,6 +17,7 @@ from app.schemas.questao_banco import (
     ImportacaoRequest,
     ImportacaoResponse,
     QuestaoBancoResponse,
+    QuestaoUpdateRequest,
 )
 from app.schemas.question_subtopic import AssociarSubtopicoRequest, SubtopicoInfo
 from app.services.sugestao_subtopicos import salvar_sugestoes, sugerir_subtopicos
@@ -217,4 +218,83 @@ def remover_subtopico(
         raise HTTPException(status_code=404, detail="Associação não encontrada")
 
     db.delete(assoc)
+    db.commit()
+
+
+# ─── Endpoints — CRUD de questões ────────────────────────────────────────────
+
+@router.get("/questoes", response_model=List[QuestaoBancoResponse])
+def listar_questoes(
+    materia: Optional[str] = Query(None, description="Filtra por subject (matéria)"),
+    subtopico: Optional[str] = Query(None, description="Filtra por nome de subtópico associado"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: lista questões com filtros por matéria e subtópico, paginado."""
+    q = db.query(QuestaoBanco)
+
+    if materia:
+        q = q.filter(QuestaoBanco.subject.ilike(f"%{materia}%"))
+
+    if subtopico:
+        q = (
+            q.join(QuestionSubtopic, QuestionSubtopic.question_id == QuestaoBanco.id)
+            .join(Topico, Topico.id == QuestionSubtopic.subtopic_id)
+            .filter(Topico.nome.ilike(f"%{subtopico}%"))
+        )
+
+    questoes = (
+        q.order_by(QuestaoBanco.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+    return [_questao_response(questao, db) for questao in questoes]
+
+
+@router.patch("/questoes/{question_id}", response_model=QuestaoBancoResponse)
+def editar_questao(
+    question_id: str,
+    body: QuestaoUpdateRequest,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: edita campos de uma questão do banco."""
+    questao = db.query(QuestaoBanco).filter(QuestaoBanco.id == question_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    if body.subject is not None:
+        questao.subject = body.subject
+    if body.statement is not None:
+        questao.statement = body.statement
+    if body.alternatives is not None:
+        questao.alternatives_json = json.dumps(body.alternatives.model_dump(), ensure_ascii=False)
+    if body.correct_answer is not None:
+        questao.correct_answer = body.correct_answer
+    if body.board is not None:
+        questao.board = body.board
+    if body.year is not None:
+        questao.year = body.year
+
+    db.commit()
+    db.refresh(questao)
+    return _questao_response(questao, db)
+
+
+@router.delete("/questoes/{question_id}", status_code=204, response_class=Response)
+def deletar_questao(
+    question_id: str,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: deleta uma questão do banco (remove associações de subtópicos antes)."""
+    questao = db.query(QuestaoBanco).filter(QuestaoBanco.id == question_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    db.query(QuestionSubtopic).filter(QuestionSubtopic.question_id == question_id).delete()
+    db.delete(questao)
     db.commit()

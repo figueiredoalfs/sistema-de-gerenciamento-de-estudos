@@ -1,7 +1,7 @@
 {
-  "concluidas": 10,
+  "concluidas": 11,
   "em_andamento": 0,
-  "total": 17,
+  "total": 21,
   "proxima": 10,
   "tarefas": [
     {
@@ -55,7 +55,7 @@
     {
       "fase": "FASE-2",
       "tarefa": "Evolução mensal — gráfico de linha por matéria",
-      "nota": "GET /desempenho/evolucao → gráfico Recharts. Eixo X: meses. Linha por matéria.",
+      "nota": "",
       "status": "concluida"
     },
     {
@@ -67,8 +67,8 @@
     {
       "fase": "FASE-3",
       "tarefa": "Layout admin + gestão de questões",
-      "nota": "Rota /admin. Sidebar própria. Listar/filtrar/editar/deletar questões.",
-      "status": "pendente"
+      "nota": "Rota /admin protegida por role=administrador. Sidebar própria. Listar/filtrar/editar/deletar questões.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-3",
@@ -79,7 +79,7 @@
     {
       "fase": "FASE-3",
       "tarefa": "Gestão de tópicos e subtópicos",
-      "nota": "Árvore matéria→tópico→subtópico. Editar peso_edital. Contador de questões.",
+      "nota": "Árvore matéria→tópico→subtópico. Editar peso_edital. Contador de questões por subtópico.",
       "status": "pendente"
     },
     {
@@ -89,21 +89,45 @@
       "status": "pendente"
     },
     {
+      "fase": "FASE-3.5",
+      "tarefa": "Área fiscal como única ativa no onboarding",
+      "nota": "Só fiscal selecionável. Outras áreas aparecem bloqueadas com 'Em desenvolvimento'.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-3.5",
+      "tarefa": "Model PlanoBase + geração via IA",
+      "nota": "Tabela plano_base (area, perfil, fases[], ordem_subtopicos_por_materia, gerado_por_ia, revisado_admin). Busca no banco antes de gerar. Se não existir: IA gera + salva + dispara notificação admin. Nunca gera duplicata.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-3.5",
+      "tarefa": "Lógica de avanço de fase no PlanoBase",
+      "nota": "Engine monitora critério de avanço por fase (ex: media_acerto >= 0.65 nas matérias ativas). Quando atingido: adiciona matérias da próxima fase automaticamente. Notifica aluno.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-3.5",
+      "tarefa": "Dashboard admin — notificação e revisão do PlanoBase",
+      "nota": "Admin vê alerta: 'IA gerou PlanoBase para Fiscal/Iniciante. Revisar?' Pode editar fases, ordem de matérias, critérios de avanço. Ao salvar: opção de aplicar só para novos alunos ou para todos.",
+      "status": "pendente"
+    },
+    {
       "fase": "FASE-4",
       "tarefa": "Painel do mentor — lista e detalhe de alunos",
-      "nota": "Rota /mentor. Lista com progresso. Detalhe: desempenho + tasks + histórico metas.",
+      "nota": "Rota /mentor protegida por role=mentor. Lista com progresso e última atividade. Detalhe: desempenho por matéria, tasks da semana, histórico metas, pontos fortes/fracos.",
       "status": "pendente"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Deletar Streamlit + routers inativos",
-      "nota": "Só após todas as fases anteriores estáveis.",
+      "nota": "Só após todas as fases anteriores estáveis. app.py, api_client.py, database.py, style.py, config_*.py, migrar_dados.py, telas/",
       "status": "pendente"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Deploy Railway",
-      "nota": "CORS restrito + variáveis + alembic upgrade head + teste completo.",
+      "nota": "CORS restrito + variáveis DATABASE_URL/SECRET_KEY/GEMINI_API_KEY + alembic upgrade head + teste completo.",
       "status": "pendente"
     }
   ]
