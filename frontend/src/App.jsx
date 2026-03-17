@@ -11,6 +11,7 @@ import AdminQuestoes from './pages/AdminQuestoes'
 import AdminTopicos from './pages/AdminTopicos'
 import AdminUsuarios from './pages/AdminUsuarios'
 import AdminPlanoBase from './pages/AdminPlanoBase'
+import MentorAlunos from './pages/MentorAlunos'
 import TaskView from './pages/TaskView'
 import Desempenho from './pages/Desempenho'
 import LancarBateria from './pages/LancarBateria'
@@ -28,7 +29,8 @@ function OnboardingGuard({ children }) {
   const { user, loading } = useAuth()
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
-  if (user.role === 'administrador' || user.role === 'mentor') return <Navigate to="/" replace />
+  if (user.role === 'administrador') return <Navigate to="/" replace />
+  if (user.role === 'mentor') return <Navigate to="/mentor/alunos" replace />
   if (user.area) return <Navigate to="/" replace />
   return children
 }
@@ -152,6 +154,17 @@ export default function App() {
           <ProtectedRoute>
             <AppLayout>
               <TaskView />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/mentor/alunos"
+        element={
+          <ProtectedRoute requireMentor>
+            <AppLayout>
+              <MentorAlunos />
             </AppLayout>
           </ProtectedRoute>
         }

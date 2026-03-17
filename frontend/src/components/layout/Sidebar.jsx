@@ -65,11 +65,20 @@ const NAV_ADMIN = [
   )},
 ]
 
+const NAV_MENTOR = [
+  { to: '/mentor/alunos', label: 'Meus Alunos', icon: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+    </svg>
+  )},
+]
+
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const isAdmin = user?.role === 'administrador'
-  const nav = isAdmin ? NAV_ADMIN : NAV
+  const isMentor = user?.role === 'mentor'
+  const nav = isAdmin ? NAV_ADMIN : isMentor ? NAV_MENTOR : NAV
 
   function handleLogout() {
     logout()

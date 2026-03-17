@@ -116,6 +116,58 @@ def progresso_usuario(
     }
 
 
+@router.get("/mentor/alunos/{aluno_id}/progresso")
+def progresso_aluno_mentor(
+    aluno_id: str,
+    db: Session = Depends(get_db),
+    current_user: Aluno = Depends(require_mentor),
+):
+    """Mentor: retorna métricas de desempenho de um aluno mentorado."""
+    # Mentor só pode ver seus próprios alunos; admin pode ver qualquer um
+    if current_user.role != "administrador":
+        ids_mentorados = [a.id for a in current_user.alunos_mentorados]
+        if aluno_id not in ids_mentorados:
+            raise HTTPException(status_code=403, detail="Aluno não pertence ao seu grupo de mentoreados")
+
+    aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Aluno não encontrado")
+
+    registros = db.query(Proficiencia).filter(Proficiencia.aluno_id == aluno_id).all()
+    total_sessoes = db.query(Sessao).filter(Sessao.aluno_id == aluno_id).count()
+
+    agrup: dict = {}
+    for r in registros:
+        mat = r.materia or "Sem matéria"
+        if mat not in agrup:
+            agrup[mat] = {"acertos": 0, "total": 0}
+        agrup[mat]["acertos"] += r.acertos or 0
+        agrup[mat]["total"] += r.total or 0
+
+    total_q = sum(v["total"] for v in agrup.values())
+    total_a = sum(v["acertos"] for v in agrup.values())
+
+    def perc(a, t):
+        return round(a / t * 100, 1) if t > 0 else 0.0
+
+    por_materia = sorted(
+        [
+            {"materia": m, "realizadas": v["total"], "acertos": v["acertos"], "perc": perc(v["acertos"], v["total"])}
+            for m, v in agrup.items()
+        ],
+        key=lambda x: -x["perc"],
+    )
+
+    return {
+        "nome": aluno.nome,
+        "total_questoes": total_q,
+        "total_acertos": total_a,
+        "perc_geral": perc(total_a, total_q),
+        "total_sessoes": total_sessoes,
+        "por_materia": por_materia,
+    }
+
+
 @router.get("/mentor/alunos", response_model=List[AlunoMentoradoResponse])
 def listar_alunos_mentorados(
     db: Session = Depends(get_db),
