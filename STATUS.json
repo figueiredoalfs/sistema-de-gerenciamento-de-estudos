@@ -1,127 +1,109 @@
 {
   "concluidas": 8,
   "em_andamento": 1,
-  "total": 20,
+  "total": 17,
   "proxima": 8,
   "tarefas": [
     {
       "fase": "FASE-0",
-      "tarefa": "Importação de questões — endpoint backend em lote",
-      "nota": "Confirmar que POST /questoes aceita array. Validar e salvar em lote.",
+      "tarefa": "Importação de questões — backend em lote",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-0",
       "tarefa": "Importação de questões — tela React no painel admin",
-      "nota": "Upload JSON/CSV, preview, validação, feedback. Formato documentado na tela.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Confirmar GET /auth/me retorna campo area",
-      "nota": "OnboardingGuard verifica user.area — se não vier, loop infinito no onboarding.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Expansão do TaskCard por tipo",
-      "nota": "teoria/revisao: vídeo+PDF+questões. questionario/simulado: iniciar. reforco: teoria com mais questões. diagnostico: atual.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Componente QuestionFlow — resolução de questões",
-      "nota": "Reutilizável por todos os tipos. Uma questão por vez, feedback visual, progresso, onComplete(resultado).",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Sistema de vídeos com cache",
-      "nota": "GET videos por task_code. Se vazio: IA busca YouTube e salva. Avaliação 1-5 estrelas.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-1",
       "tarefa": "Geração de PDF com cache por task_code",
-      "nota": "POST gerar-pdf com loading ~15s. Cache: se já existe retorna direto.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-2",
       "tarefa": "Página de desempenho — KPIs e por matéria",
-      "nota": "Rota /desempenho. KPIs gerais + tabela por matéria. GET /desempenho.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-2",
-      "tarefa": "Página de desempenho — evolução mensal",
-      "nota": "Gráfico de linha por matéria. GET /desempenho/evolucao.",
+      "tarefa": "Evolução mensal — gráfico de linha por matéria",
+      "nota": "GET /desempenho/evolucao → gráfico Recharts. Eixo X: meses. Linha por matéria.",
       "status": "em_andamento"
     },
     {
       "fase": "FASE-2",
       "tarefa": "Lançamento manual de bateria",
-      "nota": "Rota /lancar-bateria. Registrar resultado externo (Qconcursos, TEC, prova). POST /bateria.",
+      "nota": "Rota /lancar-bateria. Select matéria→subtópico. POST /bateria. Ver impacto em /desempenho.",
       "status": "pendente"
     },
     {
       "fase": "FASE-3",
-      "tarefa": "Layout do painel admin",
-      "nota": "Rota /admin protegida por role=administrador. Sidebar separada. Páginas: Questões, Tópicos, Usuários, Importar.",
+      "tarefa": "Layout admin + gestão de questões",
+      "nota": "Rota /admin. Sidebar própria. Listar/filtrar/editar/deletar questões.",
       "status": "pendente"
     },
     {
       "fase": "FASE-3",
-      "tarefa": "Admin — gestão de questões",
-      "nota": "Listar com filtros, editar individual, deletar, ver por subtópico.",
+      "tarefa": "Importação em lote com UI completa",
+      "nota": "Upload JSON/CSV, preview, validação visual, progresso, resultado com erros.",
       "status": "pendente"
     },
     {
       "fase": "FASE-3",
-      "tarefa": "Admin — importação em lote completa com UI",
-      "nota": "Upload JSON/CSV, preview, validação visual, progresso, histórico de importações.",
+      "tarefa": "Gestão de tópicos e subtópicos",
+      "nota": "Árvore matéria→tópico→subtópico. Editar peso_edital. Contador de questões.",
       "status": "pendente"
     },
     {
       "fase": "FASE-3",
-      "tarefa": "Admin — gestão de tópicos e subtópicos",
-      "nota": "Hierarquia matéria→tópico→subtópico. CRUD + peso_edital + contador de questões.",
-      "status": "pendente"
-    },
-    {
-      "fase": "FASE-3",
-      "tarefa": "Admin — gestão de usuários",
-      "nota": "Listar, filtrar, ver perfil, ativar/desativar, atribuir mentor, ver progresso.",
+      "tarefa": "Gestão de usuários",
+      "nota": "Listar, filtrar, ativar/desativar, atribuir mentor, ver progresso.",
       "status": "pendente"
     },
     {
       "fase": "FASE-4",
-      "tarefa": "Painel do mentor — lista de alunos",
-      "nota": "Rota /mentor protegida por role=mentor. Lista com progresso e última atividade.",
-      "status": "pendente"
-    },
-    {
-      "fase": "FASE-4",
-      "tarefa": "Painel do mentor — detalhes do aluno",
-      "nota": "Desempenho por matéria, tasks da semana, histórico de metas, pontos fortes/fracos.",
+      "tarefa": "Painel do mentor — lista e detalhe de alunos",
+      "nota": "Rota /mentor. Lista com progresso. Detalhe: desempenho + tasks + histórico metas.",
       "status": "pendente"
     },
     {
       "fase": "FASE-5",
-      "tarefa": "Deletar código Streamlit",
-      "nota": "app.py, api_client.py, database.py, style.py, config_*.py, migrar_dados.py, telas/",
+      "tarefa": "Deletar Streamlit + routers inativos",
+      "nota": "Só após todas as fases anteriores estáveis.",
       "status": "pendente"
     },
     {
       "fase": "FASE-5",
-      "tarefa": "Remover routers inativos do backend",
-      "nota": "Confirmar quais o React não usa. Remover imports do main.py.",
-      "status": "pendente"
-    },
-    {
-      "fase": "FASE-5",
-      "tarefa": "CORS restrito + deploy Railway",
-      "nota": "Restringir origins. Variáveis: DATABASE_URL, SECRET_KEY, GEMINI_API_KEY. alembic upgrade head.",
+      "tarefa": "Deploy Railway",
+      "nota": "CORS restrito + variáveis + alembic upgrade head + teste completo.",
       "status": "pendente"
     }
   ]
