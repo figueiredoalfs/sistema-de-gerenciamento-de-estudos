@@ -5,6 +5,11 @@ export async function listarTodosTopicos() {
   return data
 }
 
+export async function listarMaterias() {
+  const { data } = await client.get('/admin/topicos', { params: { nivel: 0, apenas_ativos: true } })
+  return data
+}
+
 export async function criarTopico(body) {
   const { data } = await client.post('/admin/topicos', body)
   return data

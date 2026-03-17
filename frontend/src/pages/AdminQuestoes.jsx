@@ -1,6 +1,38 @@
 import { useEffect, useState } from 'react'
 import { listarQuestoes, editarQuestao, deletarQuestao } from '../api/adminQuestoes'
 
+const LETRAS = ['A', 'B', 'C', 'D', 'E']
+
+function parseAlts(json) {
+  try { return JSON.parse(json || '{}') } catch { return {} }
+}
+
+function RowExpandida({ questao }) {
+  const alts = parseAlts(questao.alternatives_json)
+  const temAlts = LETRAS.some(k => alts[k])
+  return (
+    <tr>
+      <td colSpan={6} className="px-5 pb-4 pt-1 bg-brand-surface/60">
+        <p className="text-sm text-brand-text leading-relaxed mb-3">{questao.statement}</p>
+        {temAlts ? (
+          <div className="space-y-1">
+            {LETRAS.filter(k => alts[k]).map(k => (
+              <div key={k} className={`flex gap-2 text-sm ${questao.correct_answer === k ? 'text-green-400 font-semibold' : 'text-brand-muted'}`}>
+                <span className="w-5 shrink-0 font-bold">{k})</span>
+                <span>{alts[k]}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-brand-muted italic">
+            Questão Certo / Errado — gabarito: <span className="font-bold text-indigo-400">{questao.correct_answer === 'C' ? 'CERTO' : 'ERRADO'}</span>
+          </p>
+        )}
+      </td>
+    </tr>
+  )
+}
+
 function ModalEditar({ questao, onClose, onSaved }) {
   const [form, setForm] = useState({
     subject: questao.subject,
@@ -131,6 +163,7 @@ export default function AdminQuestoes() {
   const [page, setPage] = useState(1)
   const PER_PAGE = 20
 
+  const [expandedId, setExpandedId] = useState(null)
   const [editando, setEditando] = useState(null)
   const [deletando, setDeletando] = useState(null)
   const [deletandoId, setDeletandoId] = useState(false)
@@ -138,6 +171,7 @@ export default function AdminQuestoes() {
   function buscar(pg = 1) {
     setLoading(true)
     setErro('')
+    setExpandedId(null)
     listarQuestoes({ materia: filtroMateria, subtopico: filtroSubtopico, page: pg, per_page: PER_PAGE })
       .then(data => { setQuestoes(data); setPage(pg) })
       .catch(e => setErro(e.response?.data?.detail || e.message))
@@ -169,6 +203,9 @@ export default function AdminQuestoes() {
       setDeletandoId(false)
     }
   }
+
+  const temProxima = questoes.length === PER_PAGE
+  const temAnterior = page > 1
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">
@@ -211,9 +248,9 @@ export default function AdminQuestoes() {
 
       {loading ? (
         <p className="text-brand-muted text-sm">Carregando…</p>
-      ) : questoes.length === 0 ? (
+      ) : questoes.length === 0 && page === 1 ? (
         <p className="text-brand-muted text-sm">Nenhuma questão encontrada.</p>
-      ) : (
+      ) : questoes.length === 0 ? null : (
         <div className="bg-brand-card border border-brand-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="border-b border-brand-border">
@@ -227,49 +264,59 @@ export default function AdminQuestoes() {
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-border">
-              {questoes.map(q => (
-                <tr key={q.id} className="hover:bg-brand-surface transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-brand-muted whitespace-nowrap">{q.question_code}</td>
-                  <td className="px-4 py-3 text-brand-text max-w-xs truncate">{q.subject}</td>
-                  <td className="px-4 py-3 text-brand-muted whitespace-nowrap">{q.board || '—'} {q.year || ''}</td>
-                  <td className="px-4 py-3 text-brand-muted">
-                    {q.subtopicos?.length > 0
-                      ? q.subtopicos.map(s => s.nome).join(', ')
-                      : <span className="text-xs text-yellow-500/70">sem subtópico</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold text-xs">{q.correct_answer}</span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <button onClick={() => setEditando(q)}
-                      className="text-brand-muted hover:text-indigo-400 transition-colors mr-3 text-xs">
-                      Editar
-                    </button>
-                    <button onClick={() => setDeletando(q)}
-                      className="text-brand-muted hover:text-red-400 transition-colors text-xs">
-                      Deletar
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {questoes.map(q => {
+                const expanded = expandedId === q.id
+                return (
+                  <>
+                    <tr
+                      key={q.id}
+                      onClick={() => setExpandedId(expanded ? null : q.id)}
+                      className="hover:bg-brand-surface transition-colors cursor-pointer select-none"
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-brand-muted whitespace-nowrap">{q.question_code}</td>
+                      <td className="px-4 py-3 text-brand-text max-w-xs truncate">{q.subject}</td>
+                      <td className="px-4 py-3 text-brand-muted whitespace-nowrap">{q.board || '—'} {q.year || ''}</td>
+                      <td className="px-4 py-3 text-brand-muted">
+                        {q.subtopicos?.length > 0
+                          ? q.subtopicos.map(s => s.nome).join(', ')
+                          : <span className="text-xs text-yellow-500/70">sem subtópico</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold text-xs">{q.correct_answer}</span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setEditando(q)}
+                          className="text-brand-muted hover:text-indigo-400 transition-colors mr-3 text-xs">
+                          Editar
+                        </button>
+                        <button onClick={() => setDeletando(q)}
+                          className="text-brand-muted hover:text-red-400 transition-colors text-xs">
+                          Deletar
+                        </button>
+                      </td>
+                    </tr>
+                    {expanded && <RowExpandida key={`exp-${q.id}`} questao={q} />}
+                  </>
+                )
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Paginação */}
-      {!loading && questoes.length > 0 && (
+      {/* Paginação — sempre visível se há navegação possível */}
+      {!loading && (temAnterior || temProxima) && (
         <div className="flex gap-3 items-center">
           <button
             onClick={() => buscar(page - 1)}
-            disabled={page === 1}
+            disabled={!temAnterior}
             className="px-3 py-1.5 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text disabled:opacity-40 transition-colors">
             ← Anterior
           </button>
           <span className="text-brand-muted text-sm">Página {page}</span>
           <button
             onClick={() => buscar(page + 1)}
-            disabled={questoes.length < PER_PAGE}
+            disabled={!temProxima}
             className="px-3 py-1.5 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text disabled:opacity-40 transition-colors">
             Próxima →
           </button>

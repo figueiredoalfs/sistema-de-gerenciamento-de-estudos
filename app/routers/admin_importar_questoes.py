@@ -13,10 +13,13 @@ from app.models.aluno import Aluno
 from app.models.questao_banco import QuestaoBanco
 from app.models.question_subtopic import QuestionSubtopic
 from app.models.topico import Topico
+from pydantic import ValidationError
+
 from app.schemas.questao_banco import (
     ImportacaoRequest,
     ImportacaoResponse,
     QuestaoBancoResponse,
+    QuestaoImportItem,
     QuestaoUpdateRequest,
 )
 from app.schemas.question_subtopic import AssociarSubtopicoRequest, SubtopicoInfo
@@ -33,8 +36,9 @@ def _gerar_question_code(disciplina: str, banca: str, ano: Optional[int], db: Se
     ano_part = str(ano) if ano else "SEM-ANO"
     prefix = f"{disciplina.upper()}-{banca_part}-{ano_part}"
 
+    prefix_escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     count = db.query(QuestaoBanco).filter(
-        QuestaoBanco.question_code.like(f"{prefix}-%")
+        QuestaoBanco.question_code.like(f"{prefix_escaped}-%", escape="\\")
     ).count()
 
     seq = str(count + 1).zfill(4)
@@ -72,47 +76,56 @@ def importar_questoes(
     erros: list[str] = []
     questoes_importadas: list[QuestaoBanco] = []
 
-    # Fase 1: salvar todas as questões
-    for i, item in enumerate(body.questoes, start=1):
+    # Fase 1: salvar questões individualmente (commit por item para isolar falhas)
+    for i, raw in enumerate(body.questoes, start=1):
         try:
+            item = QuestaoImportItem.model_validate(raw)
+            disciplina_sigla = item.materia.upper().replace(" ", "_")
             question_code = _gerar_question_code(
-                body.disciplina_sigla, item.board or "", item.year, db
+                disciplina_sigla, item.board or "", item.year, db
             )
-
+            alts_json = json.dumps(
+                item.alternatives.model_dump(exclude_none=False) if item.alternatives else {},
+                ensure_ascii=False,
+            )
             questao = QuestaoBanco(
                 id=str(uuid.uuid4()),
                 question_code=question_code,
                 subject=item.subject,
                 statement=item.statement,
-                alternatives_json=json.dumps(item.alternatives.model_dump(), ensure_ascii=False),
+                alternatives_json=alts_json,
                 correct_answer=item.correct_answer,
                 board=item.board,
                 year=item.year,
             )
             db.add(questao)
-            db.flush()
+            db.commit()
             questoes_importadas.append(questao)
             importadas += 1
 
+        except ValidationError as exc:
+            erros.append(f"Questão {i}: {exc.errors()[0]['msg']}")
         except Exception as exc:
+            db.rollback()
             erros.append(f"Questão {i}: {str(exc)}")
-
-    db.commit()
 
     # Fase 2: classificação IA (best-effort, após commit das questões)
     avisos_ia: list[str] = []
-    subtopicos_nivel2 = (
-        db.query(Topico).filter(Topico.nivel == 2, Topico.ativo == True).all()
-    )
-    if subtopicos_nivel2 and questoes_importadas:
-        ai = get_ai_provider()
-        for questao in questoes_importadas:
-            ids_sugeridos = sugerir_subtopicos(questao, subtopicos_nivel2, ai)
-            if ids_sugeridos:
-                salvar_sugestoes(str(questao.id), ids_sugeridos, db)
-            else:
-                avisos_ia.append(f"{questao.question_code}: sem classificação IA")
-        db.commit()
+    try:
+        subtopicos_nivel2 = (
+            db.query(Topico).filter(Topico.nivel == 2, Topico.ativo == True).all()
+        )
+        if subtopicos_nivel2 and questoes_importadas:
+            ai = get_ai_provider()
+            for questao in questoes_importadas:
+                ids_sugeridos = sugerir_subtopicos(questao, subtopicos_nivel2, ai)
+                if ids_sugeridos:
+                    salvar_sugestoes(str(questao.id), ids_sugeridos, db)
+                else:
+                    avisos_ia.append(f"{questao.question_code}: sem classificação IA")
+            db.commit()
+    except Exception as exc:
+        avisos_ia.append(f"Classificação IA falhou: {str(exc)}")
 
     return ImportacaoResponse(importadas=importadas, erros=erros, avisos_ia=avisos_ia)
 

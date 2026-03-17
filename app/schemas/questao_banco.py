@@ -1,33 +1,49 @@
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.schemas.question_subtopic import SubtopicoInfo
 
 RespostaCorreta = Literal["A", "B", "C", "D", "E"]
 
+_GABARITO_MAP = {
+    "A": "A", "B": "B", "C": "C", "D": "D", "E": "E",
+    "CERTO": "C", "ERRADO": "E",
+    "CERTA": "C", "ERRADA": "E",
+}
+
 
 class AlternativasImport(BaseModel):
-    A: str
-    B: str
-    C: str
-    D: str
-    E: str
+    A: Optional[str] = None
+    B: Optional[str] = None
+    C: Optional[str] = None
+    D: Optional[str] = None
+    E: Optional[str] = None
 
 
 class QuestaoImportItem(BaseModel):
-    subject: str
+    materia: str              # disciplina — usado para gerar o question_code
+    subject: str              # assunto específico da questão
     board: Optional[str] = None
     year: Optional[int] = None
     statement: str
-    alternatives: AlternativasImport
-    correct_answer: RespostaCorreta
+    alternatives: Optional[AlternativasImport] = None
+    correct_answer: str
+
+    @field_validator("correct_answer")
+    @classmethod
+    def normalizar_gabarito(cls, v: str) -> str:
+        normalizado = _GABARITO_MAP.get(str(v).strip().upper())
+        if not normalizado:
+            raise ValueError(
+                f'Gabarito inválido: "{v}". Use A–E, CERTO ou ERRADO.'
+            )
+        return normalizado
 
 
 class ImportacaoRequest(BaseModel):
-    disciplina_sigla: str
-    questoes: List[QuestaoImportItem]
+    questoes: List[Any]  # validação individual no endpoint para isolar erros por questão
 
 
 class ImportacaoResponse(BaseModel):

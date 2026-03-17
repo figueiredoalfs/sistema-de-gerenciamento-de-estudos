@@ -1,19 +1,39 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { importarQuestoes } from '../api/adminQuestoes'
 
 const EXEMPLO_JSON = [
   {
-    subject: 'Direito Administrativo',
+    materia: 'Direito Administrativo',
+    subject: 'Atos Administrativos',
     statement: 'A respeito dos atos administrativos, assinale a alternativa correta.',
     alternatives: { A: 'Opção A', B: 'Opção B', C: 'Opção C', D: 'Opção D', E: 'Opção E' },
     correct_answer: 'A',
     board: 'CESPE',
     year: 2024,
   },
+  {
+    materia: 'Direito Constitucional',
+    subject: 'Direitos Fundamentais',
+    statement: 'Os direitos fundamentais são absolutos.',
+    correct_answer: 'ERRADO',
+    board: 'CEBRASP',
+    year: 2024,
+  },
 ]
 
 const ALTERNATIVAS = ['A', 'B', 'C', 'D', 'E']
-const RESPOSTAS_VALIDAS = new Set(ALTERNATIVAS)
+const RESPOSTAS_VALIDAS = new Set(['A', 'B', 'C', 'D', 'E', 'CERTO', 'ERRADO', 'CERTA', 'ERRADA'])
+const GABARITO_MAP = { CERTO: 'C', ERRADO: 'E', CERTA: 'C', ERRADA: 'E' }
+
+function normalizarGabarito(v) {
+  const upper = String(v || '').trim().toUpperCase()
+  return GABARITO_MAP[upper] || upper
+}
+
+function isCertoErrado(item) {
+  const g = normalizarGabarito(item.correct_answer)
+  return !item.alternatives && (g === 'C' || g === 'E')
+}
 
 function parseCsv(text) {
   const lines = text.trim().split('\n')
@@ -34,30 +54,38 @@ function parseCsv(text) {
 
 function validarItem(item) {
   const erros = []
+  if (!item.materia) erros.push('"materia" ausente')
   if (!item.subject) erros.push('"subject" ausente')
   if (!item.statement) erros.push('"statement" ausente')
   if (!item.correct_answer) {
     erros.push('"correct_answer" ausente')
-  } else if (!RESPOSTAS_VALIDAS.has(String(item.correct_answer).toUpperCase())) {
+  } else if (!RESPOSTAS_VALIDAS.has(String(item.correct_answer).trim().toUpperCase())) {
     erros.push(`gabarito inválido: "${item.correct_answer}"`)
   }
-  if (!item.alternatives) {
-    erros.push('"alternatives" ausente')
-  } else {
-    ALTERNATIVAS.forEach((k) => { if (!item.alternatives[k]) erros.push(`alt. ${k} ausente`) })
+  // Certo/Errado não precisa de alternatives
+  if (!isCertoErrado(item)) {
+    if (!item.alternatives) {
+      erros.push('"alternatives" ausente (use "CERTO"/"ERRADO" para C/E)')
+    } else {
+      ALTERNATIVAS.forEach((k) => { if (!item.alternatives[k]) erros.push(`alt. ${k} ausente`) })
+    }
   }
   return erros
 }
 
 export default function AdminImportar() {
-  const [disciplina, setDisciplina] = useState('')
   const [rawText, setRawText]       = useState('')
   const [parseError, setParseError] = useState('')
   const [preview, setPreview]       = useState(null)
   const [importando, setImportando] = useState(false)
   const [resultado, setResultado]   = useState(null)
   const [dragging, setDragging]     = useState(false)
-  const fileRef = useRef()
+  const fileRef     = useRef()
+  const resultadoRef = useRef()
+
+  useEffect(() => {
+    if (resultado) resultadoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [resultado])
 
   function processar(text, ext = 'json') {
     setParseError('')
@@ -110,41 +138,46 @@ export default function AdminImportar() {
   }
 
   async function handleImportar() {
-    if (!preview || !disciplina.trim()) return
+    if (!preview) return
     setImportando(true)
     setResultado(null)
     try {
-      const res = await importarQuestoes({ disciplina_sigla: disciplina.trim(), questoes: preview })
+      const questoesNormalizadas = preview.map((item) => {
+        const gabarito = normalizarGabarito(item.correct_answer)
+        const base = { ...item, correct_answer: gabarito }
+        if (item.alternatives) {
+          base.alternatives = {
+            A: item.alternatives.A || '',
+            B: item.alternatives.B || '',
+            C: item.alternatives.C || '',
+            D: item.alternatives.D || '',
+            E: item.alternatives.E || '',
+          }
+        }
+        return base
+      })
+      const res = await importarQuestoes({ questoes: questoesNormalizadas })
       setResultado(res)
     } catch (e) {
-      setResultado({ importadas: 0, erros: [e.response?.data?.detail || 'Erro ao importar'], avisos_ia: [] })
+      const detail = e.response?.data?.detail
+      const msg = Array.isArray(detail)
+        ? detail.map((d) => d.msg || JSON.stringify(d)).join('; ')
+        : detail || 'Erro ao importar'
+      setResultado({ importadas: 0, erros: [msg], avisos_ia: [] })
     } finally {
       setImportando(false)
     }
   }
 
-  const totalErros    = preview ? preview.reduce((acc, item) => acc + validarItem(item).length, 0) : 0
-  const podeImportar  = preview && disciplina.trim() && totalErros === 0 && !importando
+  const totalErros   = preview ? preview.reduce((acc, item) => acc + validarItem(item).length, 0) : 0
+  const totalValidas = preview ? preview.filter((item) => validarItem(item).length === 0).length : 0
+  const podeImportar = preview && totalValidas > 0 && !importando
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold text-brand-text">Importar Questões em Lote</h1>
         <p className="text-sm text-brand-muted mt-1">JSON ou CSV — subtópicos classificados por IA após importação.</p>
-      </div>
-
-      {/* Disciplina sigla */}
-      <div className="bg-brand-card border border-brand-border rounded-xl p-4 space-y-2">
-        <label className="text-sm font-semibold text-brand-text">
-          Sigla da disciplina <span className="text-red-400">*</span>
-        </label>
-        <p className="text-xs text-brand-muted">Usada para gerar os códigos das questões (ex: DIR_ADM, DIR_CONST).</p>
-        <input
-          value={disciplina}
-          onChange={(e) => setDisciplina(e.target.value.toUpperCase())}
-          placeholder="ex: DIR_ADM"
-          className="bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-48 font-mono"
-        />
       </div>
 
       {/* Upload */}
@@ -218,8 +251,13 @@ export default function AdminImportar() {
               {JSON.stringify(EXEMPLO_JSON, null, 2)}
             </pre>
             <p className="text-xs text-brand-muted mt-2">
-              Obrigatórios: <code className="text-indigo-400">subject, statement, alternatives (A–E), correct_answer</code>
-              {' '}· Opcionais: <code className="text-indigo-400">board, year</code>
+              Obrigatórios: <code className="text-indigo-400">materia, subject, statement, correct_answer</code>
+              <br />
+              Opcional: <code className="text-indigo-400">alternatives (A–E)</code> — omitir em questões Certo/Errado
+              <br />
+              Opcionais: <code className="text-indigo-400">board, year</code>
+              <br />
+              Gabarito aceito: <code className="text-indigo-400">A B C D E CERTO ERRADO</code>
             </p>
           </div>
           <div>
@@ -239,7 +277,10 @@ export default function AdminImportar() {
               </h2>
               {totalErros > 0 && (
                 <p className="text-xs text-red-400 mt-0.5">
-                  {totalErros} erro{totalErros !== 1 ? 's' : ''} de validação — corrija antes de importar
+                  {totalErros} erro{totalErros !== 1 ? 's' : ''} de validação —{' '}
+                  {totalValidas > 0
+                    ? `${totalValidas} questão${totalValidas !== 1 ? 'ões' : ''} válida${totalValidas !== 1 ? 's' : ''} serão importadas`
+                    : 'nenhuma questão válida para importar'}
                 </p>
               )}
             </div>
@@ -261,6 +302,7 @@ export default function AdminImportar() {
                 <tr className="text-brand-muted border-b border-brand-border">
                   <th className="text-left py-1 pr-3 w-8">#</th>
                   <th className="text-left py-1 pr-3">Matéria</th>
+                  <th className="text-left py-1 pr-3">Assunto</th>
                   <th className="text-left py-1 pr-3">Enunciado</th>
                   <th className="text-left py-1 pr-3 w-16">Gabarito</th>
                   <th className="text-left py-1 pr-3 w-24">Banca/Ano</th>
@@ -277,12 +319,20 @@ export default function AdminImportar() {
                     >
                       <td className="py-1.5 pr-3 text-brand-muted">{i + 1}</td>
                       <td className="py-1.5 pr-3 text-brand-muted max-w-[120px] truncate">
+                        {item.materia || <span className="text-red-400">—</span>}
+                      </td>
+                      <td className="py-1.5 pr-3 text-brand-muted max-w-[120px] truncate">
                         {item.subject || <span className="text-red-400">—</span>}
                       </td>
                       <td className="py-1.5 pr-3 text-brand-text max-w-xs truncate">
                         {item.statement || <span className="text-red-400">—</span>}
                       </td>
-                      <td className="py-1.5 pr-3 text-brand-muted">{item.correct_answer || '—'}</td>
+                      <td className="py-1.5 pr-3 text-brand-muted">
+                        {normalizarGabarito(item.correct_answer) || '—'}
+                        {isCertoErrado(item) && (
+                          <span className="ml-1 text-xs text-indigo-400">C/E</span>
+                        )}
+                      </td>
                       <td className="py-1.5 pr-3 text-brand-muted whitespace-nowrap">
                         {[item.board, item.year].filter(Boolean).join(' ') || '—'}
                       </td>
@@ -307,6 +357,7 @@ export default function AdminImportar() {
       {/* Resultado */}
       {resultado && (
         <section
+          ref={resultadoRef}
           className={`border rounded-xl p-4 space-y-3 ${
             resultado.importadas > 0 ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'
           }`}

@@ -17,7 +17,11 @@ export async function deletarQuestao(id) {
   await client.delete(`/admin/questoes/${id}`)
 }
 
-export async function importarQuestoes({ disciplina_sigla, questoes }) {
-  const { data } = await client.post('/admin/importar-questoes', { disciplina_sigla, questoes })
+export async function importarQuestoes({ questoes }) {
+  const { data } = await client.post(
+    '/admin/importar-questoes',
+    { questoes },
+    { timeout: 180000 }, // 3 min — classificação IA é síncrona por questão
+  )
   return data
 }

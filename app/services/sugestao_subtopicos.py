@@ -90,14 +90,15 @@ def salvar_sugestoes(question_id: str, subtopic_ids: list[str], db: Session) -> 
     Ignora duplicatas silenciosamente.
     """
     for subtopic_id in subtopic_ids:
-        assoc = QuestionSubtopic(
-            id=str(uuid.uuid4()),
-            question_id=question_id,
-            subtopic_id=subtopic_id,
-            fonte="ia",
-        )
-        db.add(assoc)
         try:
-            db.flush()
+            with db.begin_nested():
+                assoc = QuestionSubtopic(
+                    id=str(uuid.uuid4()),
+                    question_id=question_id,
+                    subtopic_id=subtopic_id,
+                    fonte="ia",
+                )
+                db.add(assoc)
+                db.flush()
         except IntegrityError:
-            db.rollback()
+            pass  # associação duplicada — ignora silenciosamente
