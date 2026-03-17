@@ -19,3 +19,8 @@ export async function progressoUsuario(id) {
   const { data } = await client.get(`/admin/usuarios/${id}/progresso`)
   return data
 }
+
+export async function criarUsuario(body) {
+  const { data } = await client.post('/admin/usuarios', body)
+  return data
+}

@@ -87,3 +87,10 @@ class AlterarSenhaRequest(BaseModel):
 class AlunoAdminUpdate(BaseModel):
     ativo: Optional[bool] = None
     role: Optional[str] = None
+
+
+class AlunoAdminCreate(BaseModel):
+    nome: str
+    email: EmailStr
+    password: str
+    role: str = "estudante"

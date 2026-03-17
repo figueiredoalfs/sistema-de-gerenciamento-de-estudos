@@ -4,13 +4,37 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import require_admin, require_mentor
+from app.core.security import require_admin, require_mentor, hash_password
 from app.models.aluno import Aluno
 from app.models.proficiencia import Proficiencia
 from app.models.sessao import Sessao
-from app.schemas.auth import AlunoAdminResponse, AlunoAdminUpdate, AlunoMentoradoResponse, AtribuirMentorRequest
+from app.schemas.auth import AlunoAdminResponse, AlunoAdminUpdate, AlunoMentoradoResponse, AtribuirMentorRequest, AlunoAdminCreate
 
 router = APIRouter(tags=["usuários"])
+
+
+@router.post("/admin/usuarios", response_model=AlunoAdminResponse, status_code=201)
+def criar_usuario(
+    body: AlunoAdminCreate,
+    db: Session = Depends(get_db),
+    current_user: Aluno = Depends(require_admin),
+):
+    """Admin: cria um novo usuário com qualquer role."""
+    if db.query(Aluno).filter(Aluno.email == body.email).first():
+        raise HTTPException(status_code=400, detail="E-mail já cadastrado")
+    import uuid
+    aluno = Aluno(
+        id=str(uuid.uuid4()),
+        nome=body.nome,
+        email=body.email,
+        senha_hash=hash_password(body.password),
+        role=body.role,
+        ativo=True,
+    )
+    db.add(aluno)
+    db.commit()
+    db.refresh(aluno)
+    return aluno
 
 
 @router.get("/admin/usuarios", response_model=List[AlunoAdminResponse])

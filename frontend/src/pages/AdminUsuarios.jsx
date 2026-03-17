@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listarUsuarios, atualizarUsuario, atribuirMentor, progressoUsuario } from '../api/adminUsuarios'
+import { listarUsuarios, atualizarUsuario, atribuirMentor, progressoUsuario, criarUsuario } from '../api/adminUsuarios'
 
 const ROLE_LABEL = {
   administrador: { label: 'Admin', cls: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
@@ -11,6 +11,102 @@ function RoleBadge({ role }) {
   const { label, cls } = ROLE_LABEL[role] ?? { label: role, cls: 'bg-brand-surface text-brand-muted border-brand-border' }
   return (
     <span className={`text-xs font-medium px-2 py-0.5 rounded border ${cls}`}>{label}</span>
+  )
+}
+
+function ModalCriarUsuario({ onClose, onCriado }) {
+  const [form, setForm] = useState({ nome: '', email: '', password: '', role: 'estudante' })
+  const [loading, setLoading] = useState(false)
+  const [erro, setErro] = useState('')
+
+  function set(field, value) {
+    setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  async function salvar(e) {
+    e.preventDefault()
+    setErro('')
+    setLoading(true)
+    try {
+      const novo = await criarUsuario(form)
+      onCriado(novo)
+      onClose()
+    } catch (err) {
+      setErro(err.response?.data?.detail || 'Erro ao criar usuário.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-brand-card border border-brand-border rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl">
+        <h2 className="text-lg font-semibold text-brand-text">Criar usuário</h2>
+
+        <form onSubmit={salvar} className="space-y-3">
+          <div>
+            <label className="text-xs text-brand-muted block mb-1">Nome</label>
+            <input
+              required
+              value={form.nome}
+              onChange={(e) => set('nome', e.target.value)}
+              className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-brand-muted block mb-1">E-mail</label>
+            <input
+              required
+              type="email"
+              value={form.email}
+              onChange={(e) => set('email', e.target.value)}
+              className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-brand-muted block mb-1">Senha</label>
+            <input
+              required
+              type="password"
+              value={form.password}
+              onChange={(e) => set('password', e.target.value)}
+              className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-brand-muted block mb-1">Perfil</label>
+            <select
+              value={form.role}
+              onChange={(e) => set('role', e.target.value)}
+              className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="estudante">Aluno</option>
+              <option value="mentor">Mentor</option>
+              <option value="administrador">Admin</option>
+            </select>
+          </div>
+
+          {erro && <p className="text-red-400 text-sm">{erro}</p>}
+
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-brand-muted hover:text-brand-text border border-brand-border rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Criando...' : 'Criar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
 
@@ -164,6 +260,7 @@ export default function AdminUsuarios() {
   const [modalMentor, setModalMentor] = useState(null)
   const [modalProgresso, setModalProgresso] = useState(null)
   const [toggling, setToggling] = useState(null)
+  const [modalCriar, setModalCriar] = useState(false)
 
   useEffect(() => {
     listarUsuarios()
@@ -219,6 +316,12 @@ export default function AdminUsuarios() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
+      {modalCriar && (
+        <ModalCriarUsuario
+          onClose={() => setModalCriar(false)}
+          onCriado={(novo) => setUsuarios((prev) => [novo, ...prev])}
+        />
+      )}
       {modalMentor && (
         <ModalMentor
           usuario={modalMentor}
@@ -231,9 +334,20 @@ export default function AdminUsuarios() {
         <ModalProgresso usuario={modalProgresso} onClose={() => setModalProgresso(null)} />
       )}
 
-      <div>
-        <h1 className="text-2xl font-bold text-brand-text">Usuários</h1>
-        <p className="text-brand-muted text-sm mt-1">{usuarios.length} usuários cadastrados</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-text">Usuários</h1>
+          <p className="text-brand-muted text-sm mt-1">{usuarios.length} usuários cadastrados</p>
+        </div>
+        <button
+          onClick={() => setModalCriar(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Novo usuário
+        </button>
       </div>
 
       {/* Filtros */}
