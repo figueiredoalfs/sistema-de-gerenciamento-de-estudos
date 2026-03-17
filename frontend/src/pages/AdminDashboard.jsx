@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { listarPlanos } from '../api/adminPlanoBase'
 
 const CARDS = [
   {
@@ -61,6 +63,13 @@ const CARDS = [
 
 export default function AdminDashboard() {
   const { user } = useAuth()
+  const [pendentesPlano, setPendentesPlano] = useState(0)
+
+  useEffect(() => {
+    listarPlanos({ pendente_revisao: true })
+      .then((data) => setPendentesPlano(data.length))
+      .catch(() => { /* silencia */ })
+  }, [])
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -92,6 +101,11 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-indigo-400">{card.icon}</span>
                 <span className="font-semibold text-brand-text group-hover:text-indigo-300 transition-colors">{card.label}</span>
+                {card.to === '/admin/planos-base' && pendentesPlano > 0 && (
+                  <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 font-medium">
+                    {pendentesPlano} pendente{pendentesPlano !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
               <p className="text-brand-muted text-sm">{card.desc}</p>
             </Link>
