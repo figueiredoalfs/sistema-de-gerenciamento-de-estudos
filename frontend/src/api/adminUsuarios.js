@@ -14,3 +14,8 @@ export async function atribuirMentor(id, mentor_id) {
   const { data } = await client.patch(`/admin/usuarios/${id}/mentor`, { mentor_id })
   return data
 }
+
+export async function progressoUsuario(id) {
+  const { data } = await client.get(`/admin/usuarios/${id}/progresso`)
+  return data
+}

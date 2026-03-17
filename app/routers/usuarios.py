@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import require_admin, require_mentor
 from app.models.aluno import Aluno
+from app.models.proficiencia import Proficiencia
+from app.models.sessao import Sessao
 from app.schemas.auth import AlunoAdminResponse, AlunoAdminUpdate, AlunoMentoradoResponse, AtribuirMentorRequest
 
 router = APIRouter(tags=["usuários"])
@@ -67,6 +69,51 @@ def atribuir_mentor(
     db.commit()
     db.refresh(aluno)
     return aluno
+
+
+@router.get("/admin/usuarios/{usuario_id}/progresso")
+def progresso_usuario(
+    usuario_id: str,
+    db: Session = Depends(get_db),
+    current_user: Aluno = Depends(require_admin),
+):
+    """Admin: retorna métricas de desempenho de um usuário específico."""
+    aluno = db.query(Aluno).filter(Aluno.id == usuario_id).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    registros = db.query(Proficiencia).filter(Proficiencia.aluno_id == usuario_id).all()
+    total_sessoes = db.query(Sessao).filter(Sessao.aluno_id == usuario_id).count()
+
+    agrup: dict = {}
+    for r in registros:
+        mat = r.materia or "Sem matéria"
+        if mat not in agrup:
+            agrup[mat] = {"acertos": 0, "total": 0}
+        agrup[mat]["acertos"] += r.acertos or 0
+        agrup[mat]["total"] += r.total or 0
+
+    total_q = sum(v["total"] for v in agrup.values())
+    total_a = sum(v["acertos"] for v in agrup.values())
+
+    def perc(a, t):
+        return round(a / t * 100, 1) if t > 0 else 0.0
+
+    por_materia = sorted(
+        [
+            {"materia": m, "realizadas": v["total"], "acertos": v["acertos"], "perc": perc(v["acertos"], v["total"])}
+            for m, v in agrup.items()
+        ],
+        key=lambda x: -x["perc"],
+    )
+
+    return {
+        "total_questoes": total_q,
+        "total_acertos": total_a,
+        "perc_geral": perc(total_a, total_q),
+        "total_sessoes": total_sessoes,
+        "por_materia": por_materia,
+    }
 
 
 @router.get("/mentor/alunos", response_model=List[AlunoMentoradoResponse])

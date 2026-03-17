@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listarUsuarios, atualizarUsuario, atribuirMentor } from '../api/adminUsuarios'
+import { listarUsuarios, atualizarUsuario, atribuirMentor, progressoUsuario } from '../api/adminUsuarios'
 
 const ROLE_LABEL = {
   administrador: { label: 'Admin', cls: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
@@ -68,6 +68,92 @@ function ModalMentor({ usuario, mentores, onClose, onSave }) {
   )
 }
 
+function ModalProgresso({ usuario, onClose }) {
+  const [dados, setDados] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    progressoUsuario(usuario.id)
+      .then(setDados)
+      .catch(() => setErro('Erro ao carregar progresso.'))
+      .finally(() => setLoading(false))
+  }, [usuario.id])
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-brand-card border border-brand-border rounded-xl p-6 w-full max-w-2xl mx-4 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-brand-text">Progresso</h2>
+            <p className="text-brand-muted text-sm">{usuario.nome} — {usuario.email}</p>
+          </div>
+          <button onClick={onClose} className="text-brand-muted hover:text-brand-text">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {loading && <p className="text-brand-muted text-sm">Carregando…</p>}
+        {erro && <p className="text-red-400 text-sm">{erro}</p>}
+
+        {dados && (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-brand-surface border border-brand-border rounded-lg px-4 py-3 text-center">
+                <p className="text-2xl font-bold text-brand-text">{dados.total_questoes}</p>
+                <p className="text-xs text-brand-muted mt-0.5">questões respondidas</p>
+              </div>
+              <div className="bg-brand-surface border border-brand-border rounded-lg px-4 py-3 text-center">
+                <p className={`text-2xl font-bold ${dados.perc_geral >= 70 ? 'text-emerald-400' : dados.perc_geral >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {dados.perc_geral}%
+                </p>
+                <p className="text-xs text-brand-muted mt-0.5">de acertos (geral)</p>
+              </div>
+              <div className="bg-brand-surface border border-brand-border rounded-lg px-4 py-3 text-center">
+                <p className="text-2xl font-bold text-brand-text">{dados.total_sessoes}</p>
+                <p className="text-xs text-brand-muted mt-0.5">sessões de estudo</p>
+              </div>
+            </div>
+
+            {dados.por_materia.length > 0 ? (
+              <div className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-brand-border">
+                    <tr>
+                      <th className="text-left px-4 py-2 text-brand-muted font-medium text-xs">Matéria</th>
+                      <th className="text-right px-4 py-2 text-brand-muted font-medium text-xs">Respondidas</th>
+                      <th className="text-right px-4 py-2 text-brand-muted font-medium text-xs">Acertos</th>
+                      <th className="text-right px-4 py-2 text-brand-muted font-medium text-xs">%</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brand-border">
+                    {dados.por_materia.map((m) => (
+                      <tr key={m.materia}>
+                        <td className="px-4 py-2 text-brand-text truncate max-w-xs">{m.materia}</td>
+                        <td className="px-4 py-2 text-right text-brand-muted">{m.realizadas}</td>
+                        <td className="px-4 py-2 text-right text-brand-muted">{m.acertos}</td>
+                        <td className="px-4 py-2 text-right">
+                          <span className={`font-semibold ${m.perc >= 70 ? 'text-emerald-400' : m.perc >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {m.perc}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-brand-muted text-sm italic">Nenhuma questão respondida ainda.</p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
@@ -76,6 +162,7 @@ export default function AdminUsuarios() {
   const [filtroRole, setFiltroRole] = useState('todos')
   const [filtroAtivo, setFiltroAtivo] = useState('todos')
   const [modalMentor, setModalMentor] = useState(null)
+  const [modalProgresso, setModalProgresso] = useState(null)
   const [toggling, setToggling] = useState(null)
 
   useEffect(() => {
@@ -139,6 +226,9 @@ export default function AdminUsuarios() {
           onClose={() => setModalMentor(null)}
           onSave={salvarMentor}
         />
+      )}
+      {modalProgresso && (
+        <ModalProgresso usuario={modalProgresso} onClose={() => setModalProgresso(null)} />
       )}
 
       <div>
@@ -228,6 +318,16 @@ export default function AdminUsuarios() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        title="Ver progresso"
+                        onClick={() => setModalProgresso(u)}
+                        className="text-brand-muted hover:text-sky-400 transition-colors p-1 rounded"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </button>
                       {u.role === 'estudante' && (
                         <button
                           title="Atribuir mentor"
