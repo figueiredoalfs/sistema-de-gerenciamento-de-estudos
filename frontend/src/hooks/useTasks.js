@@ -71,7 +71,9 @@ export function useTasks() {
       await refreshUser()
       return { redirectToOnboarding: true }
     } catch (err) {
-      setMetaError(err.response?.data?.detail || 'Erro ao resetar dados.')
+      const msg = err.response?.data?.detail || 'Erro ao resetar dados.'
+      setMetaError(msg)
+      return { error: msg }
     } finally {
       setResetting(false)
     }

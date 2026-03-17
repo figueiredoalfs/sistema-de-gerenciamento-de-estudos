@@ -30,18 +30,18 @@ function AdminHub() {
 }
 
 // ── Seção DEV ── remover antes do deploy ──────────────────────────────────────
-function DevSection({ resetarDados, resetting }) {
+function DevSection({ onReset, resetting, resetError }) {
   const [open, setOpen] = useState(false)
 
   return (
     <div className="fixed bottom-4 left-64 z-50 flex flex-col items-start gap-2">
       {open && (
-        <div className="bg-brand-surface border border-dashed border-yellow-500/40 rounded-xl p-3 shadow-xl w-52">
+        <div className="bg-brand-surface border border-dashed border-yellow-500/40 rounded-xl p-3 shadow-xl w-56">
           <p className="text-[10px] font-bold text-yellow-500/70 uppercase tracking-widest mb-2">
             Dev — remover antes do deploy
           </p>
           <button
-            onClick={resetarDados}
+            onClick={onReset}
             disabled={resetting}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/15 transition-all duration-200 disabled:opacity-50"
           >
@@ -59,9 +59,12 @@ function DevSection({ resetarDados, resetting }) {
               </>
             )}
           </button>
-          <p className="text-[10px] text-brand-muted mt-2">
-            Volta ao onboarding do zero.
-          </p>
+          {resetError && (
+            <p className="text-[10px] text-red-400 mt-2 break-words">{resetError}</p>
+          )}
+          {!resetError && (
+            <p className="text-[10px] text-brand-muted mt-2">Volta ao onboarding do zero.</p>
+          )}
         </div>
       )}
       <button
@@ -82,11 +85,15 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { tasks, meta, loading, error, metaError, heroTask, iniciarTask, concluirTask, criarMeta, resetarDados, resetting } = useTasks()
+  const [resetError, setResetError] = useState(null)
 
   async function handleReset() {
+    setResetError(null)
     const result = await resetarDados()
     if (result?.redirectToOnboarding) {
       navigate('/onboarding')
+    } else if (result?.error) {
+      setResetError(result.error)
     }
   }
 
@@ -170,7 +177,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Seção DEV — remover antes do deploy ── */}
-      <DevSection resetarDados={handleReset} resetting={resetting} />
+      <DevSection onReset={handleReset} resetting={resetting} resetError={resetError} />
     </div>
   )
 }
