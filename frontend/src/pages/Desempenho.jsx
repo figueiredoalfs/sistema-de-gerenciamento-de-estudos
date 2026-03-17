@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { getDesempenho } from '../api/desempenho'
+import { getDesempenho, getEvolucao } from '../api/desempenho'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts'
 
 function Spinner() {
   return (
@@ -47,14 +50,77 @@ function PercBar({ perc }) {
   )
 }
 
+const CORES_LINHA = [
+  '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#14b8a6',
+]
+
+function formatarMes(mesAno) {
+  // "2025-03" → "Mar/25"
+  const [ano, mes] = mesAno.split('-')
+  const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+  return `${nomes[parseInt(mes, 10) - 1]}/${ano.slice(2)}`
+}
+
+function GraficoEvolucao({ pontos }) {
+  if (!pontos || pontos.length === 0) {
+    return (
+      <div className="py-10 text-center text-brand-muted text-sm">
+        Nenhum dado ainda — lance suas primeiras baterias
+      </div>
+    )
+  }
+
+  // Transformar lista de pontos em [ { mes: "Jan/25", Materia1: 80, Materia2: 65 }, ... ]
+  const materias = [...new Set(pontos.map(p => p.materia))].sort()
+  const mesesOrdenados = [...new Set(pontos.map(p => p.mes))].sort()
+
+  const dadosGrafico = mesesOrdenados.map(mes => {
+    const obj = { mes: formatarMes(mes) }
+    for (const mat of materias) {
+      const ponto = pontos.find(p => p.mes === mes && p.materia === mat)
+      obj[mat] = ponto ? ponto.perc : null
+    }
+    return obj
+  })
+
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <LineChart data={dadosGrafico} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
+        <XAxis dataKey="mes" tick={{ fill: '#888', fontSize: 12 }} />
+        <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fill: '#888', fontSize: 12 }} width={40} />
+        <Tooltip
+          contentStyle={{ background: '#1a1a2e', border: '1px solid #2a2a3a', borderRadius: 8, fontSize: 12 }}
+          labelStyle={{ color: '#ccc' }}
+          formatter={(val, name) => val != null ? [`${val.toFixed(1)}%`, name] : ['—', name]}
+        />
+        <Legend wrapperStyle={{ fontSize: 12, color: '#888' }} />
+        {materias.map((mat, i) => (
+          <Line
+            key={mat}
+            type="monotone"
+            dataKey={mat}
+            stroke={CORES_LINHA[i % CORES_LINHA.length]}
+            strokeWidth={2}
+            dot={{ r: 3 }}
+            connectNulls={false}
+          />
+        ))}
+      </LineChart>
+    </ResponsiveContainer>
+  )
+}
+
 export default function Desempenho() {
   const [data, setData] = useState(null)
+  const [evolucao, setEvolucao] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    getDesempenho()
-      .then(setData)
+    Promise.all([getDesempenho(), getEvolucao()])
+      .then(([d, e]) => { setData(d); setEvolucao(e) })
       .catch(() => setError('Erro ao carregar dados de desempenho.'))
       .finally(() => setLoading(false))
   }, [])
@@ -70,7 +136,7 @@ export default function Desempenho() {
       </div>
     )
 
-  const { total_questoes, total_acertos, perc_geral, por_materia } = data
+  const { total_questoes, perc_geral, por_materia } = data
   const maisForte = por_materia[0] ?? null
   const maisFraca = por_materia[por_materia.length - 1] ?? null
 
@@ -98,6 +164,17 @@ export default function Desempenho() {
           sub={maisFraca?.materia}
           color="red"
         />
+      </div>
+
+      {/* Evolução mensal */}
+      <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-brand-border">
+          <h2 className="text-sm font-semibold text-brand-text">Evolução mensal</h2>
+          <p className="text-xs text-brand-muted mt-0.5">% de acertos por matéria ao longo dos meses</p>
+        </div>
+        <div className="px-4 py-4">
+          <GraficoEvolucao pontos={evolucao} />
+        </div>
       </div>
 
       {/* Tabela por matéria */}
