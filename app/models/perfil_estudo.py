@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -30,6 +30,10 @@ class PerfilEstudo(Base):
     # Preenchido apenas quando experiencia == 'tempo_de_estudo'
     # Valores: "<1m", "1-3m", "3-6m", ">6m"
     tempo_estudo = Column(String(20), nullable=True)
+
+    # PlanoBase associado e fase atual do aluno
+    plano_base_id = Column(String(36), ForeignKey("planos_base.id"), nullable=True)
+    fase_atual = Column(Integer, default=1, nullable=False)
 
     # Passo 4 — funcionalidades selecionadas (JSON array)
     # Ex: '["geracao_conteudo", "analise_desempenho", "cronograma_estudo", "geracao_questoes"]'

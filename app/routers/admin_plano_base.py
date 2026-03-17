@@ -26,6 +26,8 @@ from app.schemas.plano_base import (
     PlanoBaseResponse,
     PlanoBaseUpdate,
 )
+from app.models.perfil_estudo import PerfilEstudo
+from app.services.avancar_fase import associar_plano_base, verificar_e_avancar
 from app.services.gerar_plano_base import gerar_plano_via_ia
 
 router = APIRouter(prefix="/admin/planos-base", tags=["admin — planos base"])
@@ -134,6 +136,33 @@ def atualizar_plano(
     db.commit()
     db.refresh(plano)
     return _to_response(plano)
+
+
+@router.post("/associar/{aluno_id}")
+def associar_plano_ao_aluno(
+    aluno_id: str,
+    plano_id: str = Query(..., description="ID do PlanoBase a associar"),
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: associa um PlanoBase ao aluno e redefine para fase 1."""
+    plano = db.query(PlanoBase).filter(PlanoBase.id == plano_id).first()
+    if not plano:
+        raise HTTPException(status_code=404, detail="Plano não encontrado")
+    ok = associar_plano_base(aluno_id, plano_id, db)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Perfil de estudo do aluno não encontrado")
+    return {"ok": True, "plano_base_id": plano_id, "fase_atual": 1}
+
+
+@router.post("/verificar-avanco/{aluno_id}")
+def verificar_avanco(
+    aluno_id: str,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: verifica e executa o avanço de fase do aluno se critérios forem atendidos."""
+    return verificar_e_avancar(aluno_id, db)
 
 
 @router.delete("/{plano_id}", status_code=204, response_class=Response)
