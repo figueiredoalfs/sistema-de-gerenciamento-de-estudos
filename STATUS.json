@@ -1,8 +1,8 @@
 {
-  "concluidas": 7,
+  "concluidas": 8,
   "em_andamento": 1,
   "total": 20,
-  "proxima": 7,
+  "proxima": 8,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -50,13 +50,13 @@
       "fase": "FASE-2",
       "tarefa": "Página de desempenho — KPIs e por matéria",
       "nota": "Rota /desempenho. KPIs gerais + tabela por matéria. GET /desempenho.",
-      "status": "em_andamento"
+      "status": "concluida"
     },
     {
       "fase": "FASE-2",
       "tarefa": "Página de desempenho — evolução mensal",
       "nota": "Gráfico de linha por matéria. GET /desempenho/evolucao.",
-      "status": "pendente"
+      "status": "em_andamento"
     },
     {
       "fase": "FASE-2",
