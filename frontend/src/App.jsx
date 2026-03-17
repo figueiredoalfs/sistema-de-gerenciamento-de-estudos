@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminQuestoes from './pages/AdminQuestoes'
 import AdminTopicos from './pages/AdminTopicos'
 import AdminUsuarios from './pages/AdminUsuarios'
+import AdminPlanoBase from './pages/AdminPlanoBase'
 import TaskView from './pages/TaskView'
 import Desempenho from './pages/Desempenho'
 import LancarBateria from './pages/LancarBateria'
@@ -107,6 +108,17 @@ export default function App() {
           <ProtectedRoute requireAdmin>
             <AppLayout>
               <AdminUsuarios />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/planos-base"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AppLayout>
+              <AdminPlanoBase />
             </AppLayout>
           </ProtectedRoute>
         }

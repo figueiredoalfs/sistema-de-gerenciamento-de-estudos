@@ -26,6 +26,7 @@ from app.models.task_video import TaskVideo
 from app.models.task_video_avaliacao import TaskVideoAvaliacao
 from app.models.meta import Meta
 from app.models.subtopico_estado import SubtopicoEstado
+from app.models.plano_base import PlanoBase
 
 __all__ = [
     "Aluno",
@@ -56,4 +57,5 @@ __all__ = [
     "TaskVideoAvaliacao",
     "Meta",
     "SubtopicoEstado",
+    "PlanoBase",
 ]
