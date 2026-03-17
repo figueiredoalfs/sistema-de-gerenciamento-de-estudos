@@ -17,7 +17,7 @@ import uuid
 from app.core.database import SessionLocal
 from app.models.ciclo_materia import CicloMateria
 from app.models.topico import Topico
-from config_materias import MATERIAS_POR_AREA
+from app.scripts.config_materias import MATERIAS_POR_AREA
 
 # ── Ciclo básico pré-setado — Área Fiscal ─────────────────────────────────────
 # Ordem pedagógica: do mais geral ao mais específico.

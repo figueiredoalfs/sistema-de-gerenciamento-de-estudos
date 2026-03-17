@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
 
+    ADMIN_EMAIL: str = "admin@skolai.com"
+    ADMIN_SENHA: str = "admin123"
+    ADMIN_NOME: str = "Admin"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

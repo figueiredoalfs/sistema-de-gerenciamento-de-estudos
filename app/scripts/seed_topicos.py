@@ -19,7 +19,7 @@ import uuid
 from app.core.database import SessionLocal
 from app.models.topico import Topico
 from app.services.decay import get_decay_rate
-from config_materias import HIERARQUIA
+from app.scripts.config_materias import HIERARQUIA
 
 # Pesos diferenciados por matéria — base para priorização fiscal
 PESO_FISCAL: dict[str, float] = {

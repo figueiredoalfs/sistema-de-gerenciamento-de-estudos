@@ -3,22 +3,22 @@ app/scripts/seed_admin.py
 Garante que existe pelo menos 1 usuário admin no banco FastAPI (dev.db).
 Chamado automaticamente no startup do servidor — idempotente.
 
-Credenciais padrão sobrescritas por variáveis de ambiente:
-  ADMIN_EMAIL  (padrão: admin)
-  ADMIN_SENHA  (padrão: "")
+Credenciais configuradas em Settings (lidas do .env):
+  ADMIN_EMAIL  (padrão: admin@skolai.com)
+  ADMIN_SENHA  (padrão: admin123)
   ADMIN_NOME   (padrão: Admin)
 """
 
-import os
 import uuid
 
+from app.core.config import settings
 from app.core.database import SessionLocal
 from app.models.aluno import Aluno
 from app.core.security import hash_password
 
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin")
-ADMIN_SENHA = os.getenv("ADMIN_SENHA", "")
-ADMIN_NOME  = os.getenv("ADMIN_NOME",  "Admin")
+ADMIN_EMAIL = settings.ADMIN_EMAIL
+ADMIN_SENHA = settings.ADMIN_SENHA
+ADMIN_NOME  = settings.ADMIN_NOME
 
 
 def seed_admin() -> None:
