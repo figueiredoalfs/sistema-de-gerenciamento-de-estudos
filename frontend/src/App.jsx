@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import AdminImportar from './pages/AdminImportar'
 import TaskView from './pages/TaskView'
 import Desempenho from './pages/Desempenho'
+import LancarBateria from './pages/LancarBateria'
 
 function AppLayout({ children }) {
   return (
@@ -69,6 +70,17 @@ export default function App() {
           <ProtectedRoute>
             <AppLayout>
               <Desempenho />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/lancar-bateria"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <LancarBateria />
             </AppLayout>
           </ProtectedRoute>
         }

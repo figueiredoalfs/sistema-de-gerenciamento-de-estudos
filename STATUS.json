@@ -1,8 +1,8 @@
 {
-  "concluidas": 8,
-  "em_andamento": 1,
+  "concluidas": 10,
+  "em_andamento": 0,
   "total": 17,
-  "proxima": 8,
+  "proxima": 10,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -56,13 +56,13 @@
       "fase": "FASE-2",
       "tarefa": "Evolução mensal — gráfico de linha por matéria",
       "nota": "GET /desempenho/evolucao → gráfico Recharts. Eixo X: meses. Linha por matéria.",
-      "status": "em_andamento"
+      "status": "concluida"
     },
     {
       "fase": "FASE-2",
       "tarefa": "Lançamento manual de bateria",
       "nota": "Rota /lancar-bateria. Select matéria→subtópico. POST /bateria. Ver impacto em /desempenho.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-3",

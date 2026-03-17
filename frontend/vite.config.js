@@ -13,6 +13,7 @@ export default defineConfig({
       '/desempenho': 'http://localhost:8000',
       '/bateria': 'http://localhost:8000',
       '/baterias': 'http://localhost:8000',
+      '/topicos': 'http://localhost:8000',
       '/questoes': 'http://localhost:8000',
       '/admin': 'http://localhost:8000',
       '/task-conteudo': 'http://localhost:8000',

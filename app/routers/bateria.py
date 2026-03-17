@@ -24,6 +24,46 @@ router = APIRouter(tags=["bateria"])
 FONTES_VALIDAS = set(PESO_POR_FONTE.keys())
 
 
+# ── Hierarquia de tópicos (uso público — para popular selects) ──────────────
+
+@router.get("/topicos/hierarquia", tags=["bateria"])
+def get_hierarquia(
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """
+    Retorna as materias do plano do aluno (filtradas pela area dele)
+    com seus subtopicos (nivel=1) para popular os selects de lançamento de bateria.
+    """
+    from app.models.topico import Topico
+    from config_materias import MATERIAS_POR_AREA
+
+    # Materias da área do aluno; fallback para todas se área não mapeada
+    area_key = (usuario.area or "").lower()
+    nomes_area = MATERIAS_POR_AREA.get(area_key)
+
+    q = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True)
+    if nomes_area:
+        q = q.filter(Topico.nome.in_(nomes_area))
+    materias = q.order_by(Topico.nome).all()
+
+    resultado = []
+    for mat in materias:
+        subs = (
+            db.query(Topico)
+            .filter(Topico.parent_id == mat.id, Topico.ativo == True)
+            .order_by(Topico.nome)
+            .all()
+        )
+        resultado.append({
+            "id": mat.id,
+            "nome": mat.nome,
+            "subtopicos": [{"id": s.id, "nome": s.nome} for s in subs],
+        })
+
+    return resultado
+
+
 @router.post("/bateria", response_model=BateriaResponse, status_code=201)
 def registrar_bateria(
     body: BateriaRequest,
