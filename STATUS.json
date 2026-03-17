@@ -1,5 +1,5 @@
 {
-  "concluidas": 13,
+  "concluidas": 14,
   "em_andamento": 0,
   "total": 21,
   "proxima": 12,
@@ -86,7 +86,7 @@
       "fase": "FASE-3",
       "tarefa": "Gestão de usuários",
       "nota": "Listar, filtrar, ativar/desativar, atribuir mentor, ver progresso.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-3.5",

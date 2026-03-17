@@ -82,3 +82,8 @@ class AlunoUpdate(BaseModel):
 class AlterarSenhaRequest(BaseModel):
     senha_atual: str
     nova_senha: str
+
+
+class AlunoAdminUpdate(BaseModel):
+    ativo: Optional[bool] = None
+    role: Optional[str] = None

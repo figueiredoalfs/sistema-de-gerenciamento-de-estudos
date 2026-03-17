@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import require_admin, require_mentor
 from app.models.aluno import Aluno
-from app.schemas.auth import AlunoAdminResponse, AlunoMentoradoResponse, AtribuirMentorRequest
+from app.schemas.auth import AlunoAdminResponse, AlunoAdminUpdate, AlunoMentoradoResponse, AtribuirMentorRequest
 
 router = APIRouter(tags=["usuários"])
 
@@ -18,6 +18,28 @@ def listar_usuarios(
 ):
     """Admin: lista todos os usuários cadastrados."""
     return db.query(Aluno).order_by(Aluno.created_at.desc()).all()
+
+
+@router.patch("/admin/usuarios/{usuario_id}", response_model=AlunoAdminResponse)
+def atualizar_usuario(
+    usuario_id: str,
+    body: AlunoAdminUpdate,
+    db: Session = Depends(get_db),
+    current_user: Aluno = Depends(require_admin),
+):
+    """Admin: ativa/desativa usuário ou altera role."""
+    aluno = db.query(Aluno).filter(Aluno.id == usuario_id).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    if aluno.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Não é possível alterar o próprio usuário")
+    if body.ativo is not None:
+        aluno.ativo = body.ativo
+    if body.role is not None:
+        aluno.role = body.role
+    db.commit()
+    db.refresh(aluno)
+    return aluno
 
 
 @router.patch("/admin/usuarios/{usuario_id}/mentor", response_model=AlunoAdminResponse)
