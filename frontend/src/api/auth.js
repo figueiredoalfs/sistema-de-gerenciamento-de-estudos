@@ -19,3 +19,8 @@ export async function updateMe(payload) {
   const { data } = await client.patch('/auth/me', payload)
   return data
 }
+
+export async function register(payload) {
+  const { data } = await client.post('/auth/register', payload)
+  return data
+}

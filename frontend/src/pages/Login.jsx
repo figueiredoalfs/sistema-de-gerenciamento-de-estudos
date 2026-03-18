@@ -2,6 +2,100 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/layout/Logo'
+import { register } from '../api/auth'
+
+function ModalCadastro({ onClose, onCadastrado }) {
+  const [form, setForm] = useState({ nome: '', email: '', password: '' })
+  const [loading, setLoading] = useState(false)
+  const [erro, setErro] = useState('')
+
+  function set(field, value) {
+    setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  async function salvar(e) {
+    e.preventDefault()
+    setErro('')
+    setLoading(true)
+    try {
+      await register({ ...form, role: 'estudante' })
+      onCadastrado(form.email, form.password)
+    } catch (err) {
+      setErro(err.response?.data?.detail || 'Erro ao criar conta.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-brand-card border border-brand-border rounded-2xl p-8 w-full max-w-sm space-y-6 shadow-2xl">
+        <div>
+          <h2 className="text-2xl font-bold text-brand-text">Criar conta</h2>
+          <p className="text-brand-muted text-sm mt-1">Preencha os dados para solicitar acesso.</p>
+        </div>
+
+        <form onSubmit={salvar} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-brand-muted mb-1.5">Nome</label>
+            <input
+              required
+              value={form.nome}
+              onChange={(e) => set('nome', e.target.value)}
+              placeholder="Seu nome completo"
+              className="w-full bg-brand-surface border border-brand-border text-brand-text rounded-xl px-4 py-3 outline-none transition-all placeholder:text-brand-muted/40 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-brand-muted mb-1.5">E-mail</label>
+            <input
+              required
+              type="email"
+              value={form.email}
+              onChange={(e) => set('email', e.target.value)}
+              placeholder="exemplo@email.com"
+              className="w-full bg-brand-surface border border-brand-border text-brand-text rounded-xl px-4 py-3 outline-none transition-all placeholder:text-brand-muted/40 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-brand-muted mb-1.5">Senha</label>
+            <input
+              required
+              type="password"
+              value={form.password}
+              onChange={(e) => set('password', e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-brand-surface border border-brand-border text-brand-text rounded-xl px-4 py-3 outline-none transition-all placeholder:text-brand-muted/40 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+            />
+          </div>
+
+          {erro && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
+              {erro}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 text-sm text-brand-muted hover:text-brand-text border border-brand-border rounded-xl transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-3 text-sm bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-semibold rounded-xl transition-all disabled:opacity-50"
+            >
+              {loading ? 'Criando...' : 'Criar conta'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
 
 const SLIDES = [
   {
@@ -22,11 +116,12 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const [email, setEmail]     = useState('')
-  const [senha, setSenha]     = useState('')
-  const [error, setError]     = useState('')
-  const [loading, setLoading] = useState(false)
-  const [slide, setSlide]     = useState(0)
+  const [email, setEmail]         = useState('')
+  const [senha, setSenha]         = useState('')
+  const [error, setError]         = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [slide, setSlide]         = useState(0)
+  const [modalCadastro, setModalCadastro] = useState(false)
 
   useEffect(() => {
     const t = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), 5000)
@@ -47,8 +142,30 @@ export default function Login() {
     }
   }
 
+  async function handleCadastrado(emailNovo, senhaNova) {
+    setModalCadastro(false)
+    setEmail(emailNovo)
+    setSenha(senhaNova)
+    setError('')
+    setLoading(true)
+    try {
+      const user = await login(emailNovo, senhaNova)
+      navigate(user.area ? '/' : '/onboarding')
+    } catch {
+      setError('Conta criada! Faça login para continuar.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col md:flex-row overflow-hidden">
+      {modalCadastro && (
+        <ModalCadastro
+          onClose={() => setModalCadastro(false)}
+          onCadastrado={handleCadastrado}
+        />
+      )}
 
       {/* Painel esquerdo */}
       <div className="hidden md:flex md:w-1/2 lg:w-3/5 bg-brand-surface relative p-12 flex-col justify-between border-r border-brand-border overflow-hidden">
@@ -158,9 +275,13 @@ export default function Login() {
 
           <p className="text-center text-sm text-brand-muted">
             Ainda não tem uma conta?{' '}
-            <a href="#" className="text-brand-primary font-semibold hover:underline">
+            <button
+              type="button"
+              onClick={() => setModalCadastro(true)}
+              className="text-brand-primary font-semibold hover:underline"
+            >
               Solicite acesso
-            </a>
+            </button>
           </p>
         </div>
       </div>
