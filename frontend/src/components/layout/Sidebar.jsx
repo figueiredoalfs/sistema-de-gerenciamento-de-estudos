@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Logo from './Logo'
 
 const NAV = [
   {
@@ -88,9 +89,9 @@ export default function Sidebar() {
   return (
     <aside className="w-60 flex-shrink-0 bg-brand-surface border-r border-brand-border flex flex-col min-h-screen">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-brand-border">
-        <h1 className="text-xl font-bold gradient-text">Skolai</h1>
-        <p className="text-brand-muted text-xs mt-0.5 truncate">{user?.nome}</p>
+      <div className="px-5 py-5 border-b border-brand-border flex flex-col items-center gap-2">
+        <Logo className="h-14" showText={false} />
+        <p className="text-brand-muted text-xs truncate max-w-full text-center">{user?.nome}</p>
       </div>
 
       {/* Nav */}
