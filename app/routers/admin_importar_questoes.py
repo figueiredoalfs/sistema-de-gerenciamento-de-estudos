@@ -1,11 +1,14 @@
 import json
 import uuid
-from typing import List, Optional
+from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
+from google import genai
+from google.genai import types
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.ai_provider import get_ai_provider
 from app.core.database import get_db
 from app.core.security import require_admin
@@ -109,23 +112,24 @@ def importar_questoes(
             db.rollback()
             erros.append(f"Questão {i}: {str(exc)}")
 
-    # Fase 2: classificação IA (best-effort, após commit das questões)
+    # Fase 2: classificação IA (best-effort, apenas se solicitado)
     avisos_ia: list[str] = []
-    try:
-        subtopicos_nivel2 = (
-            db.query(Topico).filter(Topico.nivel == 2, Topico.ativo == True).all()
-        )
-        if subtopicos_nivel2 and questoes_importadas:
-            ai = get_ai_provider()
-            for questao in questoes_importadas:
-                ids_sugeridos = sugerir_subtopicos(questao, subtopicos_nivel2, ai)
-                if ids_sugeridos:
-                    salvar_sugestoes(str(questao.id), ids_sugeridos, db)
-                else:
-                    avisos_ia.append(f"{questao.question_code}: sem classificação IA")
-            db.commit()
-    except Exception as exc:
-        avisos_ia.append(f"Classificação IA falhou: {str(exc)}")
+    if body.classificar_ia:
+        try:
+            subtopicos_nivel2 = (
+                db.query(Topico).filter(Topico.nivel == 2, Topico.ativo == True).all()
+            )
+            if subtopicos_nivel2 and questoes_importadas:
+                ai = get_ai_provider()
+                for questao in questoes_importadas:
+                    ids_sugeridos = sugerir_subtopicos(questao, subtopicos_nivel2, ai)
+                    if ids_sugeridos:
+                        salvar_sugestoes(str(questao.id), ids_sugeridos, db)
+                    else:
+                        avisos_ia.append(f"{questao.question_code}: sem classificação IA")
+                db.commit()
+        except Exception as exc:
+            avisos_ia.append(f"Classificação IA falhou: {str(exc)}")
 
     return ImportacaoResponse(importadas=importadas, erros=erros, avisos_ia=avisos_ia)
 
@@ -338,3 +342,80 @@ def sugerir_subtopico_questao(
         if t.id in id_set
     ]
     return sugeridos
+
+
+# ─── Endpoint — extração de PDF via IA ───────────────────────────────────────
+
+_PROMPT_PDF = (
+    "Você é um especialista em extração de questões de concursos públicos brasileiros.\n"
+    "Analise este PDF e extraia TODAS as questões encontradas.\n\n"
+    "Para cada questão, retorne um objeto JSON com:\n"
+    '- "materia": disciplina (ex: "Direito Administrativo", "Português", "Matemática")\n'
+    '- "subject": assunto específico (ex: "Atos Administrativos", "Concordância Verbal")\n'
+    '- "statement": enunciado completo da questão\n'
+    '- "alternatives": objeto com chaves A, B, C, D, E (use null se for questão Certo/Errado)\n'
+    '- "correct_answer": gabarito ("A", "B", "C", "D", "E", "CERTO" ou "ERRADO")\n'
+    '- "board": banca examinadora se mencionada, ou null\n'
+    '- "year": ano da prova como número inteiro se mencionado, ou null\n\n'
+    "Retorne SOMENTE um array JSON válido, sem texto adicional, sem markdown.\n"
+    'Exemplo: [{"materia":"Direito Constitucional","subject":"Direitos Fundamentais",'
+    '"statement":"...","alternatives":{"A":"...","B":"...","C":"...","D":"...","E":"..."},'
+    '"correct_answer":"A","board":"CESPE","year":2023}]\n\n'
+    "Se não encontrar questões, retorne []."
+)
+
+
+@router.post("/importar-questoes-pdf", response_model=List[Any])
+async def extrair_questoes_pdf(
+    file: UploadFile = File(...),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: extrai questões de um PDF via Gemini Flash. Retorna preview sem salvar."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=422, detail="Envie um arquivo .pdf")
+
+    if not settings.GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY não configurada")
+
+    pdf_bytes = await file.read()
+    if len(pdf_bytes) == 0:
+        raise HTTPException(status_code=422, detail="Arquivo PDF vazio")
+
+    try:
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+                types.Part(text=_PROMPT_PDF),
+            ],
+            config=types.GenerateContentConfig(
+                max_output_tokens=65536,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
+        )
+        raw = response.text.strip()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Erro na IA: {str(exc)}")
+
+    # Remove markdown code fences se presentes
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1] if len(parts) > 1 else raw
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+
+    try:
+        inicio = raw.find("[")
+        fim = raw.rfind("]") + 1
+        if inicio == -1 or fim == 0:
+            raise HTTPException(status_code=502, detail=f"IA não retornou JSON válido. Resposta: {raw[:500]!r}")
+        questoes = json.loads(raw[inicio:fim])
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=502, detail=f"JSON inválido: {exc}. Resposta: {raw[:500]!r}")
+
+    if not isinstance(questoes, list):
+        raise HTTPException(status_code=502, detail=f"IA não retornou array. Tipo: {type(questoes).__name__}. Resposta: {raw[:200]!r}")
+
+    return questoes

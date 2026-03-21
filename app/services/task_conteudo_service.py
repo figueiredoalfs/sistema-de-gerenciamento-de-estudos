@@ -88,7 +88,7 @@ def gerar_objetivo_instrucoes(conteudo: TaskConteudo, db: Session) -> TaskConteu
         f"Responda APENAS com JSON no formato: {{\"objetivo\": \"...\", \"instrucoes\": \"...\"}}"
     )
 
-    resposta = get_ai_provider().generate(prompt, max_tokens=400)
+    resposta = get_ai_provider().generate(prompt, max_tokens=1024)
 
     try:
         dados = json.loads(resposta)
@@ -158,7 +158,7 @@ def buscar_videos_ia(task_code: str, db: Session) -> list[TaskVideo]:
         f"Use URLs reais e conhecidas. Se não souber URLs exatas, use https://www.youtube.com/results?search_query={subtopico_nome.replace(' ', '+')}."
     )
 
-    resposta = get_ai_provider().generate(prompt, max_tokens=600)
+    resposta = get_ai_provider().generate(prompt, max_tokens=1024)
 
     try:
         inicio = resposta.find("[")

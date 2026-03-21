@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarQuestoes, editarQuestao, deletarQuestao, sugerirSubtopico, associarSubtopicos, removerSubtopico } from '../api/adminQuestoes'
+import { listarTodosTopicos } from '../api/adminTopicos'
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E']
 
@@ -266,6 +267,21 @@ export default function AdminQuestoes() {
   const [filtroMateria, setFiltroMateria] = useState('')
   const [filtroSubtopico, setFiltroSubtopico] = useState('')
   const [page, setPage] = useState(1)
+
+  const [topicos, setTopicos] = useState([])
+  useEffect(() => {
+    listarTodosTopicos().then(setTopicos).catch(() => {})
+  }, [])
+
+  const materias = topicos.filter(t => t.nivel === 0).sort((a, b) => a.nome.localeCompare(b.nome))
+  const subtopicosDisponiveis = (() => {
+    const subs = topicos.filter(t => t.nivel === 2)
+    if (!filtroMateria) return subs.sort((a, b) => a.nome.localeCompare(b.nome))
+    const materia = materias.find(m => m.nome === filtroMateria)
+    if (!materia) return []
+    const blocoIds = new Set(topicos.filter(t => t.nivel === 1 && t.parent_id === materia.id).map(t => t.id))
+    return subs.filter(s => blocoIds.has(s.parent_id)).sort((a, b) => a.nome.localeCompare(b.nome))
+  })()
   const PER_PAGE = 20
 
   const [expandedId, setExpandedId] = useState(null)
@@ -273,11 +289,13 @@ export default function AdminQuestoes() {
   const [deletando, setDeletando] = useState(null)
   const [deletandoId, setDeletandoId] = useState(false)
 
-  function buscar(pg = 1) {
+  function buscar(pg = 1, overrides = {}) {
+    const materia = 'materia' in overrides ? overrides.materia : filtroMateria
+    const subtopico = 'subtopico' in overrides ? overrides.subtopico : filtroSubtopico
     setLoading(true)
     setErro('')
     setExpandedId(null)
-    listarQuestoes({ materia: filtroMateria, subtopico: filtroSubtopico, page: pg, per_page: PER_PAGE })
+    listarQuestoes({ materia, subtopico, page: pg, per_page: PER_PAGE })
       .then(data => { setQuestoes(data); setPage(pg) })
       .catch(e => setErro(e.response?.data?.detail || e.message))
       .finally(() => setLoading(false))
@@ -323,27 +341,31 @@ export default function AdminQuestoes() {
       <form onSubmit={handleFiltrar} className="flex flex-wrap gap-3 items-end">
         <div>
           <label className="text-xs text-brand-muted block mb-1">Matéria</label>
-          <input
+          <select
             value={filtroMateria}
-            onChange={e => setFiltroMateria(e.target.value)}
-            placeholder="ex: Direito Administrativo"
+            onChange={e => { setFiltroMateria(e.target.value); setFiltroSubtopico('') }}
             className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-56"
-          />
+          >
+            <option value="">Todas</option>
+            {materias.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+          </select>
         </div>
         <div>
           <label className="text-xs text-brand-muted block mb-1">Subtópico</label>
-          <input
+          <select
             value={filtroSubtopico}
             onChange={e => setFiltroSubtopico(e.target.value)}
-            placeholder="ex: Atos Administrativos"
             className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-56"
-          />
+          >
+            <option value="">Todos</option>
+            {subtopicosDisponiveis.map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+          </select>
         </div>
         <button type="submit"
           className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">
           Filtrar
         </button>
-        <button type="button" onClick={() => { setFiltroMateria(''); setFiltroSubtopico(''); buscar(1) }}
+        <button type="button" onClick={() => { setFiltroMateria(''); setFiltroSubtopico(''); buscar(1, { materia: '', subtopico: '' }) }}
           className="px-4 py-2 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors">
           Limpar
         </button>

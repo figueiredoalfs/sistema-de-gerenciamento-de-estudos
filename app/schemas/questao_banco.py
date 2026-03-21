@@ -44,6 +44,7 @@ class QuestaoImportItem(BaseModel):
 
 class ImportacaoRequest(BaseModel):
     questoes: List[Any]  # validação individual no endpoint para isolar erros por questão
+    classificar_ia: bool = True  # False para pular classificação IA (ex: importação de PDF)
 
 
 class ImportacaoResponse(BaseModel):

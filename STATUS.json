@@ -1,8 +1,8 @@
 {
-  "concluidas": 10,
-  "em_andamento": 1,
+  "concluidas": 11,
+  "em_andamento": 0,
   "total": 36,
-  "proxima": 10,
+  "proxima": 11,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -68,7 +68,7 @@
       "fase": "FASE-3",
       "tarefa": "Layout admin + gestão de questões + botão Sugerir Subtópico",
       "nota": "Sidebar admin. Tabela questões com filtros. PATCH subtopico. POST sugerir-subtopico via NLP Mapper.",
-      "status": "em_andamento"
+      "status": "concluida"
     },
     {
       "fase": "FASE-3",

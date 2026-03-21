@@ -31,11 +31,21 @@ export async function removerSubtopico(questionId, subtopicId) {
   await client.delete(`/admin/questoes-banco/${questionId}/subtopicos/${subtopicId}`)
 }
 
-export async function importarQuestoes({ questoes }) {
+export async function importarQuestoes({ questoes, classificar_ia = true }) {
   const { data } = await client.post(
     '/admin/importar-questoes',
-    { questoes },
-    { timeout: 180000 }, // 3 min — classificação IA é síncrona por questão
+    { questoes, classificar_ia },
+    { timeout: 180000 },
   )
+  return data
+}
+
+export async function extrairQuestoesPdf(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await client.post('/admin/importar-questoes-pdf', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000, // 2 min — extração de PDF pode ser lenta
+  })
   return data
 }

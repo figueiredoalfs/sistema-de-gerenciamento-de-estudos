@@ -78,7 +78,7 @@ def sugerir_subtopicos(
     prompt = _build_prompt(questao, subtopicos_disponiveis)
 
     try:
-        raw = ai.generate(prompt)
+        raw = ai.generate(prompt, max_tokens=2048)
         return _parse_ids(raw, valid_ids)
     except Exception:
         return []

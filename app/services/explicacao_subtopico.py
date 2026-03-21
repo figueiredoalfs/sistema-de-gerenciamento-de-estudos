@@ -56,7 +56,7 @@ def obter_ou_gerar(topico_id: str, db: Session) -> tuple[str, bool]:
 
     # 3. Gera via IA
     prompt = _build_prompt(topico.nome, hierarquia)
-    content = get_ai_provider().generate(prompt)
+    content = get_ai_provider().generate(prompt, max_tokens=2048)
 
     # 4. Salva no cache (protegido contra race condition via IntegrityError)
     explicacao = ExplicacaoSubtopico(topico_id=topico_id, content=content)
