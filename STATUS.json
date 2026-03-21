@@ -1,8 +1,8 @@
 {
-  "concluidas": 14,
-  "em_andamento": 0,
-  "total": 21,
-  "proxima": 12,
+  "concluidas": 10,
+  "em_andamento": 1,
+  "total": 36,
+  "proxima": 10,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -66,68 +66,158 @@
     },
     {
       "fase": "FASE-3",
-      "tarefa": "Layout admin + gestão de questões",
-      "nota": "Rota /admin protegida por role=administrador. Sidebar própria. Listar/filtrar/editar/deletar questões.",
-      "status": "concluida"
+      "tarefa": "Layout admin + gestão de questões + botão Sugerir Subtópico",
+      "nota": "Sidebar admin. Tabela questões com filtros. PATCH subtopico. POST sugerir-subtopico via NLP Mapper.",
+      "status": "em_andamento"
     },
     {
       "fase": "FASE-3",
-      "tarefa": "Importação em lote com UI completa",
-      "nota": "Upload JSON/CSV, preview, validação visual, progresso, resultado com erros.",
-      "status": "concluida"
+      "tarefa": "Importação em lote: JSON + PDF TEC Concursos",
+      "nota": "Upload JSON ou PDF. PDF processado pelo Gemini Flash. Preview antes de confirmar.",
+      "status": "pendente"
     },
     {
       "fase": "FASE-3",
       "tarefa": "Gestão de tópicos e subtópicos",
-      "nota": "Árvore matéria→tópico→subtópico. Editar peso_edital. Contador de questões por subtópico.",
-      "status": "concluida"
+      "nota": "Árvore matéria→tópico→subtópico. Editar peso_edital. Contador questões.",
+      "status": "pendente"
     },
     {
       "fase": "FASE-3",
-      "tarefa": "Gestão de usuários",
-      "nota": "Listar, filtrar, ativar/desativar, atribuir mentor, ver progresso.",
-      "status": "concluida"
+      "tarefa": "Gestão de usuários + edição de dados",
+      "nota": "Editar todos os campos do aluno. Reset de senha separado. Modal de progresso.",
+      "status": "pendente"
     },
     {
       "fase": "FASE-3.5",
-      "tarefa": "Área fiscal como única ativa no onboarding",
-      "nota": "Só fiscal selecionável. Outras áreas aparecem bloqueadas com 'Em desenvolvimento'.",
+      "tarefa": "Onboarding: áreas ativas (Fiscal + CFOE/EAOF) + seleção de matérias",
+      "nota": "Outras áreas bloqueadas. Nova tela: sistema decide vs aluno escolhe matérias.",
       "status": "pendente"
     },
     {
       "fase": "FASE-3.5",
       "tarefa": "Model PlanoBase + geração via IA",
-      "nota": "Tabela plano_base (area, perfil, fases[], ordem_subtopicos_por_materia, gerado_por_ia, revisado_admin). Busca no banco antes de gerar. Se não existir: IA gera + salva + dispara notificação admin. Nunca gera duplicata.",
+      "nota": "Busca no banco antes de gerar. Gemini gera se não existir. Notifica admin.",
       "status": "pendente"
     },
     {
       "fase": "FASE-3.5",
-      "tarefa": "Lógica de avanço de fase no PlanoBase",
-      "nota": "Engine monitora critério de avanço por fase (ex: media_acerto >= 0.65 nas matérias ativas). Quando atingido: adiciona matérias da próxima fase automaticamente. Notifica aluno.",
+      "tarefa": "Lógica de avanço de fase + diagnóstico obrigatório + numeração de metas",
+      "nota": "Meta 00=diagnóstico obrigatório para não-iniciantes. Metas regulares a partir de 01. Metas finalizadas acessíveis.",
       "status": "pendente"
     },
     {
       "fase": "FASE-3.5",
-      "tarefa": "Dashboard admin — notificação e revisão do PlanoBase",
-      "nota": "Admin vê alerta: 'IA gerou PlanoBase para Fiscal/Iniciante. Revisar?' Pode editar fases, ordem de matérias, critérios de avanço. Ao salvar: opção de aplicar só para novos alunos ou para todos.",
+      "tarefa": "Dashboard admin: notificações + revisão PlanoBase",
+      "nota": "Banner de notificações. Editor visual de fases. Aplicar para novos ou todos.",
       "status": "pendente"
     },
     {
       "fase": "FASE-4",
       "tarefa": "Painel do mentor — lista e detalhe de alunos",
-      "nota": "Rota /mentor protegida por role=mentor. Lista com progresso e última atividade. Detalhe: desempenho por matéria, tasks da semana, histórico metas, pontos fortes/fracos.",
+      "nota": "Rota /mentor. Lista com progresso. Detalhe: desempenho + tasks + histórico metas.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-5",
+      "tarefa": "Segurança antes do deploy",
+      "nota": "Confirmação email, recuperação senha, rate limiting, access+refresh token, logs segurança.",
       "status": "pendente"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Deletar Streamlit + routers inativos",
-      "nota": "Só após todas as fases anteriores estáveis. app.py, api_client.py, database.py, style.py, config_*.py, migrar_dados.py, telas/",
+      "nota": "Só após todas as fases anteriores estáveis.",
       "status": "pendente"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Deploy Railway",
-      "nota": "CORS restrito + variáveis DATABASE_URL/SECRET_KEY/GEMINI_API_KEY + alembic upgrade head + teste completo.",
+      "nota": "CORS restrito + variáveis + alembic upgrade head + teste completo.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-01: Correções de bugs",
+      "nota": "Reset DEV, lançamento bateria, PlanoBase IA, fontes bancas.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-02: Personalização por funcionalidades do onboarding",
+      "nota": "Sidebar e componentes condicionais baseados em funcionalidades_json.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-03: Índice de Prontidão (IP)",
+      "nota": "service indice_prontidao.py. Alimenta mapa calor, projeção, mentor, admin.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-04: Dashboard desempenho — novos gráficos",
+      "nota": "Radar matérias, velocidade domínio, volume semanal, heatmap, projeção.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-05: Mapa de Calor do Edital",
+      "nota": "Grade peso_edital × accuracy_rate. Depende do IP (B-03).",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-06: Mapa de Lacunas + Caderno de Questões",
+      "nota": "Salvar alternativa escolhida. Padrões de erro. Renomear lançar bateria.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-07: Questões de validação geradas por IA",
+      "nota": "Pool por subtópico. Threshold 10/30. Celery assíncrono. origem=quiz_ia.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-08: Progressão de dificuldade dentro das tasks",
+      "nota": "Usar campo nivel por exposure_count no quiz_generator.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-09: Sistema de reporte de conteúdo IA",
+      "nota": "Botão reporte em todo conteúdo IA. Painel admin de reportes pendentes.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-10: Painel financeiro no admin",
+      "nota": "Log custos IA por tipo. Infraestrutura manual. Receita futura.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-11: Fluxo pós-edital via upload de PDF",
+      "nota": "Gemini extrai edital. NLP Mapper mapeia subtópicos. Admin valida.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-12: Mapa de Concursos",
+      "nota": "Calendário visual + mapa geográfico. Scraping Celery + manual admin.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-13: Horas líquidas de estudo",
+      "nota": "duracao_real_min já existe. Campo ao finalizar task. Comparativo no dashboard.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-14: Segurança avançada pós-deploy",
+      "nota": "Sentry, backup PostgreSQL, alertas custo IA, auditoria acessos admin.",
       "status": "pendente"
     }
   ]

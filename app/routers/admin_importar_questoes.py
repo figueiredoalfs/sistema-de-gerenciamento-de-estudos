@@ -311,3 +311,30 @@ def deletar_questao(
     db.query(QuestionSubtopic).filter(QuestionSubtopic.question_id == question_id).delete()
     db.delete(questao)
     db.commit()
+
+
+@router.post("/questoes/{question_id}/sugerir-subtopico", response_model=List[SubtopicoInfo])
+def sugerir_subtopico_questao(
+    question_id: str,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: sugere subtópicos para uma questão via IA. Retorna sugestões sem salvar — admin confirma."""
+    questao = db.query(QuestaoBanco).filter(QuestaoBanco.id == question_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    subtopicos = db.query(Topico).filter(Topico.nivel == 2, Topico.ativo == True).all()
+    if not subtopicos:
+        raise HTTPException(status_code=422, detail="Nenhum subtópico cadastrado no banco")
+
+    ai = get_ai_provider()
+    ids_sugeridos = sugerir_subtopicos(questao, subtopicos, ai)
+
+    id_set = set(ids_sugeridos)
+    sugeridos = [
+        SubtopicoInfo(id=t.id, nome=t.nome, nivel=t.nivel, fonte="ia")
+        for t in subtopicos
+        if t.id in id_set
+    ]
+    return sugeridos

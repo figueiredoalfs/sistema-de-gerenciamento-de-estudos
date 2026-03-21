@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listarQuestoes, editarQuestao, deletarQuestao } from '../api/adminQuestoes'
+import { listarQuestoes, editarQuestao, deletarQuestao, sugerirSubtopico, associarSubtopicos, removerSubtopico } from '../api/adminQuestoes'
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E']
 
@@ -44,6 +44,12 @@ function ModalEditar({ questao, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [erro, setErro] = useState('')
 
+  // subtópicos
+  const [subtopicos, setSubtopicos] = useState(questao.subtopicos || [])
+  const [sugerindo, setSugerindo] = useState(false)
+  const [sugestoes, setSugestoes] = useState([])
+  const [erroSugestao, setErroSugestao] = useState('')
+
   function handle(e) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
   }
@@ -60,11 +66,45 @@ function ModalEditar({ questao, onClose, onSaved }) {
         year: form.year ? Number(form.year) : null,
       }
       const updated = await editarQuestao(questao.id, payload)
-      onSaved(updated)
+      onSaved({ ...updated, subtopicos })
     } catch (e) {
       setErro(e.response?.data?.detail || e.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleSugerir() {
+    setSugerindo(true)
+    setErroSugestao('')
+    setSugestoes([])
+    try {
+      const resultado = await sugerirSubtopico(questao.id)
+      const existingIds = new Set(subtopicos.map(s => s.id))
+      setSugestoes(resultado.filter(s => !existingIds.has(s.id)))
+    } catch (e) {
+      setErroSugestao(e.response?.data?.detail || e.message)
+    } finally {
+      setSugerindo(false)
+    }
+  }
+
+  async function handleConfirmarSugestao(sug) {
+    try {
+      const atualizados = await associarSubtopicos(questao.id, [sug.id])
+      setSubtopicos(atualizados)
+      setSugestoes(s => s.filter(x => x.id !== sug.id))
+    } catch (e) {
+      setErroSugestao(e.response?.data?.detail || e.message)
+    }
+  }
+
+  async function handleRemoverSubtopico(subtopicId) {
+    try {
+      await removerSubtopico(questao.id, subtopicId)
+      setSubtopicos(s => s.filter(x => x.id !== subtopicId))
+    } catch (e) {
+      setErro(e.response?.data?.detail || e.message)
     }
   }
 
@@ -109,6 +149,71 @@ function ModalEditar({ questao, onClose, onSaved }) {
               <input name="year" type="number" value={form.year} onChange={handle}
                 className="w-full mt-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500" />
             </div>
+          </div>
+
+          {/* Subtópicos */}
+          <div className="border border-brand-border rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-brand-muted font-medium">Subtópicos vinculados</label>
+              <button
+                type="button"
+                onClick={handleSugerir}
+                disabled={sugerindo}
+                className="flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 disabled:opacity-50 transition-colors"
+              >
+                {sugerindo ? (
+                  <>
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Consultando IA…
+                  </>
+                ) : 'Sugerir Subtópico'}
+              </button>
+            </div>
+
+            {subtopicos.length === 0 ? (
+              <p className="text-xs text-yellow-500/70 italic">Nenhum subtópico vinculado</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {subtopicos.map(s => (
+                  <span key={s.id} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-card border border-brand-border text-xs text-brand-text">
+                    {s.nome}
+                    {s.fonte === 'ia' && <span className="text-indigo-400/70 ml-0.5">IA</span>}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoverSubtopico(s.id)}
+                      className="ml-0.5 text-brand-muted hover:text-red-400 transition-colors"
+                    >×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {erroSugestao && <p className="text-red-400 text-xs">{erroSugestao}</p>}
+
+            {sugestoes.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-brand-border space-y-1">
+                <p className="text-xs text-indigo-400 font-medium">Sugestões da IA — clique para confirmar:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {sugestoes.map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleConfirmarSugestao(s)}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-300 hover:bg-indigo-500/20 transition-colors"
+                    >
+                      + {s.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!sugerindo && sugestoes.length === 0 && erroSugestao === '' && subtopicos.length > 0 && (
+              <p className="text-xs text-brand-muted/50 italic hidden" />
+            )}
           </div>
         </div>
 
