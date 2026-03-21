@@ -37,18 +37,11 @@ def _subjects_do_ciclo(db: Session, area: str) -> list[Topico]:
 
 
 def _subjects_fallback(db: Session, area: str) -> list[Topico]:
-    """Fallback: busca subjects pelo nome usando MATERIAS_POR_AREA."""
-    from config_materias import MATERIAS_POR_AREA
-
-    materias = MATERIAS_POR_AREA.get(area, [])
-    subjects = []
-    for nome in materias:
-        s = db.query(Topico).filter(
-            Topico.nome == nome, Topico.nivel == 0, Topico.ativo == True
-        ).first()
-        if s:
-            subjects.append(s)
-    return subjects
+    """Fallback: busca todos os subjects ativos da área diretamente do banco."""
+    q = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True)
+    if area:
+        q = q.filter(Topico.area == area)
+    return q.order_by(Topico.nome).all()
 
 
 def _selecionar_questoes_diagnostico(db: Session, subject: Topico) -> list[str]:

@@ -36,15 +36,11 @@ def get_hierarquia(
     com seus subtopicos (nivel=1) para popular os selects de lançamento de bateria.
     """
     from app.models.topico import Topico
-    from config_materias import MATERIAS_POR_AREA
 
-    # Materias da área do aluno; fallback para todas se área não mapeada
     area_key = (usuario.area or "").lower()
-    nomes_area = MATERIAS_POR_AREA.get(area_key)
-
     q = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True)
-    if nomes_area:
-        q = q.filter(Topico.nome.in_(nomes_area))
+    if area_key:
+        q = q.filter(Topico.area == area_key)
     materias = q.order_by(Topico.nome).all()
 
     resultado = []
