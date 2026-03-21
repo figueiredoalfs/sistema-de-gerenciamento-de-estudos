@@ -24,7 +24,7 @@ export async function deletarQuestao(id) {
 }
 
 export async function sugerirSubtopico(id) {
-  const { data } = await client.post(`/admin/questoes/${id}/sugerir-subtopico`)
+  const { data } = await client.post(`/admin/questoes/${id}/sugerir-subtopico`, {}, { timeout: 60000 })
   return data
 }
 
@@ -37,13 +37,32 @@ export async function removerSubtopico(questionId, subtopicId) {
   await client.delete(`/admin/questoes-banco/${questionId}/subtopicos/${subtopicId}`)
 }
 
-export async function importarQuestoes({ questoes, classificar_ia = true }) {
+export async function importarQuestoes({ questoes, classificar_subtopicos = false, classificar_areas = false }) {
   const { data } = await client.post(
     '/admin/importar-questoes',
-    { questoes, classificar_ia },
+    { questoes, classificar_subtopicos, classificar_areas },
     { timeout: 180000 },
   )
   return data
+}
+
+export async function listarAreas() {
+  const { data } = await client.get('/admin/areas')
+  return data
+}
+
+export async function sugerirArea(id) {
+  const { data } = await client.post(`/admin/questoes/${id}/sugerir-areas`, {}, { timeout: 60000 })
+  return data
+}
+
+export async function associarAreas(id, area_ids) {
+  const { data } = await client.post(`/admin/questoes-banco/${id}/areas`, { area_ids })
+  return data
+}
+
+export async function removerArea(questionId, areaId) {
+  await client.delete(`/admin/questoes-banco/${questionId}/areas/${areaId}`)
 }
 
 export async function parsearTecPdf(file) {

@@ -20,7 +20,10 @@ class GeminiProvider(AIProvider):
         response = self._client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
-            config=types.GenerateContentConfig(max_output_tokens=max_tokens),
+            config=types.GenerateContentConfig(
+                max_output_tokens=max_tokens,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
         )
         return response.text.strip()
 

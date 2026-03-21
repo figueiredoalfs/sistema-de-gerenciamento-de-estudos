@@ -3,6 +3,7 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.question_area import AreaInfo
 from app.schemas.question_subtopic import SubtopicoInfo
 
 RespostaCorreta = Literal["A", "B", "C", "D", "E"]
@@ -44,7 +45,8 @@ class QuestaoImportItem(BaseModel):
 
 class ImportacaoRequest(BaseModel):
     questoes: List[Any]  # validação individual no endpoint para isolar erros por questão
-    classificar_ia: bool = True  # False para pular classificação IA (ex: importação de PDF)
+    classificar_subtopicos: bool = False  # True para classificar subtópicos via IA após import
+    classificar_areas: bool = False        # True para classificar áreas via IA após import
 
 
 class ImportacaoResponse(BaseModel):
@@ -77,5 +79,6 @@ class QuestaoBancoResponse(BaseModel):
     materia_pendente: bool = False
     created_at: datetime
     subtopicos: List[SubtopicoInfo] = []
+    areas: List[AreaInfo] = []
 
     model_config = {"from_attributes": True}

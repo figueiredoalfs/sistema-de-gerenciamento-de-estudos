@@ -28,6 +28,8 @@ from app.models.meta import Meta
 from app.models.subtopico_estado import SubtopicoEstado
 from app.models.plano_base import PlanoBase
 from app.models.banca import Banca
+from app.models.area import Area
+from app.models.question_area import QuestionArea
 
 __all__ = [
     "Aluno",
@@ -60,4 +62,6 @@ __all__ = [
     "SubtopicoEstado",
     "PlanoBase",
     "Banca",
+    "Area",
+    "QuestionArea",
 ]

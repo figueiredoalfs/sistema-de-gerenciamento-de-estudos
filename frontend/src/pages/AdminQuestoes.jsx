@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listarQuestoes, editarQuestao, deletarQuestao, sugerirSubtopico, associarSubtopicos, removerSubtopico } from '../api/adminQuestoes'
+import { listarQuestoes, editarQuestao, deletarQuestao, sugerirSubtopico, associarSubtopicos, removerSubtopico, listarAreas, sugerirArea, associarAreas, removerArea } from '../api/adminQuestoes'
 import { listarTodosTopicos, listarMaterias, listarBancas } from '../api/adminTopicos'
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E']
@@ -63,6 +63,15 @@ function ModalEditar({ questao, onClose, onSaved }) {
   const [sugestoes, setSugestoes] = useState([])
   const [erroSugestao, setErroSugestao] = useState('')
 
+  // áreas
+  const [areas, setAreas] = useState(questao.areas || [])
+  const [todasAreas, setTodasAreas] = useState([])
+  const [addAreaSel, setAddAreaSel] = useState('')
+  const [adicionandoArea, setAdicionandoArea] = useState(false)
+  const [sugerindoArea, setSugerindoArea] = useState(false)
+  const [sugestoesArea, setSugestoesArea] = useState([])
+  const [erroArea, setErroArea] = useState('')
+
   useEffect(() => {
     listarMaterias().then(data => {
       setMaterias(data)
@@ -72,6 +81,7 @@ function ModalEditar({ questao, onClose, onSaved }) {
     })
     listarTodosTopicos().then(setTodosTopicos)
     listarBancas(true).then(setBancasModal)
+    listarAreas().then(setTodasAreas)
   }, [])
 
   function handle(e) {
@@ -158,6 +168,54 @@ function ModalEditar({ questao, onClose, onSaved }) {
       setSubtopicos(s => s.filter(x => x.id !== subtopicId))
     } catch (e) {
       setErro(e.response?.data?.detail || e.message)
+    }
+  }
+
+  async function handleSugerirArea() {
+    setSugerindoArea(true)
+    setErroArea('')
+    setSugestoesArea([])
+    try {
+      const resultado = await sugerirArea(questao.id)
+      const existingIds = new Set(areas.map(a => a.id))
+      setSugestoesArea(resultado.filter(a => !existingIds.has(a.id)))
+    } catch (e) {
+      setErroArea(e.response?.data?.detail || e.message)
+    } finally {
+      setSugerindoArea(false)
+    }
+  }
+
+  async function handleConfirmarSugestaoArea(area) {
+    try {
+      const atualizadas = await associarAreas(questao.id, [area.id])
+      setAreas(atualizadas)
+      setSugestoesArea(s => s.filter(x => x.id !== area.id))
+    } catch (e) {
+      setErroArea(e.response?.data?.detail || e.message)
+    }
+  }
+
+  async function handleRemoverArea(areaId) {
+    try {
+      await removerArea(questao.id, areaId)
+      setAreas(a => a.filter(x => x.id !== areaId))
+    } catch (e) {
+      setErroArea(e.response?.data?.detail || e.message)
+    }
+  }
+
+  async function handleAdicionarAreaManual() {
+    if (!addAreaSel) return
+    setAdicionandoArea(true)
+    try {
+      const atualizadas = await associarAreas(questao.id, [addAreaSel])
+      setAreas(atualizadas)
+      setAddAreaSel('')
+    } catch (e) {
+      setErroArea(e.response?.data?.detail || e.message)
+    } finally {
+      setAdicionandoArea(false)
     }
   }
 
@@ -335,6 +393,96 @@ function ModalEditar({ questao, onClose, onSaved }) {
                     className="self-start px-3 py-1 text-xs rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 disabled:opacity-50 transition-colors"
                   >
                     {adicionando ? 'Adicionando…' : 'Adicionar'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Áreas */}
+          <div className="border border-brand-border rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-brand-muted font-medium">Áreas vinculadas</label>
+              <button
+                type="button"
+                onClick={handleSugerirArea}
+                disabled={sugerindoArea}
+                className="flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 disabled:opacity-50 transition-colors"
+              >
+                {sugerindoArea ? (
+                  <>
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Consultando IA…
+                  </>
+                ) : 'Sugerir Área'}
+              </button>
+            </div>
+
+            {areas.length === 0 ? (
+              <p className="text-xs text-yellow-500/70 italic">Nenhuma área vinculada</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {areas.map(a => (
+                  <span key={a.id} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-card border border-brand-border text-xs text-brand-text">
+                    {a.nome}
+                    {a.fonte === 'ia' && <span className="text-indigo-400/70 ml-0.5">IA</span>}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoverArea(a.id)}
+                      className="ml-0.5 text-brand-muted hover:text-red-400 transition-colors"
+                    >×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {erroArea && <p className="text-red-400 text-xs">{erroArea}</p>}
+
+            {sugestoesArea.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-brand-border space-y-1">
+                <p className="text-xs text-indigo-400 font-medium">Sugestões da IA — clique para confirmar:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {sugestoesArea.map(a => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => handleConfirmarSugestaoArea(a)}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-300 hover:bg-indigo-500/20 transition-colors"
+                    >
+                      + {a.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Seletor manual de área */}
+            <div className="mt-3 pt-3 border-t border-brand-border space-y-2">
+              <p className="text-xs text-brand-muted font-medium">Adicionar área manualmente</p>
+              <div className="flex gap-2 items-center">
+                <select
+                  value={addAreaSel}
+                  onChange={e => setAddAreaSel(e.target.value)}
+                  className="flex-1 bg-brand-card border border-brand-border rounded-lg px-2 py-1.5 text-xs text-brand-text focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Selecione uma área…</option>
+                  {todasAreas
+                    .filter(a => !areas.some(x => x.id === a.id))
+                    .map(a => (
+                      <option key={a.id} value={a.id}>{a.nome}</option>
+                    ))}
+                </select>
+                {addAreaSel && (
+                  <button
+                    type="button"
+                    onClick={handleAdicionarAreaManual}
+                    disabled={adicionandoArea}
+                    className="px-3 py-1.5 text-xs rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 disabled:opacity-50 transition-colors"
+                  >
+                    {adicionandoArea ? 'Adicionando…' : 'Adicionar'}
                   </button>
                 )}
               </div>

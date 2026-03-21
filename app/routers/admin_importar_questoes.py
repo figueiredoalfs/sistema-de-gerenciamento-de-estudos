@@ -14,11 +14,14 @@ from app.core.ai_provider import get_ai_provider
 from app.core.database import get_db
 from app.core.security import require_admin
 from app.models.aluno import Aluno
+from app.models.area import Area
 from app.models.questao_banco import QuestaoBanco
+from app.models.question_area import QuestionArea
 from app.models.question_subtopic import QuestionSubtopic
 from app.models.topico import Topico
 from pydantic import ValidationError
 
+from app.schemas.question_area import AreaInfo, AssociarAreaRequest
 from app.schemas.questao_banco import (
     ImportacaoRequest,
     ImportacaoResponse,
@@ -27,6 +30,7 @@ from app.schemas.questao_banco import (
     QuestaoUpdateRequest,
 )
 from app.schemas.question_subtopic import AssociarSubtopicoRequest, SubtopicoInfo
+from app.services.sugestao_areas import salvar_sugestoes_areas, sugerir_areas
 from app.services.sugestao_subtopicos import salvar_sugestoes, sugerir_subtopicos
 
 router = APIRouter(prefix="/admin", tags=["admin — importação de questões"])
@@ -73,10 +77,22 @@ def _subtopicos_da_questao(question_id: str, db: Session) -> List[SubtopicoInfo]
     return [SubtopicoInfo(id=t.id, nome=t.nome, nivel=t.nivel, fonte=fonte) for t, fonte in rows]
 
 
+def _areas_da_questao(question_id: str, db: Session) -> List[AreaInfo]:
+    """Retorna as áreas associadas a uma questão, incluindo a fonte (ia|manual)."""
+    rows = (
+        db.query(Area, QuestionArea.fonte)
+        .join(QuestionArea, QuestionArea.area_id == Area.id)
+        .filter(QuestionArea.question_id == question_id)
+        .all()
+    )
+    return [AreaInfo(id=a.id, nome=a.nome, ativo=a.ativo, fonte=fonte) for a, fonte in rows]
+
+
 def _questao_response(q: QuestaoBanco, db: Session) -> QuestaoBancoResponse:
-    """Monta QuestaoBancoResponse com subtópicos populados."""
+    """Monta QuestaoBancoResponse com subtópicos e áreas populados."""
     data = QuestaoBancoResponse.model_validate(q)
     data.subtopicos = _subtopicos_da_questao(q.id, db)
+    data.areas = _areas_da_questao(q.id, db)
     return data
 
 
@@ -158,22 +174,38 @@ def importar_questoes(
 
     # Fase 2: classificação IA (best-effort, apenas se solicitado)
     avisos_ia: list[str] = []
-    if body.classificar_ia:
+
+    if body.classificar_subtopicos and questoes_importadas:
         try:
+            ai = get_ai_provider()
             subtopicos_nivel2 = (
                 db.query(Topico).filter(Topico.nivel == 2, Topico.ativo == True).all()
             )
-            if subtopicos_nivel2 and questoes_importadas:
-                ai = get_ai_provider()
+            if subtopicos_nivel2:
                 for questao in questoes_importadas:
                     ids_sugeridos = sugerir_subtopicos(questao, subtopicos_nivel2, ai)
                     if ids_sugeridos:
                         salvar_sugestoes(str(questao.id), ids_sugeridos, db)
                     else:
-                        avisos_ia.append(f"{questao.question_code}: sem classificação IA")
+                        avisos_ia.append(f"{questao.question_code}: sem classificação IA (subtópicos)")
                 db.commit()
         except Exception as exc:
-            avisos_ia.append(f"Classificação IA falhou: {str(exc)}")
+            avisos_ia.append(f"Classificação IA (subtópicos) falhou: {str(exc)}")
+
+    if body.classificar_areas and questoes_importadas:
+        try:
+            ai = get_ai_provider()
+            areas_ativas = db.query(Area).filter(Area.ativo == True).all()
+            if areas_ativas:
+                for questao in questoes_importadas:
+                    ids_areas = sugerir_areas(questao, areas_ativas, ai)
+                    if ids_areas:
+                        salvar_sugestoes_areas(str(questao.id), ids_areas, db)
+                    else:
+                        avisos_ia.append(f"{questao.question_code}: sem classificação IA (áreas)")
+                db.commit()
+        except Exception as exc:
+            avisos_ia.append(f"Classificação IA (áreas) falhou: {str(exc)}")
 
     return ImportacaoResponse(importadas=importadas, erros=erros, avisos_ia=avisos_ia)
 
@@ -280,6 +312,145 @@ def remover_subtopico(
 
     db.delete(assoc)
     db.commit()
+
+
+# ─── Endpoints — áreas ───────────────────────────────────────────────────────
+
+@router.get("/areas", response_model=List[AreaInfo])
+def listar_areas(
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: lista todas as áreas cadastradas."""
+    return db.query(Area).filter(Area.ativo == True).order_by(Area.nome).all()
+
+
+@router.post("/areas", response_model=AreaInfo, status_code=201)
+def criar_area(
+    body: dict,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: cadastra uma nova área concursal."""
+    nome = (body.get("nome") or "").strip()
+    if not nome:
+        raise HTTPException(status_code=422, detail="Campo 'nome' é obrigatório")
+
+    existente = db.query(Area).filter(Area.nome.ilike(nome)).first()
+    if existente:
+        raise HTTPException(status_code=409, detail=f"Área '{nome}' já existe")
+
+    area = Area(id=str(uuid.uuid4()), nome=nome)
+    db.add(area)
+    db.commit()
+    db.refresh(area)
+    return area
+
+
+@router.get("/questoes-banco/{question_id}/areas", response_model=List[AreaInfo])
+def listar_areas_questao(
+    question_id: str,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: lista as áreas associadas a uma questão."""
+    questao = db.query(QuestaoBanco).filter(QuestaoBanco.id == question_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+    return _areas_da_questao(question_id, db)
+
+
+@router.post("/questoes-banco/{question_id}/areas", response_model=List[AreaInfo])
+def associar_areas(
+    question_id: str,
+    body: AssociarAreaRequest,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: associa uma ou mais áreas a uma questão (ignora duplicatas)."""
+    questao = db.query(QuestaoBanco).filter(QuestaoBanco.id == question_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    for area_id in body.area_ids:
+        area = db.query(Area).filter(Area.id == area_id, Area.ativo == True).first()
+        if not area:
+            raise HTTPException(status_code=422, detail=f"area_id '{area_id}' não encontrado")
+
+        assoc = QuestionArea(
+            id=str(uuid.uuid4()),
+            question_id=question_id,
+            area_id=area_id,
+            fonte="manual",
+        )
+        db.add(assoc)
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+
+    db.commit()
+    return _areas_da_questao(question_id, db)
+
+
+@router.delete(
+    "/questoes-banco/{question_id}/areas/{area_id}",
+    status_code=204,
+    response_class=Response,
+)
+def remover_area(
+    question_id: str,
+    area_id: str,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: remove a associação entre uma questão e uma área."""
+    assoc = (
+        db.query(QuestionArea)
+        .filter(
+            QuestionArea.question_id == question_id,
+            QuestionArea.area_id == area_id,
+        )
+        .first()
+    )
+    if not assoc:
+        raise HTTPException(status_code=404, detail="Associação não encontrada")
+
+    db.delete(assoc)
+    db.commit()
+
+
+@router.post("/questoes/{question_id}/sugerir-areas", response_model=List[AreaInfo])
+def sugerir_areas_questao(
+    question_id: str,
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: sugere áreas para uma questão via IA. Retorna sugestões sem salvar — admin confirma."""
+    questao = db.query(QuestaoBanco).filter(QuestaoBanco.id == question_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    areas = db.query(Area).filter(Area.ativo == True).all()
+    if not areas:
+        raise HTTPException(status_code=422, detail="Nenhuma área cadastrada")
+
+    ai = get_ai_provider()
+    try:
+        from app.services.sugestao_areas import _build_prompt, _parse_ids
+        prompt = _build_prompt(questao, areas)
+        raw = ai.generate(prompt, max_tokens=256)
+        valid_ids = {str(a.id) for a in areas}
+        ids_sugeridos = _parse_ids(raw, valid_ids)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Erro na IA: {str(exc)}")
+
+    id_set = set(ids_sugeridos)
+    return [
+        AreaInfo(id=a.id, nome=a.nome, ativo=a.ativo, fonte="ia")
+        for a in areas
+        if a.id in id_set
+    ]
 
 
 # ─── Endpoints — CRUD de questões ────────────────────────────────────────────
@@ -416,15 +587,21 @@ def sugerir_subtopico_questao(
         raise HTTPException(status_code=422, detail="Nenhum subtópico cadastrado no banco")
 
     ai = get_ai_provider()
-    ids_sugeridos = sugerir_subtopicos(questao, subtopicos, ai)
+    try:
+        from app.services.sugestao_subtopicos import _build_prompt, _parse_ids
+        prompt = _build_prompt(questao, subtopicos)
+        raw = ai.generate(prompt, max_tokens=2048)
+        valid_ids = {str(t.id) for t in subtopicos}
+        ids_sugeridos = _parse_ids(raw, valid_ids)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Erro na IA: {str(exc)}")
 
     id_set = set(ids_sugeridos)
-    sugeridos = [
+    return [
         SubtopicoInfo(id=t.id, nome=t.nome, nivel=t.nivel, fonte="ia")
         for t in subtopicos
         if t.id in id_set
     ]
-    return sugeridos
 
 
 # ─── Endpoint — TEC Concursos (sem IA) ───────────────────────────────────────

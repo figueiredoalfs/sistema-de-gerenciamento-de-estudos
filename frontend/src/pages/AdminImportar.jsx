@@ -195,6 +195,8 @@ export default function AdminImportar() {
   const [resultado, setResultado]   = useState(null)
   const [dragging, setDragging]     = useState(false)
   const [editando, setEditando]     = useState(null) // { index, item }
+  const [classificarSubtopicos, setClassificarSubtopicos] = useState(false)
+  const [classificarAreas, setClassificarAreas]           = useState(false)
   // PDF (IA)
   const [pdfFile, setPdfFile]       = useState(null)
   const [extraindo, setExtraindo]   = useState(false)
@@ -260,7 +262,7 @@ export default function AdminImportar() {
           : null,
         correct_answer: q.correct_answer ?? 'A',
       }))
-      const res = await importarQuestoes({ questoes: payload, classificar_ia: false })
+      const res = await importarQuestoes({ questoes: payload, classificar_subtopicos: false, classificar_areas: false })
       setTecResultado(res)
     } catch (e) {
       const detail = e.response?.data?.detail
@@ -391,7 +393,7 @@ export default function AdminImportar() {
         }
         return base
       })
-      const res = await importarQuestoes({ questoes: questoesNormalizadas, classificar_ia: aba !== 'pdf' })
+      const res = await importarQuestoes({ questoes: questoesNormalizadas, classificar_subtopicos: classificarSubtopicos, classificar_areas: classificarAreas })
       setResultado(res)
     } catch (e) {
       const detail = e.response?.data?.detail
@@ -492,25 +494,47 @@ export default function AdminImportar() {
 
           {erroPdf && <p className="text-xs text-red-400">{erroPdf}</p>}
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleExtrairPdf}
-              disabled={!pdfFile || extraindo}
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all"
-            >
-              {extraindo && (
-                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              )}
-              {extraindo ? 'Extraindo via IA…' : 'Extrair questões via IA'}
-            </button>
-            {pdfFile && !extraindo && (
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex gap-2">
               <button
-                onClick={() => { setPdfFile(null); setPreview(null); setErroPdf('') }}
-                className="px-4 py-2 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors"
+                onClick={handleExtrairPdf}
+                disabled={!pdfFile || extraindo}
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all"
               >
-                Limpar
+                {extraindo && (
+                  <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                )}
+                {extraindo ? 'Extraindo via IA…' : 'Extrair questões via IA'}
               </button>
-            )}
+              {pdfFile && !extraindo && (
+                <button
+                  onClick={() => { setPdfFile(null); setPreview(null); setErroPdf('') }}
+                  className="px-4 py-2 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col gap-1 ml-2">
+              <label className="flex items-center gap-2 text-xs text-brand-muted cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={classificarSubtopicos}
+                  onChange={e => setClassificarSubtopicos(e.target.checked)}
+                  className="rounded border-brand-border text-indigo-500 focus:ring-indigo-500"
+                />
+                Classificar subtópicos via IA ao importar
+              </label>
+              <label className="flex items-center gap-2 text-xs text-brand-muted cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={classificarAreas}
+                  onChange={e => setClassificarAreas(e.target.checked)}
+                  className="rounded border-brand-border text-indigo-500 focus:ring-indigo-500"
+                />
+                Classificar áreas via IA ao importar
+              </label>
+            </div>
           </div>
         </div>
       )}
@@ -764,16 +788,38 @@ export default function AdminImportar() {
                 </p>
               )}
             </div>
-            <button
-              onClick={handleImportar}
-              disabled={!podeImportar}
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all"
-            >
-              {importando && (
-                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              )}
-              {importando ? 'Importando…' : 'Importar'}
-            </button>
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="flex items-center gap-2 text-xs text-brand-muted cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={classificarSubtopicos}
+                    onChange={e => setClassificarSubtopicos(e.target.checked)}
+                    className="rounded border-brand-border text-indigo-500 focus:ring-indigo-500"
+                  />
+                  Classificar subtópicos via IA
+                </label>
+                <label className="flex items-center gap-2 text-xs text-brand-muted cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={classificarAreas}
+                    onChange={e => setClassificarAreas(e.target.checked)}
+                    className="rounded border-brand-border text-indigo-500 focus:ring-indigo-500"
+                  />
+                  Classificar áreas via IA
+                </label>
+              </div>
+              <button
+                onClick={handleImportar}
+                disabled={!podeImportar}
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all"
+              >
+                {importando && (
+                  <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                )}
+                {importando ? 'Importando…' : 'Importar'}
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
