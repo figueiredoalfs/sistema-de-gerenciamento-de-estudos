@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarQuestoes, editarQuestao, deletarQuestao, sugerirSubtopico, associarSubtopicos, removerSubtopico } from '../api/adminQuestoes'
-import { listarTodosTopicos } from '../api/adminTopicos'
+import { listarTodosTopicos, listarMaterias } from '../api/adminTopicos'
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E']
 
@@ -45,14 +45,63 @@ function ModalEditar({ questao, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [erro, setErro] = useState('')
 
+  // matéria — seletor hierárquico
+  const [materias, setMaterias] = useState([])
+  const [todosTopicos, setTodosTopicos] = useState([])
+  const [materiaSel, setMateriaSel] = useState('') // id do Topico nivel=0 ou 'outra'
+
+  // seletor manual de subtópico
+  const [addMateriaSel, setAddMateriaSel] = useState('')
+  const [addTopicoSel, setAddTopicoSel] = useState('')
+  const [addSubtopicoSel, setAddSubtopicoSel] = useState('')
+  const [adicionando, setAdicionando] = useState(false)
+
   // subtópicos
   const [subtopicos, setSubtopicos] = useState(questao.subtopicos || [])
   const [sugerindo, setSugerindo] = useState(false)
   const [sugestoes, setSugestoes] = useState([])
   const [erroSugestao, setErroSugestao] = useState('')
 
+  useEffect(() => {
+    listarMaterias().then(data => {
+      setMaterias(data)
+      const match = data.find(m => m.nome.toLowerCase() === questao.subject.toLowerCase())
+      setMateriaSel(match ? String(match.id) : 'outra')
+    })
+    listarTodosTopicos().then(setTodosTopicos)
+  }, [])
+
   function handle(e) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
+  }
+
+  function handleMateria(e) {
+    const val = e.target.value
+    setMateriaSel(val)
+    if (val !== 'outra') {
+      const m = materias.find(m => String(m.id) === val)
+      if (m) setForm(f => ({ ...f, subject: m.nome }))
+    }
+  }
+
+  // cascata para adicionar subtópico manualmente
+  const topicosFiltrados = todosTopicos.filter(t => t.nivel === 1 && String(t.parent_id) === addMateriaSel)
+  const subtopicosDisponiveis = todosTopicos.filter(t => t.nivel === 2 && String(t.parent_id) === addTopicoSel)
+
+  async function handleAdicionarSubtopico() {
+    if (!addSubtopicoSel) return
+    setAdicionando(true)
+    try {
+      const atualizados = await associarSubtopicos(questao.id, [addSubtopicoSel])
+      setSubtopicos(atualizados)
+      setAddMateriaSel('')
+      setAddTopicoSel('')
+      setAddSubtopicoSel('')
+    } catch (e) {
+      setErroSugestao(e.response?.data?.detail || e.message)
+    } finally {
+      setAdicionando(false)
+    }
   }
 
   async function salvar() {
@@ -123,9 +172,27 @@ function ModalEditar({ questao, onClose, onSaved }) {
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-brand-muted">Matéria (subject)</label>
-            <input name="subject" value={form.subject} onChange={handle}
-              className="w-full mt-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500" />
+            <label className="text-xs text-brand-muted">Matéria</label>
+            <select
+              value={materiaSel}
+              onChange={handleMateria}
+              className="w-full mt-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500"
+            >
+              <option value="" disabled>Selecione uma matéria…</option>
+              {materias.map(m => (
+                <option key={m.id} value={String(m.id)}>{m.nome}</option>
+              ))}
+              <option value="outra">Outra (nova matéria)</option>
+            </select>
+            {materiaSel === 'outra' && (
+              <input
+                name="subject"
+                value={form.subject}
+                onChange={handle}
+                placeholder="Digite o nome da nova matéria"
+                className="w-full mt-2 bg-brand-card border border-yellow-500/40 rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-yellow-500"
+              />
+            )}
           </div>
           <div>
             <label className="text-xs text-brand-muted">Enunciado</label>
@@ -215,6 +282,57 @@ function ModalEditar({ questao, onClose, onSaved }) {
             {!sugerindo && sugestoes.length === 0 && erroSugestao === '' && subtopicos.length > 0 && (
               <p className="text-xs text-brand-muted/50 italic hidden" />
             )}
+
+            {/* Seletor manual de subtópico */}
+            <div className="mt-3 pt-3 border-t border-brand-border space-y-2">
+              <p className="text-xs text-brand-muted font-medium">Adicionar subtópico manualmente</p>
+              <div className="flex flex-col gap-1.5">
+                <select
+                  value={addMateriaSel}
+                  onChange={e => { setAddMateriaSel(e.target.value); setAddTopicoSel(''); setAddSubtopicoSel('') }}
+                  className="w-full bg-brand-card border border-brand-border rounded-lg px-2 py-1.5 text-xs text-brand-text focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Matéria…</option>
+                  {todosTopicos.filter(t => t.nivel === 0).map(m => (
+                    <option key={m.id} value={String(m.id)}>{m.nome}</option>
+                  ))}
+                </select>
+                {addMateriaSel && (
+                  <select
+                    value={addTopicoSel}
+                    onChange={e => { setAddTopicoSel(e.target.value); setAddSubtopicoSel('') }}
+                    className="w-full bg-brand-card border border-brand-border rounded-lg px-2 py-1.5 text-xs text-brand-text focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="">Tópico…</option>
+                    {topicosFiltrados.map(t => (
+                      <option key={t.id} value={String(t.id)}>{t.nome}</option>
+                    ))}
+                  </select>
+                )}
+                {addTopicoSel && (
+                  <select
+                    value={addSubtopicoSel}
+                    onChange={e => setAddSubtopicoSel(e.target.value)}
+                    className="w-full bg-brand-card border border-brand-border rounded-lg px-2 py-1.5 text-xs text-brand-text focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="">Subtópico…</option>
+                    {subtopicosDisponiveis.map(s => (
+                      <option key={s.id} value={String(s.id)}>{s.nome}</option>
+                    ))}
+                  </select>
+                )}
+                {addSubtopicoSel && (
+                  <button
+                    type="button"
+                    onClick={handleAdicionarSubtopico}
+                    disabled={adicionando}
+                    className="self-start px-3 py-1 text-xs rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 disabled:opacity-50 transition-colors"
+                  >
+                    {adicionando ? 'Adicionando…' : 'Adicionar'}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -378,7 +496,7 @@ export default function AdminQuestoes() {
       ) : questoes.length === 0 && page === 1 ? (
         <p className="text-brand-muted text-sm">Nenhuma questão encontrada.</p>
       ) : questoes.length === 0 ? null : (
-        <div className="bg-brand-card border border-brand-border rounded-xl overflow-hidden">
+        <div className="bg-brand-card border border-brand-border rounded-xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-brand-border">
               <tr>
@@ -403,7 +521,7 @@ export default function AdminQuestoes() {
                       <td className="px-4 py-3 font-mono text-xs text-brand-muted whitespace-nowrap">{q.question_code}</td>
                       <td className="px-4 py-3 text-brand-text max-w-xs truncate">{q.subject}</td>
                       <td className="px-4 py-3 text-brand-muted whitespace-nowrap">{q.board || '—'} {q.year || ''}</td>
-                      <td className="px-4 py-3 text-brand-muted">
+                      <td className="px-4 py-3 text-brand-muted max-w-xs truncate">
                         {q.subtopicos?.length > 0
                           ? q.subtopicos.map(s => s.nome).join(', ')
                           : <span className="text-xs text-yellow-500/70">sem subtópico</span>}

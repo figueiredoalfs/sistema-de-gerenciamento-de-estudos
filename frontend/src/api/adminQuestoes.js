@@ -74,3 +74,13 @@ export async function extrairQuestoesPdf(file) {
   })
   return data
 }
+
+export async function listarPendencias() {
+  const { data } = await client.get('/admin/materias-pendentes')
+  return data
+}
+
+export async function resolverPendencia(id, body) {
+  const { data } = await client.post(`/admin/materias-pendentes/${id}/resolver`, body)
+  return data
+}

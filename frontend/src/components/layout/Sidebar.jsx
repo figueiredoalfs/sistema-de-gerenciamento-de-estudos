@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Logo from './Logo'
+import { listarPendencias } from '../../api/adminQuestoes'
 
 const NAV = [
   {
@@ -64,6 +66,11 @@ const NAV_ADMIN = [
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
     </svg>
   )},
+  { to: '/admin/pendencias', label: 'Pendências', badge: true, icon: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+    </svg>
+  )},
 ]
 
 const NAV_MENTOR = [
@@ -80,6 +87,12 @@ export default function Sidebar() {
   const isAdmin = user?.role === 'administrador'
   const isMentor = user?.role === 'mentor'
   const nav = isAdmin ? NAV_ADMIN : isMentor ? NAV_MENTOR : NAV
+
+  const [contPendencias, setContPendencias] = useState(0)
+  useEffect(() => {
+    if (!isAdmin) return
+    listarPendencias().then(qs => setContPendencias(qs.length)).catch(() => {})
+  }, [isAdmin])
 
   function handleLogout() {
     logout()
@@ -110,7 +123,12 @@ export default function Sidebar() {
             }
           >
             {item.icon}
-            {item.label}
+            <span className="flex-1">{item.label}</span>
+            {item.badge && contPendencias > 0 && (
+              <span className="ml-auto text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5 font-bold leading-none">
+                {contPendencias}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

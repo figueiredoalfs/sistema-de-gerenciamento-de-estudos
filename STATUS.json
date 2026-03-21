@@ -1,8 +1,8 @@
 {
-  "concluidas": 11,
+  "concluidas": 12,
   "em_andamento": 0,
   "total": 36,
-  "proxima": 11,
+  "proxima": 12,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -73,8 +73,8 @@
     {
       "fase": "FASE-3",
       "tarefa": "Importação em lote: JSON + PDF TEC Concursos",
-      "nota": "Upload JSON ou PDF. PDF processado pelo Gemini Flash. Preview antes de confirmar.",
-      "status": "pendente"
+      "nota": "Upload JSON ou PDF. PDF processado por parser regex (pdfplumber). Preview antes de confirmar.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-3",

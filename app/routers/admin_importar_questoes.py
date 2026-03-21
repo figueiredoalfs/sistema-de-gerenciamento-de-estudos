@@ -66,6 +66,15 @@ def _questao_response(q: QuestaoBanco, db: Session) -> QuestaoBancoResponse:
     return data
 
 
+def _materia_existe(nome: str, db: Session) -> bool:
+    """Verifica se existe uma matéria (nivel=0) com esse nome (case-insensitive)."""
+    return db.query(Topico).filter(
+        Topico.nivel == 0,
+        Topico.ativo == True,
+        Topico.nome.ilike(nome.strip()),
+    ).first() is not None
+
+
 # ─── Endpoints — importação ───────────────────────────────────────────────────
 
 @router.post("/importar-questoes", response_model=ImportacaoResponse, status_code=201)
@@ -102,6 +111,9 @@ def importar_questoes(
                 year=item.year,
             )
             db.add(questao)
+            db.flush()
+            if not _materia_existe(item.materia, db):
+                questao.materia_pendente = True
             db.commit()
             questoes_importadas.append(questao)
             importadas += 1
@@ -285,6 +297,7 @@ def editar_questao(
 
     if body.subject is not None:
         questao.subject = body.subject
+        questao.materia_pendente = not _materia_existe(body.subject, db)
     if body.statement is not None:
         questao.statement = body.statement
     if body.alternatives is not None:
@@ -295,6 +308,8 @@ def editar_questao(
         questao.board = body.board
     if body.year is not None:
         questao.year = body.year
+    if body.materia_pendente is not None:
+        questao.materia_pendente = body.materia_pendente
 
     db.commit()
     db.refresh(questao)

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
 from app.core.database import Base
 
@@ -17,4 +17,5 @@ class QuestaoBanco(Base):
     correct_answer = Column(String(1), nullable=False)  # A, B, C, D ou E
     board = Column(String(100), nullable=True)
     year = Column(Integer, nullable=True)
+    materia_pendente = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

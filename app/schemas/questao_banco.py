@@ -60,6 +60,7 @@ class QuestaoUpdateRequest(BaseModel):
     correct_answer: Optional[RespostaCorreta] = None
     board: Optional[str] = None
     year: Optional[int] = None
+    materia_pendente: Optional[bool] = None
 
 
 class QuestaoBancoResponse(BaseModel):
@@ -71,6 +72,7 @@ class QuestaoBancoResponse(BaseModel):
     correct_answer: str
     board: Optional[str]
     year: Optional[int]
+    materia_pendente: bool = False
     created_at: datetime
     subtopicos: List[SubtopicoInfo] = []
 
