@@ -39,13 +39,26 @@ def _gerar_question_code(disciplina: str, banca: str, ano: Optional[int], db: Se
     banca_part = (banca or "SEM-BANCA").upper().replace(" ", "-")
     ano_part = str(ano) if ano else "SEM-ANO"
     prefix = f"{disciplina.upper()}-{banca_part}-{ano_part}"
+    prefix_dash = prefix + "-"
 
     prefix_escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    count = db.query(QuestaoBanco).filter(
-        QuestaoBanco.question_code.like(f"{prefix_escaped}-%", escape="\\")
-    ).count()
+    existing_codes = [
+        row[0] for row in db.query(QuestaoBanco.question_code).filter(
+            QuestaoBanco.question_code.like(f"{prefix_escaped}-%", escape="\\")
+        ).all()
+    ]
 
-    seq = str(count + 1).zfill(4)
+    max_seq = 0
+    for code in existing_codes:
+        if code.startswith(prefix_dash):
+            try:
+                seq_num = int(code[len(prefix_dash):len(prefix_dash) + 4])
+                if seq_num > max_seq:
+                    max_seq = seq_num
+            except (ValueError, IndexError):
+                pass
+
+    seq = str(max_seq + 1).zfill(4)
     return f"{prefix}-{seq}"
 
 

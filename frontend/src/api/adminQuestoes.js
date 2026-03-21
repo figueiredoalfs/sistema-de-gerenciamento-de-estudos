@@ -95,3 +95,18 @@ export async function resolverBanca(id, body) {
   const { data } = await client.post(`/admin/materias-pendentes/${id}/resolver-banca`, body)
   return data
 }
+
+export async function reclassificarPendencias() {
+  const { data } = await client.post('/admin/reclassificar')
+  return data
+}
+
+export async function resolverMateriaLote(body) {
+  const { data } = await client.post('/admin/materias-pendentes/resolver-materia-lote', body)
+  return data
+}
+
+export async function resolverBancaLote(body) {
+  const { data } = await client.post('/admin/materias-pendentes/resolver-banca-lote', body)
+  return data
+}

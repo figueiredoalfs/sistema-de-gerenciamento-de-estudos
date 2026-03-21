@@ -63,6 +63,9 @@ def criar_banca(
     db.add(banca)
     db.commit()
     db.refresh(banca)
+    # Reclassifica questões que possam ter essa banca e estavam pendentes
+    from app.scripts.reclassificar_pendencias import reclassificar
+    reclassificar(db)
     return banca
 
 

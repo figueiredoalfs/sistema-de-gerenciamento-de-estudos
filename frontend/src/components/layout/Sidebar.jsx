@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Logo from './Logo'
 import { listarPendencias } from '../../api/adminQuestoes'
@@ -88,11 +88,12 @@ export default function Sidebar() {
   const isMentor = user?.role === 'mentor'
   const nav = isAdmin ? NAV_ADMIN : isMentor ? NAV_MENTOR : NAV
 
+  const location = useLocation()
   const [contPendencias, setContPendencias] = useState(0)
   useEffect(() => {
     if (!isAdmin) return
     listarPendencias().then(qs => setContPendencias(qs.length)).catch(() => {})
-  }, [isAdmin])
+  }, [isAdmin, location.pathname])
 
   function handleLogout() {
     logout()
