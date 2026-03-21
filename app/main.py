@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
-from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes, admin_importar_questoes, task_conteudo, admin_plano_base  # noqa: E501
+from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes, admin_importar_questoes, task_conteudo, admin_plano_base, admin_importar_tec  # noqa: E501
 from app.routers import cronograma_semanal
 from app.routers import metas
 from app.modules.conteudo.router import router as conteudo_router
@@ -70,6 +70,7 @@ app.include_router(task_conteudo.router)
 app.include_router(cronograma_semanal.router)
 app.include_router(metas.router)
 app.include_router(admin_plano_base.router)
+app.include_router(admin_importar_tec.router)
 
 
 @app.get("/", tags=["health"])

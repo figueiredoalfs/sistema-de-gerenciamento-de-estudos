@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { extrairQuestoesPdf, importarQuestoes } from '../api/adminQuestoes'
+import { extrairQuestoesPdf, importarQuestoes, parsearTecPdfV2 } from '../api/adminQuestoes'
 
 function ModalEditarQuestao({ item, onSave, onClose }) {
   const [form, setForm] = useState({
@@ -187,7 +187,7 @@ function validarItem(item) {
 }
 
 export default function AdminImportar() {
-  const [aba, setAba]               = useState('json') // 'json' | 'pdf'
+  const [aba, setAba]               = useState('json') // 'json' | 'tec' | 'pdf'
   const [rawText, setRawText]       = useState('')
   const [parseError, setParseError] = useState('')
   const [preview, setPreview]       = useState(null)
@@ -195,13 +195,25 @@ export default function AdminImportar() {
   const [resultado, setResultado]   = useState(null)
   const [dragging, setDragging]     = useState(false)
   const [editando, setEditando]     = useState(null) // { index, item }
-  // PDF
+  // PDF (IA)
   const [pdfFile, setPdfFile]       = useState(null)
   const [extraindo, setExtraindo]   = useState(false)
   const [erroPdf, setErroPdf]       = useState('')
   const [draggingPdf, setDraggingPdf] = useState(false)
+  // TEC
+  const [tecFile, setTecFile]           = useState(null)
+  const [tecDragging, setTecDragging]   = useState(false)
+  const [tecExtraindo, setTecExtraindo] = useState(false)
+  const [tecErro, setTecErro]           = useState('')
+  const [tecQuestoes, setTecQuestoes]   = useState([])   // lista mutável (edições)
+  const [tecStats, setTecStats]         = useState(null)  // {total, sem_gabarito}
+  const [tecImportando, setTecImportando] = useState(false)
+  const [tecResultado, setTecResultado]   = useState(null)
+  const [tecEditando, setTecEditando]     = useState(null) // {index, item}
+
   const fileRef     = useRef()
   const pdfRef      = useRef()
+  const tecRef      = useRef()
   const resultadoRef = useRef()
 
   useEffect(() => {
@@ -210,12 +222,80 @@ export default function AdminImportar() {
 
   function trocarAba(novaAba) {
     setAba(novaAba)
-    setPreview(null)
-    setResultado(null)
-    setParseError('')
-    setErroPdf('')
-    setPdfFile(null)
-    setRawText('')
+    setPreview(null); setResultado(null); setParseError('')
+    setErroPdf(''); setPdfFile(null); setRawText('')
+    setTecFile(null); setTecErro(''); setTecQuestoes([]); setTecStats(null)
+    setTecResultado(null); setTecEditando(null)
+  }
+
+  async function handleExtrairTec() {
+    if (!tecFile) return
+    setTecExtraindo(true); setTecErro(''); setTecQuestoes([]); setTecStats(null); setTecResultado(null)
+    try {
+      const res = await parsearTecPdfV2(tecFile)
+      setTecQuestoes(res.questoes)
+      setTecStats({ total: res.total, sem_gabarito: res.sem_gabarito })
+    } catch (e) {
+      const detail = e.response?.data?.detail
+      const msg = Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join('; ') : detail || e.message || 'Erro ao processar PDF'
+      setTecErro(msg)
+    } finally {
+      setTecExtraindo(false)
+    }
+  }
+
+  async function handleImportarTec() {
+    if (!tecQuestoes.length) return
+    setTecImportando(true); setTecResultado(null)
+    try {
+      const payload = tecQuestoes.map(q => ({
+        materia: q.materia,
+        subject: q.subject,
+        board: q.board || null,
+        year: q.year || null,
+        statement: q.statement,
+        alternatives: q.alternatives
+          ? { A: q.alternatives.A || '', B: q.alternatives.B || '', C: q.alternatives.C || '',
+              D: q.alternatives.D || '', E: q.alternatives.E || '' }
+          : null,
+        correct_answer: q.correct_answer ?? 'A',
+      }))
+      const res = await importarQuestoes({ questoes: payload, classificar_ia: false })
+      setTecResultado(res)
+    } catch (e) {
+      const detail = e.response?.data?.detail
+      const msg = Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join('; ') : detail || e.message || 'Erro ao importar'
+      setTecResultado({ importadas: 0, erros: [msg], avisos_ia: [] })
+    } finally {
+      setTecImportando(false)
+    }
+  }
+
+  function tecToModalItem(q) {
+    return {
+      materia: q.materia,
+      subject: q.subject,
+      statement: q.statement,
+      correct_answer: q.correct_answer || '',
+      board: q.board || '',
+      year: q.year || '',
+      alternatives: q.alternatives || null,
+    }
+  }
+
+  function tecFromModalSave(original, saved) {
+    const g = normalizarGabarito(saved.correct_answer)
+    return {
+      ...original,
+      materia: saved.materia,
+      subject: saved.subject,
+      statement: saved.statement,
+      correct_answer: g || null,
+      board: saved.board || null,
+      year: saved.year ? Number(saved.year) : null,
+      alternatives: saved.alternatives || null,
+      tipo: saved.alternatives ? 'multipla_escolha' : 'certo_errado',
+    }
   }
 
   async function handleExtrairPdf() {
@@ -233,7 +313,10 @@ export default function AdminImportar() {
       }
     } catch (e) {
       const detail = e.response?.data?.detail
-      setErroPdf(detail || 'Erro ao processar PDF. Tente novamente.')
+      const msg = Array.isArray(detail)
+        ? detail.map(d => d.msg || JSON.stringify(d)).join('; ')
+        : detail || e.message || 'Erro ao processar PDF. Tente novamente.'
+      setErroPdf(msg)
     } finally {
       setExtraindo(false)
     }
@@ -336,7 +419,8 @@ export default function AdminImportar() {
       <div className="flex gap-1 border-b border-brand-border">
         {[
           { id: 'json', label: 'JSON / CSV' },
-          { id: 'pdf',  label: 'PDF (IA)' },
+          { id: 'tec',  label: 'TEC Concursos' },
+          { id: 'pdf',  label: 'PDF via IA' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -428,6 +512,149 @@ export default function AdminImportar() {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Aba TEC Concursos */}
+      {aba === 'tec' && (
+        <div className="space-y-4">
+          <div className="bg-brand-card border border-brand-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-brand-text">Upload de PDF do TEC Concursos</h2>
+                <p className="text-xs text-brand-muted mt-0.5">Parser direto — sem IA. Use o botão <strong className="text-brand-text">"Imprimir"</strong> do TEC Concursos e salve como PDF pelo navegador. Não use Ctrl+P ou "Print to PDF" do Windows.</p>
+              </div>
+            </div>
+
+            {/* Drop zone TEC */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setTecDragging(true) }}
+              onDragLeave={() => setTecDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault(); setTecDragging(false)
+                const f = e.dataTransfer.files[0]
+                if (f && f.name.toLowerCase().endsWith('.pdf')) { setTecFile(f); setTecErro(''); setTecQuestoes([]); setTecStats(null) }
+                else setTecErro('Selecione um arquivo .pdf')
+              }}
+              onClick={() => tecRef.current.click()}
+              className={`border-2 border-dashed rounded-xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors select-none ${
+                tecDragging ? 'border-indigo-500 bg-indigo-500/5' : 'border-brand-border hover:border-brand-muted'
+              }`}
+            >
+              <svg className="w-8 h-8 text-brand-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {tecFile
+                ? <p className="text-sm text-indigo-400 font-medium">{tecFile.name}</p>
+                : <><p className="text-sm text-brand-muted">Arraste um <span className="text-brand-text font-medium">.pdf</span> do TEC Concursos</p><p className="text-xs text-brand-muted">ou clique para selecionar</p></>}
+              <input ref={tecRef} type="file" accept=".pdf" className="hidden"
+                onChange={(e) => { const f = e.target.files[0]; if (f) { setTecFile(f); setTecErro(''); setTecQuestoes([]); setTecStats(null) } }} />
+            </div>
+
+            {tecErro && <p className="text-xs text-red-400">{tecErro}</p>}
+
+            <div className="flex gap-2">
+              <button onClick={handleExtrairTec} disabled={!tecFile || tecExtraindo}
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all">
+                {tecExtraindo && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
+                {tecExtraindo ? 'Extraindo questões…' : 'Extrair questões'}
+              </button>
+              {tecFile && !tecExtraindo && (
+                <button onClick={() => { setTecFile(null); setTecQuestoes([]); setTecStats(null); setTecErro('') }}
+                  className="px-4 py-2 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors">
+                  Limpar
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Stats bar */}
+          {tecStats && (
+            <div className="flex gap-4 text-sm">
+              <span className="text-brand-muted">{tecStats.total} questão{tecStats.total !== 1 ? 'ões' : ''} extraída{tecStats.total !== 1 ? 's' : ''}</span>
+              {tecStats.sem_gabarito > 0 && (
+                <span className="text-yellow-400">{tecStats.sem_gabarito} sem gabarito — serão importadas com gabarito "A" (edite antes de confirmar)</span>
+              )}
+            </div>
+          )}
+
+          {/* Preview TEC */}
+          {tecQuestoes.length > 0 && (
+            <div className="bg-brand-card border border-brand-border rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border">
+                <h2 className="text-sm font-semibold text-brand-text">{tecQuestoes.length} questão{tecQuestoes.length !== 1 ? 'ões' : ''} encontrada{tecQuestoes.length !== 1 ? 's' : ''}</h2>
+                <button onClick={handleImportarTec} disabled={tecImportando}
+                  className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all">
+                  {tecImportando && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
+                  {tecImportando ? 'Importando…' : `Importar ${tecQuestoes.length} questões`}
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="border-b border-brand-border text-brand-muted">
+                    <tr>
+                      <th className="text-left px-3 py-2 w-8">#</th>
+                      <th className="text-left px-3 py-2">Matéria</th>
+                      <th className="text-left px-3 py-2">Subtópico (TEC)</th>
+                      <th className="text-left px-3 py-2 w-28">Banca</th>
+                      <th className="text-left px-3 py-2 w-16">Ano</th>
+                      <th className="text-left px-3 py-2 w-20">Tipo</th>
+                      <th className="text-left px-3 py-2 w-16">Gabarito</th>
+                      <th className="w-8 px-3 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brand-border/30">
+                    {tecQuestoes.map((q, i) => {
+                      const semGabarito = !q.correct_answer
+                      return (
+                        <tr key={i} className={semGabarito ? 'bg-yellow-500/5' : ''}>
+                          <td className="px-3 py-2 text-brand-muted text-xs font-mono">{i + 1}</td>
+                          <td className="px-3 py-2 text-brand-muted max-w-[120px] truncate">{q.materia}</td>
+                          <td className="px-3 py-2 text-brand-muted max-w-[150px] truncate" title={q.subject}>{q.subject || '—'}</td>
+                          <td className="px-3 py-2 text-brand-muted truncate">{q.board || '—'}</td>
+                          <td className="px-3 py-2 text-brand-muted">{q.year || '—'}</td>
+                          <td className="px-3 py-2 text-brand-muted whitespace-nowrap">
+                            {q.tipo === 'certo_errado' ? <span className="text-indigo-400">C/E</span> : 'M.Esc.'}
+                          </td>
+                          <td className="px-3 py-2">
+                            {q.correct_answer
+                              ? <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold">{q.correct_answer}</span>
+                              : <span className="text-yellow-500/70 italic">— edite</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            <button
+                              onClick={() => setTecEditando({ index: i, item: tecToModalItem(q) })}
+                              className="text-brand-muted hover:text-indigo-400 transition-colors"
+                              title="Editar questão"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Resultado TEC */}
+          {tecResultado && (
+            <div className={`border rounded-xl p-4 space-y-2 ${tecResultado.importadas > 0 ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
+              <p className="text-sm font-semibold text-brand-text">
+                {tecResultado.importadas} questão{tecResultado.importadas !== 1 ? 'ões' : ''} importada{tecResultado.importadas !== 1 ? 's' : ''} com sucesso
+              </p>
+              {tecResultado.erros?.length > 0 && (
+                <ul className="text-xs text-red-400 space-y-0.5 list-disc list-inside">
+                  {tecResultado.erros.map((e, i) => <li key={i}>{e}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -658,6 +885,17 @@ export default function AdminImportar() {
             setEditando(null)
           }}
           onClose={() => setEditando(null)}
+        />
+      )}
+
+      {tecEditando && (
+        <ModalEditarQuestao
+          item={tecEditando.item}
+          onSave={(updated) => {
+            setTecQuestoes(qs => qs.map((q, i) => i === tecEditando.index ? tecFromModalSave(q, updated) : q))
+            setTecEditando(null)
+          }}
+          onClose={() => setTecEditando(null)}
         />
       )}
     </div>

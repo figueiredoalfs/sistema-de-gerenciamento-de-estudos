@@ -344,6 +344,35 @@ def sugerir_subtopico_questao(
     return sugeridos
 
 
+# ─── Endpoint — TEC Concursos (sem IA) ───────────────────────────────────────
+
+@router.post("/importar-questoes-tec", response_model=dict)
+async def importar_questoes_tec(
+    file: UploadFile = File(...),
+    _: Aluno = Depends(require_admin),
+):
+    """
+    Admin: parseia PDF do TEC Concursos sem IA.
+    Retorna preview das questões para o admin confirmar antes de salvar.
+    PDF deve ser gerado pelo botão Imprimir do TEC Concursos via navegador.
+    NÃO usar Print to PDF do Windows.
+    """
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=422, detail="Envie um arquivo .pdf")
+
+    pdf_bytes = await file.read()
+    if len(pdf_bytes) == 0:
+        raise HTTPException(status_code=422, detail="Arquivo PDF vazio")
+
+    from app.services.tec_parser import parse_pdf_tec
+    resultado = parse_pdf_tec(pdf_bytes)
+
+    if resultado["erro"]:
+        raise HTTPException(status_code=422, detail=resultado["erro"])
+
+    return resultado
+
+
 # ─── Endpoint — extração de PDF via IA ───────────────────────────────────────
 
 _PROMPT_PDF = (

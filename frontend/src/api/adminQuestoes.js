@@ -40,12 +40,37 @@ export async function importarQuestoes({ questoes, classificar_ia = true }) {
   return data
 }
 
+export async function parsearTecPdf(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await client.post('/admin/importar-tec', formData, {
+    timeout: 60000,
+    headers: { 'Content-Type': undefined },
+  })
+  return data
+}
+
+export async function importarTecQuestoes(questoes) {
+  const { data } = await client.post('/admin/importar-tec-confirmar', { questoes }, { timeout: 120000 })
+  return data
+}
+
+export async function parsearTecPdfV2(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await client.post('/admin/importar-questoes-tec', formData, {
+    timeout: 60000,
+    headers: { 'Content-Type': undefined },
+  })
+  return data
+}
+
 export async function extrairQuestoesPdf(file) {
   const formData = new FormData()
   formData.append('file', file)
   const { data } = await client.post('/admin/importar-questoes-pdf', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 120000, // 2 min — extração de PDF pode ser lenta
+    timeout: 120000,
+    headers: { 'Content-Type': undefined },
   })
   return data
 }
