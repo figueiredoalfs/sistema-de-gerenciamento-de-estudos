@@ -3,6 +3,7 @@ import uuid
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
+from fastapi.responses import JSONResponse
 from google import genai
 from google.genai import types
 from sqlalchemy.exc import IntegrityError
@@ -68,11 +69,29 @@ def _questao_response(q: QuestaoBanco, db: Session) -> QuestaoBancoResponse:
 
 def _materia_existe(nome: str, db: Session) -> bool:
     """Verifica se existe uma matéria (nivel=0) com esse nome (case-insensitive)."""
+    if not nome:
+        return False
     return db.query(Topico).filter(
         Topico.nivel == 0,
         Topico.ativo == True,
         Topico.nome.ilike(nome.strip()),
     ).first() is not None
+
+
+def _banca_existe(nome: str, db: Session) -> bool:
+    """Verifica se existe uma banca cadastrada com esse nome (case-insensitive)."""
+    if not nome:
+        return True  # questão sem banca é válida
+    from app.models.banca import Banca
+    return db.query(Banca).filter(
+        Banca.ativo == True,
+        Banca.nome.ilike(nome.strip()),
+    ).first() is not None
+
+
+def _calcular_pendente(materia: str, board: str, db: Session) -> bool:
+    """Retorna True se matéria ou banca não estiverem cadastradas."""
+    return not _materia_existe(materia, db) or not _banca_existe(board, db)
 
 
 # ─── Endpoints — importação ───────────────────────────────────────────────────
@@ -103,6 +122,7 @@ def importar_questoes(
             questao = QuestaoBanco(
                 id=str(uuid.uuid4()),
                 question_code=question_code,
+                materia=item.materia,
                 subject=item.subject,
                 statement=item.statement,
                 alternatives_json=alts_json,
@@ -112,8 +132,7 @@ def importar_questoes(
             )
             db.add(questao)
             db.flush()
-            if not _materia_existe(item.materia, db):
-                questao.materia_pendente = True
+            questao.materia_pendente = _calcular_pendente(item.materia, item.board or "", db)
             db.commit()
             questoes_importadas.append(questao)
             importadas += 1
@@ -252,20 +271,23 @@ def remover_subtopico(
 
 # ─── Endpoints — CRUD de questões ────────────────────────────────────────────
 
-@router.get("/questoes", response_model=List[QuestaoBancoResponse])
+@router.get("/questoes")
 def listar_questoes(
     materia: Optional[str] = Query(None, description="Filtra por subject (matéria)"),
     subtopico: Optional[str] = Query(None, description="Filtra por nome de subtópico associado"),
+    banca: Optional[str] = Query(None, description="Filtra por banca"),
+    ano: Optional[int] = Query(None, description="Filtra por ano"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
+    response: Response = None,
     db: Session = Depends(get_db),
     _: Aluno = Depends(require_admin),
 ):
-    """Admin: lista questões com filtros por matéria e subtópico, paginado."""
+    """Admin: lista questões com filtros por matéria, subtópico, banca e ano, paginado."""
     q = db.query(QuestaoBanco)
 
     if materia:
-        q = q.filter(QuestaoBanco.subject.ilike(f"%{materia}%"))
+        q = q.filter(QuestaoBanco.materia.ilike(f"%{materia}%"))
 
     if subtopico:
         q = (
@@ -274,12 +296,26 @@ def listar_questoes(
             .filter(Topico.nome.ilike(f"%{subtopico}%"))
         )
 
+    if banca:
+        q = q.filter(QuestaoBanco.board.ilike(f"%{banca}%"))
+
+    if ano:
+        q = q.filter(QuestaoBanco.year == ano)
+
+    total_filtro = q.count()
+    total_banco = db.query(QuestaoBanco).count()
+
     questoes = (
         q.order_by(QuestaoBanco.created_at.desc())
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()
     )
+
+    if response is not None:
+        response.headers["X-Total-Filtered"] = str(total_filtro)
+        response.headers["X-Total-Bank"] = str(total_banco)
+
     return [_questao_response(questao, db) for questao in questoes]
 
 
@@ -295,9 +331,14 @@ def editar_questao(
     if not questao:
         raise HTTPException(status_code=404, detail="Questão não encontrada")
 
-    if body.subject is not None:
+    regen_code = False
+
+    if body.materia is not None:
+        questao.materia = body.materia
+        questao.subject = body.materia  # mantém subject sincronizado com matéria
+        regen_code = True
+    elif body.subject is not None:
         questao.subject = body.subject
-        questao.materia_pendente = not _materia_existe(body.subject, db)
     if body.statement is not None:
         questao.statement = body.statement
     if body.alternatives is not None:
@@ -306,10 +347,24 @@ def editar_questao(
         questao.correct_answer = body.correct_answer
     if body.board is not None:
         questao.board = body.board
+        regen_code = True
     if body.year is not None:
         questao.year = body.year
+        regen_code = True
     if body.materia_pendente is not None:
         questao.materia_pendente = body.materia_pendente
+    else:
+        # Recalcula pendente se houve mudança em matéria ou banca
+        if body.materia is not None or body.board is not None:
+            questao.materia_pendente = _calcular_pendente(
+                questao.materia or "", questao.board or "", db
+            )
+
+    if regen_code:
+        disciplina_sigla = (questao.materia or questao.subject or "SEM-DISCIPLINA").upper().replace(" ", "_")
+        questao.question_code = _gerar_question_code(
+            disciplina_sigla, questao.board or "", questao.year, db
+        )
 
     db.commit()
     db.refresh(questao)

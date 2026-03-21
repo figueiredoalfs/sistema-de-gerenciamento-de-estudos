@@ -15,7 +15,7 @@ from app.models.aluno import Aluno
 from app.models.questao_banco import QuestaoBanco
 from app.models.question_subtopic import QuestionSubtopic
 from app.models.topico import Topico
-from app.routers.admin_importar_questoes import _materia_existe
+from app.routers.admin_importar_questoes import _calcular_pendente
 from app.services.tec_parser import parse_pdf_tec, extrair_texto_debug
 
 router = APIRouter(prefix="/admin", tags=["admin — importar TEC Concursos"])
@@ -174,6 +174,7 @@ def importar_tec_confirmar(
             questao = QuestaoBanco(
                 id=str(uuid.uuid4()),
                 question_code=code,
+                materia=item.materia,
                 subject=item.subject or item.materia or "Sem assunto",
                 statement=item.enunciado,
                 alternatives_json=alts_json,
@@ -183,9 +184,7 @@ def importar_tec_confirmar(
             )
             db.add(questao)
             db.flush()
-
-            if not _materia_existe(item.materia, db):
-                questao.materia_pendente = True
+            questao.materia_pendente = _calcular_pendente(item.materia, item.banca or "", db)
 
             if item.subtopico_id:
                 db.add(QuestionSubtopic(

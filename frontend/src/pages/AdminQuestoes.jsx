@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarQuestoes, editarQuestao, deletarQuestao, sugerirSubtopico, associarSubtopicos, removerSubtopico } from '../api/adminQuestoes'
-import { listarTodosTopicos, listarMaterias } from '../api/adminTopicos'
+import { listarTodosTopicos, listarMaterias, listarBancas } from '../api/adminTopicos'
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E']
 
@@ -36,7 +36,7 @@ function RowExpandida({ questao }) {
 
 function ModalEditar({ questao, onClose, onSaved }) {
   const [form, setForm] = useState({
-    subject: questao.subject,
+    materia: questao.materia || questao.subject || '',
     statement: questao.statement,
     correct_answer: questao.correct_answer,
     board: questao.board || '',
@@ -47,6 +47,7 @@ function ModalEditar({ questao, onClose, onSaved }) {
 
   // matéria — seletor hierárquico
   const [materias, setMaterias] = useState([])
+  const [bancasModal, setBancasModal] = useState([])
   const [todosTopicos, setTodosTopicos] = useState([])
   const [materiaSel, setMateriaSel] = useState('') // id do Topico nivel=0 ou 'outra'
 
@@ -65,10 +66,12 @@ function ModalEditar({ questao, onClose, onSaved }) {
   useEffect(() => {
     listarMaterias().then(data => {
       setMaterias(data)
-      const match = data.find(m => m.nome.toLowerCase() === questao.subject.toLowerCase())
-      setMateriaSel(match ? String(match.id) : 'outra')
+      const matNome = questao.materia || questao.subject || ''
+      const match = data.find(m => m.nome.toLowerCase() === matNome.toLowerCase())
+      setMateriaSel(match ? String(match.id) : (matNome ? 'outra' : ''))
     })
     listarTodosTopicos().then(setTodosTopicos)
+    listarBancas(true).then(setBancasModal)
   }, [])
 
   function handle(e) {
@@ -80,7 +83,7 @@ function ModalEditar({ questao, onClose, onSaved }) {
     setMateriaSel(val)
     if (val !== 'outra') {
       const m = materias.find(m => String(m.id) === val)
-      if (m) setForm(f => ({ ...f, subject: m.nome }))
+      if (m) setForm(f => ({ ...f, materia: m.nome }))
     }
   }
 
@@ -109,7 +112,7 @@ function ModalEditar({ questao, onClose, onSaved }) {
     setErro('')
     try {
       const payload = {
-        subject: form.subject,
+        materia: form.materia,
         statement: form.statement,
         correct_answer: form.correct_answer,
         board: form.board || null,
@@ -186,8 +189,8 @@ function ModalEditar({ questao, onClose, onSaved }) {
             </select>
             {materiaSel === 'outra' && (
               <input
-                name="subject"
-                value={form.subject}
+                name="materia"
+                value={form.materia}
                 onChange={handle}
                 placeholder="Digite o nome da nova matéria"
                 className="w-full mt-2 bg-brand-card border border-yellow-500/40 rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-yellow-500"
@@ -209,8 +212,11 @@ function ModalEditar({ questao, onClose, onSaved }) {
             </div>
             <div className="flex-1">
               <label className="text-xs text-brand-muted">Banca</label>
-              <input name="board" value={form.board} onChange={handle}
-                className="w-full mt-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500" />
+              <select name="board" value={form.board} onChange={handle}
+                className="w-full mt-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500">
+                <option value="">Sem banca</option>
+                {bancasModal.map(b => <option key={b.id} value={b.nome}>{b.nome}</option>)}
+              </select>
             </div>
             <div className="w-24">
               <label className="text-xs text-brand-muted">Ano</label>
@@ -384,11 +390,17 @@ export default function AdminQuestoes() {
 
   const [filtroMateria, setFiltroMateria] = useState('')
   const [filtroSubtopico, setFiltroSubtopico] = useState('')
+  const [filtroBanca, setFiltroBanca] = useState('')
+  const [filtroAno, setFiltroAno] = useState('')
   const [page, setPage] = useState(1)
+  const [totalBanco, setTotalBanco] = useState(0)
+  const [totalFiltro, setTotalFiltro] = useState(0)
 
   const [topicos, setTopicos] = useState([])
+  const [bancasLista, setBancasLista] = useState([])
   useEffect(() => {
     listarTodosTopicos().then(setTopicos).catch(() => {})
+    listarBancas(true).then(setBancasLista).catch(() => {})
   }, [])
 
   const materias = topicos.filter(t => t.nivel === 0).sort((a, b) => a.nome.localeCompare(b.nome))
@@ -410,11 +422,18 @@ export default function AdminQuestoes() {
   function buscar(pg = 1, overrides = {}) {
     const materia = 'materia' in overrides ? overrides.materia : filtroMateria
     const subtopico = 'subtopico' in overrides ? overrides.subtopico : filtroSubtopico
+    const banca = 'banca' in overrides ? overrides.banca : filtroBanca
+    const ano = 'ano' in overrides ? overrides.ano : filtroAno
     setLoading(true)
     setErro('')
     setExpandedId(null)
-    listarQuestoes({ materia, subtopico, page: pg, per_page: PER_PAGE })
-      .then(data => { setQuestoes(data); setPage(pg) })
+    listarQuestoes({ materia, subtopico, banca, ano: ano ? Number(ano) : undefined, page: pg, per_page: PER_PAGE })
+      .then(({ questoes: data, totalFiltro: tf, totalBanco: tb }) => {
+        setQuestoes(data)
+        setTotalFiltro(tf)
+        setTotalBanco(tb)
+        setPage(pg)
+      })
       .catch(e => setErro(e.response?.data?.detail || e.message))
       .finally(() => setLoading(false))
   }
@@ -452,7 +471,14 @@ export default function AdminQuestoes() {
     <div className="p-6 max-w-7xl mx-auto space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-brand-text">Questões</h1>
-        <span className="text-brand-muted text-sm">{questoes.length} exibidas (pág. {page})</span>
+        <div className="flex items-center gap-3 text-sm text-brand-muted">
+          <span>Banco: <span className="text-brand-text font-medium">{totalBanco}</span></span>
+          {(filtroMateria || filtroSubtopico || filtroBanca || filtroAno) && (
+            <span>· Filtro: <span className="text-indigo-400 font-medium">{totalFiltro}</span></span>
+          )}
+          <span className="text-brand-border">|</span>
+          <span>pág. {page}</span>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -462,7 +488,7 @@ export default function AdminQuestoes() {
           <select
             value={filtroMateria}
             onChange={e => { setFiltroMateria(e.target.value); setFiltroSubtopico('') }}
-            className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-56"
+            className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-48"
           >
             <option value="">Todas</option>
             {materias.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
@@ -473,17 +499,41 @@ export default function AdminQuestoes() {
           <select
             value={filtroSubtopico}
             onChange={e => setFiltroSubtopico(e.target.value)}
-            className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-56"
+            className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-48"
           >
             <option value="">Todos</option>
             {subtopicosDisponiveis.map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
           </select>
         </div>
+        <div>
+          <label className="text-xs text-brand-muted block mb-1">Banca</label>
+          <select
+            value={filtroBanca}
+            onChange={e => setFiltroBanca(e.target.value)}
+            className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-36"
+          >
+            <option value="">Todas</option>
+            {bancasLista.map(b => <option key={b.id} value={b.nome}>{b.nome}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-brand-muted block mb-1">Ano</label>
+          <input
+            type="number"
+            value={filtroAno}
+            onChange={e => setFiltroAno(e.target.value)}
+            placeholder="ex: 2023"
+            className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-28"
+          />
+        </div>
         <button type="submit"
           className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">
           Filtrar
         </button>
-        <button type="button" onClick={() => { setFiltroMateria(''); setFiltroSubtopico(''); buscar(1, { materia: '', subtopico: '' }) }}
+        <button type="button" onClick={() => {
+          setFiltroMateria(''); setFiltroSubtopico(''); setFiltroBanca(''); setFiltroAno('')
+          buscar(1, { materia: '', subtopico: '', banca: '', ano: '' })
+        }}
           className="px-4 py-2 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors">
           Limpar
         </button>
@@ -519,7 +569,12 @@ export default function AdminQuestoes() {
                       className="hover:bg-brand-surface transition-colors cursor-pointer select-none"
                     >
                       <td className="px-4 py-3 font-mono text-xs text-brand-muted whitespace-nowrap">{q.question_code}</td>
-                      <td className="px-4 py-3 text-brand-text max-w-xs truncate">{q.subject}</td>
+                      <td className="px-4 py-3 max-w-xs truncate">
+                        <span className="text-brand-text">{q.materia || q.subject}</span>
+                        {q.materia_pendente && (
+                          <span className="ml-1.5 text-xs text-yellow-400/80">⚠</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-brand-muted whitespace-nowrap">{q.board || '—'} {q.year || ''}</td>
                       <td className="px-4 py-3 text-brand-muted max-w-xs truncate">
                         {q.subtopicos?.length > 0

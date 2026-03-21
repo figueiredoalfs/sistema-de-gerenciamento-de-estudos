@@ -1,11 +1,17 @@
 import client from './client'
 
-export async function listarQuestoes({ materia, subtopico, page = 1, per_page = 20 } = {}) {
+export async function listarQuestoes({ materia, subtopico, banca, ano, page = 1, per_page = 20 } = {}) {
   const params = { page, per_page }
   if (materia) params.materia = materia
   if (subtopico) params.subtopico = subtopico
-  const { data } = await client.get('/admin/questoes', { params })
-  return data
+  if (banca) params.banca = banca
+  if (ano) params.ano = ano
+  const res = await client.get('/admin/questoes', { params })
+  return {
+    questoes: res.data,
+    totalFiltro: parseInt(res.headers['x-total-filtered'] || '0', 10),
+    totalBanco: parseInt(res.headers['x-total-bank'] || '0', 10),
+  }
 }
 
 export async function editarQuestao(id, payload) {
@@ -80,7 +86,12 @@ export async function listarPendencias() {
   return data
 }
 
-export async function resolverPendencia(id, body) {
-  const { data } = await client.post(`/admin/materias-pendentes/${id}/resolver`, body)
+export async function resolverMateria(id, body) {
+  const { data } = await client.post(`/admin/materias-pendentes/${id}/resolver-materia`, body)
+  return data
+}
+
+export async function resolverBanca(id, body) {
+  const { data } = await client.post(`/admin/materias-pendentes/${id}/resolver-banca`, body)
   return data
 }

@@ -5,20 +5,21 @@ import {
   editarTopico,
   listarTodosTopicos,
   questoesPorSubtopico,
+  listarBancas,
+  criarBanca,
+  editarBanca,
+  desativarBanca,
 } from '../api/adminTopicos'
 
 // ─── Ícones ───────────────────────────────────────────────────────────────────
 function IconChevron({ open }) {
   return (
-    <svg
-      className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
-      fill="none" viewBox="0 0 24 24" stroke="currentColor"
-    >
+    <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+      fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
     </svg>
   )
 }
-
 function IconPlus() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -26,7 +27,6 @@ function IconPlus() {
     </svg>
   )
 }
-
 function IconPencil() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -35,7 +35,6 @@ function IconPencil() {
     </svg>
   )
 }
-
 function IconEye({ off }) {
   return off ? (
     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -44,8 +43,7 @@ function IconEye({ off }) {
     </svg>
   ) : (
     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
     </svg>
@@ -65,7 +63,6 @@ function Modal({ titulo, form, setForm, onClose, onSave, saving, erro, isEdit })
             </svg>
           </button>
         </div>
-
         <div className="space-y-3">
           <div>
             <label className="text-xs text-brand-muted">Nome <span className="text-red-400">*</span></label>
@@ -75,34 +72,26 @@ function Modal({ titulo, form, setForm, onClose, onSave, saving, erro, isEdit })
               className="w-full mt-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500"
             />
           </div>
-
           <div>
             <label className="text-xs text-brand-muted">Peso no edital</label>
             <input
-              type="number"
-              step="0.01"
-              min="0"
+              type="number" step="0.01" min="0"
               value={form.peso_edital}
               onChange={(e) => setForm((f) => ({ ...f, peso_edital: e.target.value }))}
               className="w-full mt-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500"
             />
           </div>
-
           {isEdit && (
             <label className="flex items-center gap-2 cursor-pointer select-none">
-              <div
-                onClick={() => setForm((f) => ({ ...f, ativo: !f.ativo }))}
-                className={`w-9 h-5 rounded-full transition-colors relative ${form.ativo ? 'bg-indigo-500' : 'bg-brand-border'}`}
-              >
+              <div onClick={() => setForm((f) => ({ ...f, ativo: !f.ativo }))}
+                className={`w-9 h-5 rounded-full transition-colors relative ${form.ativo ? 'bg-indigo-500' : 'bg-brand-border'}`}>
                 <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.ativo ? 'translate-x-4' : 'translate-x-0.5'}`} />
               </div>
               <span className="text-sm text-brand-muted">{form.ativo ? 'Ativo (visível)' : 'Oculto'}</span>
             </label>
           )}
         </div>
-
         {erro && <p className="text-red-400 text-xs">{erro}</p>}
-
         <div className="flex justify-end gap-3 pt-1">
           <button onClick={onClose}
             className="px-4 py-2 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors">
@@ -123,17 +112,14 @@ const NIVEL_LABEL  = ['Matéria', 'Bloco', 'Subtópico']
 const NIVEL_COLORS = ['text-indigo-400', 'text-sky-400', 'text-green-400']
 const NIVEL_BG     = ['bg-indigo-500/10', 'bg-sky-500/10', 'bg-green-500/10']
 
-// ─── Componente principal ─────────────────────────────────────────────────────
-export default function AdminTopicos() {
+// ─── Aba Matérias ─────────────────────────────────────────────────────────────
+function TabMaterias() {
   const [topicos, setTopicos]     = useState([])
   const [contagens, setContagens] = useState({})
   const [loading, setLoading]     = useState(true)
   const [erro, setErro]           = useState('')
-
-  const [abertos, setAbertos]     = useState({}) // {id: bool}
-
-  // Modal state
-  const [modal, setModal]         = useState(null)  // {tipo: 'criar'|'editar', topico?, parentId?, nivel?}
+  const [abertos, setAbertos]     = useState({})
+  const [modal, setModal]         = useState(null)
   const [formModal, setFormModal] = useState({ nome: '', peso_edital: '1.0', ativo: true })
   const [erroModal, setErroModal] = useState('')
   const [saving, setSaving]       = useState(false)
@@ -148,16 +134,12 @@ export default function AdminTopicos() {
 
   useEffect(() => { carregar() }, [])
 
-  // Estrutura em árvore
   const materias = topicos.filter((t) => t.nivel === 0).sort((a, b) => a.nome.localeCompare(b.nome))
-  const blocosDe  = (midId) => topicos.filter((t) => t.nivel === 1 && t.parent_id === midId).sort((a, b) => a.nome.localeCompare(b.nome))
-  const subsDe    = (bId)   => topicos.filter((t) => t.nivel === 2 && t.parent_id === bId).sort((a, b) => a.nome.localeCompare(b.nome))
+  const blocosDe  = (id) => topicos.filter((t) => t.nivel === 1 && t.parent_id === id).sort((a, b) => a.nome.localeCompare(b.nome))
+  const subsDe    = (id) => topicos.filter((t) => t.nivel === 2 && t.parent_id === id).sort((a, b) => a.nome.localeCompare(b.nome))
 
-  function toggleAberto(id) {
-    setAbertos((prev) => ({ ...prev, [id]: !prev[id] }))
-  }
+  function toggleAberto(id) { setAbertos((p) => ({ ...p, [id]: !p[id] })) }
 
-  // Modal handlers
   function abrirCriar(nivel, parentId = null) {
     setFormModal({ nome: '', peso_edital: '1.0', ativo: true })
     setErroModal('')
@@ -182,7 +164,6 @@ export default function AdminTopicos() {
           peso_edital: parseFloat(formModal.peso_edital) || 1.0,
         })
         setTopicos((prev) => [...prev, criado])
-        // Expandir o pai automaticamente
         if (modal.parentId) setAbertos((prev) => ({ ...prev, [modal.parentId]: true }))
       } else {
         const updated = await editarTopico(modal.topico.id, {
@@ -214,20 +195,17 @@ export default function AdminTopicos() {
     }
   }
 
-  // ─── Row ────────────────────────────────────────────────────────────────────
   function Row({ topico, indent = 0, expandable = false, children }) {
-    const isOpen   = abertos[topico.id]
-    const inativo  = !topico.ativo
-    const nivel    = topico.nivel
-    const countQ   = nivel === 2 ? (contagens[topico.id] || 0) : null
-
+    const isOpen  = abertos[topico.id]
+    const inativo = !topico.ativo
+    const nivel   = topico.nivel
+    const countQ  = nivel === 2 ? (contagens[topico.id] || 0) : null
     return (
       <div>
         <div
           className={`group flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-brand-surface ${inativo ? 'opacity-50' : ''}`}
           style={{ paddingLeft: `${12 + indent * 20}px` }}
         >
-          {/* Chevron / spacer */}
           {expandable ? (
             <button onClick={() => toggleAberto(topico.id)} className="text-brand-muted hover:text-brand-text flex-shrink-0">
               <IconChevron open={isOpen} />
@@ -235,91 +213,50 @@ export default function AdminTopicos() {
           ) : (
             <span className="w-3.5 flex-shrink-0" />
           )}
-
-          {/* Badge nível */}
           <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${NIVEL_COLORS[nivel]} ${NIVEL_BG[nivel]}`}>
             {NIVEL_LABEL[nivel]}
           </span>
-
-          {/* Nome */}
           <span className={`flex-1 text-sm text-brand-text truncate ${inativo ? 'line-through' : ''}`}>
             {topico.nome}
           </span>
-
-          {/* Peso edital */}
-          <span className="text-xs text-brand-muted flex-shrink-0 hidden sm:block">
-            peso {topico.peso_edital}
-          </span>
-
-          {/* Contador de questões */}
+          <span className="text-xs text-brand-muted flex-shrink-0 hidden sm:block">peso {topico.peso_edital}</span>
           {countQ !== null && (
-            <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-              countQ > 0 ? 'bg-indigo-500/15 text-indigo-400' : 'bg-brand-border/50 text-brand-muted'
-            }`}>
+            <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${countQ > 0 ? 'bg-indigo-500/15 text-indigo-400' : 'bg-brand-border/50 text-brand-muted'}`}>
               {countQ} q
             </span>
           )}
-
-          {/* Ações */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-            {/* Adicionar filho (matéria → bloco, bloco → subtópico) */}
             {nivel < 2 && (
-              <button
-                onClick={() => abrirCriar(nivel + 1, topico.id)}
-                title={`Adicionar ${NIVEL_LABEL[nivel + 1]}`}
-                className="p-1 rounded text-brand-muted hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-              >
+              <button onClick={() => abrirCriar(nivel + 1, topico.id)} title={`Adicionar ${NIVEL_LABEL[nivel + 1]}`}
+                className="p-1 rounded text-brand-muted hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors">
                 <IconPlus />
               </button>
             )}
-            {/* Editar */}
-            <button
-              onClick={() => abrirEditar(topico)}
-              title="Editar"
-              className="p-1 rounded text-brand-muted hover:text-sky-400 hover:bg-sky-500/10 transition-colors"
-            >
+            <button onClick={() => abrirEditar(topico)} title="Editar"
+              className="p-1 rounded text-brand-muted hover:text-sky-400 hover:bg-sky-500/10 transition-colors">
               <IconPencil />
             </button>
-            {/* Ocultar/Mostrar */}
-            <button
-              onClick={() => toggleAtivo(topico)}
-              title={topico.ativo ? 'Ocultar' : 'Mostrar'}
-              className="p-1 rounded text-brand-muted hover:text-yellow-400 hover:bg-yellow-500/10 transition-colors"
-            >
+            <button onClick={() => toggleAtivo(topico)} title={topico.ativo ? 'Ocultar' : 'Mostrar'}
+              className="p-1 rounded text-brand-muted hover:text-yellow-400 hover:bg-yellow-500/10 transition-colors">
               <IconEye off={!topico.ativo} />
             </button>
           </div>
         </div>
-
-        {/* Filhos */}
-        {expandable && isOpen && (
-          <div>{children}</div>
-        )}
+        {expandable && isOpen && <div>{children}</div>}
       </div>
     )
   }
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
-  if (loading) return (
-    <div className="p-6 flex items-center gap-2 text-brand-muted text-sm">
-      <span className="w-4 h-4 rounded-full border-2 border-brand-muted/30 border-t-brand-muted animate-spin" />
-      Carregando…
-    </div>
-  )
+  if (loading) return <p className="text-brand-muted text-sm">Carregando…</p>
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-5">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-brand-text">Tópicos e Subtópicos</h1>
-          <p className="text-xs text-brand-muted mt-0.5">
-            {materias.filter(m => m.ativo).length} matéria{materias.filter(m => m.ativo).length !== 1 ? 's' : ''} ativas
-          </p>
-        </div>
-        <button
-          onClick={() => abrirCriar(0)}
-          className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
-        >
+        <p className="text-xs text-brand-muted">
+          {materias.filter(m => m.ativo).length} matéria{materias.filter(m => m.ativo).length !== 1 ? 's' : ''} ativas
+        </p>
+        <button onClick={() => abrirCriar(0)}
+          className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
           <IconPlus />
           Nova Matéria
         </button>
@@ -327,15 +264,13 @@ export default function AdminTopicos() {
 
       {erro && <p className="text-red-400 text-sm">{erro}</p>}
 
-      {/* Legenda */}
       <div className="flex items-center gap-4 text-xs text-brand-muted">
         {NIVEL_LABEL.map((l, i) => (
           <span key={i} className={`px-2 py-0.5 rounded ${NIVEL_COLORS[i]} ${NIVEL_BG[i]}`}>{l}</span>
         ))}
-        <span className="ml-2">· Passe o mouse para ver ações · <span className="text-brand-muted/60">q = questões no banco</span></span>
+        <span className="ml-2">· Passe o mouse para ações · <span className="text-brand-muted/60">q = questões no banco</span></span>
       </div>
 
-      {/* Árvore */}
       <div className="bg-brand-card border border-brand-border rounded-xl overflow-hidden divide-y divide-brand-border/40">
         {materias.length === 0 ? (
           <p className="px-4 py-6 text-sm text-brand-muted text-center">Nenhuma matéria cadastrada.</p>
@@ -348,9 +283,7 @@ export default function AdminTopicos() {
                   const subs = subsDe(bloco.id)
                   return (
                     <Row key={bloco.id} topico={bloco} indent={1} expandable={subs.length > 0}>
-                      {subs.map((sub) => (
-                        <Row key={sub.id} topico={sub} indent={2} expandable={false} />
-                      ))}
+                      {subs.map((sub) => <Row key={sub.id} topico={sub} indent={2} expandable={false} />)}
                     </Row>
                   )
                 })}
@@ -360,14 +293,9 @@ export default function AdminTopicos() {
         )}
       </div>
 
-      {/* Modal */}
       {modal && (
         <Modal
-          titulo={
-            modal.tipo === 'criar'
-              ? `Novo ${NIVEL_LABEL[modal.nivel]}`
-              : `Editar ${NIVEL_LABEL[modal.topico.nivel]}`
-          }
+          titulo={modal.tipo === 'criar' ? `Novo ${NIVEL_LABEL[modal.nivel]}` : `Editar ${NIVEL_LABEL[modal.topico.nivel]}`}
           form={formModal}
           setForm={setFormModal}
           onClose={() => setModal(null)}
@@ -377,6 +305,172 @@ export default function AdminTopicos() {
           isEdit={modal.tipo === 'editar'}
         />
       )}
+    </div>
+  )
+}
+
+// ─── Aba Bancas ───────────────────────────────────────────────────────────────
+function TabBancas() {
+  const [bancas, setBancas] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState('')
+  const [novoNome, setNovoNome] = useState('')
+  const [criando, setCriando] = useState(false)
+  const [erroCriar, setErroCriar] = useState('')
+  const [editandoId, setEditandoId] = useState(null)
+  const [editNome, setEditNome] = useState('')
+
+  function carregar() {
+    setLoading(true)
+    listarBancas(false)
+      .then(setBancas)
+      .catch((e) => setErro(e.response?.data?.detail || e.message))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { carregar() }, [])
+
+  async function handleCriar(e) {
+    e.preventDefault()
+    if (!novoNome.trim()) return
+    setCriando(true)
+    setErroCriar('')
+    try {
+      const nova = await criarBanca(novoNome.trim())
+      setBancas((prev) => [...prev, nova].sort((a, b) => a.nome.localeCompare(b.nome)))
+      setNovoNome('')
+    } catch (e) {
+      setErroCriar(e.response?.data?.detail || e.message)
+    } finally {
+      setCriando(false)
+    }
+  }
+
+  async function handleSalvarEdit(id) {
+    if (!editNome.trim()) return
+    try {
+      const updated = await editarBanca(id, { nome: editNome.trim() })
+      setBancas((prev) => prev.map((b) => (b.id === id ? updated : b)))
+      setEditandoId(null)
+    } catch (e) {
+      setErro(e.response?.data?.detail || e.message)
+    }
+  }
+
+  async function handleToggle(banca) {
+    try {
+      if (banca.ativo) {
+        await desativarBanca(banca.id)
+        setBancas((prev) => prev.map((b) => (b.id === banca.id ? { ...b, ativo: false } : b)))
+      } else {
+        const updated = await editarBanca(banca.id, { ativo: true })
+        setBancas((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
+      }
+    } catch (e) {
+      setErro(e.response?.data?.detail || e.message)
+    }
+  }
+
+  if (loading) return <p className="text-brand-muted text-sm">Carregando…</p>
+
+  return (
+    <div className="space-y-4">
+      {/* Formulário para nova banca */}
+      <form onSubmit={handleCriar} className="flex gap-2">
+        <input
+          value={novoNome}
+          onChange={(e) => setNovoNome(e.target.value)}
+          placeholder="Nome da banca (ex: CESPE, FGV, VUNESP)"
+          className="flex-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500"
+        />
+        <button type="submit" disabled={criando || !novoNome.trim()}
+          className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium disabled:opacity-50 transition-colors">
+          {criando ? 'Salvando…' : 'Adicionar'}
+        </button>
+      </form>
+      {erroCriar && <p className="text-red-400 text-xs">{erroCriar}</p>}
+      {erro && <p className="text-red-400 text-sm">{erro}</p>}
+
+      <div className="bg-brand-card border border-brand-border rounded-xl overflow-hidden divide-y divide-brand-border/40">
+        {bancas.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-brand-muted text-center">Nenhuma banca cadastrada.</p>
+        ) : (
+          bancas.map((b) => (
+            <div key={b.id} className={`group flex items-center gap-3 px-4 py-2.5 hover:bg-brand-surface transition-colors ${!b.ativo ? 'opacity-50' : ''}`}>
+              {editandoId === b.id ? (
+                <>
+                  <input
+                    value={editNome}
+                    onChange={(e) => setEditNome(e.target.value)}
+                    className="flex-1 bg-brand-surface border border-indigo-500 rounded-lg px-2 py-1 text-sm text-brand-text focus:outline-none"
+                    autoFocus
+                  />
+                  <button onClick={() => handleSalvarEdit(b.id)}
+                    className="text-xs px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
+                    Salvar
+                  </button>
+                  <button onClick={() => setEditandoId(null)}
+                    className="text-xs px-3 py-1 rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors">
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className={`flex-1 text-sm text-brand-text ${!b.ativo ? 'line-through' : ''}`}>{b.nome}</span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => { setEditandoId(b.id); setEditNome(b.nome) }}
+                      className="p-1 rounded text-brand-muted hover:text-sky-400 hover:bg-sky-500/10 transition-colors">
+                      <IconPencil />
+                    </button>
+                    <button onClick={() => handleToggle(b)} title={b.ativo ? 'Desativar' : 'Ativar'}
+                      className="p-1 rounded text-brand-muted hover:text-yellow-400 hover:bg-yellow-500/10 transition-colors">
+                      <IconEye off={!b.ativo} />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+export default function AdminTopicos() {
+  const [aba, setAba] = useState('materias')
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-5">
+      <div>
+        <h1 className="text-xl font-bold text-brand-text">Matérias e Bancas</h1>
+        <p className="text-xs text-brand-muted mt-0.5">
+          Gerencie as matérias (hierarquia de tópicos) e as bancas examinadoras reconhecidas.
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-brand-border">
+        {[
+          { key: 'materias', label: 'Matérias / Tópicos' },
+          { key: 'bancas', label: 'Bancas' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setAba(t.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              aba === t.key
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-brand-muted hover:text-brand-text'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {aba === 'materias' ? <TabMaterias /> : <TabBancas />}
     </div>
   )
 }

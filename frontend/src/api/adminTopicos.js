@@ -28,3 +28,24 @@ export async function questoesPorSubtopico() {
   const { data } = await client.get('/admin/topicos/questoes-por-subtopico')
   return data
 }
+
+// ─── Bancas ───────────────────────────────────────────────────────────────────
+
+export async function listarBancas(apenasAtivas = true) {
+  const { data } = await client.get('/admin/bancas', { params: { apenas_ativas: apenasAtivas } })
+  return data
+}
+
+export async function criarBanca(nome) {
+  const { data } = await client.post('/admin/bancas', { nome })
+  return data
+}
+
+export async function editarBanca(id, body) {
+  const { data } = await client.patch(`/admin/bancas/${id}`, body)
+  return data
+}
+
+export async function desativarBanca(id) {
+  await client.delete(`/admin/bancas/${id}`)
+}

@@ -11,7 +11,8 @@ class QuestaoBanco(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     question_code = Column(String(50), unique=True, nullable=False, index=True)
-    subject = Column(String(200), nullable=False)
+    materia = Column(String(200), nullable=True)       # disciplina (Topico.nivel=0)
+    subject = Column(String(200), nullable=False)      # assunto específico
     statement = Column(Text, nullable=False)
     alternatives_json = Column(Text, nullable=False)  # JSON: {"A": "...", "B": "...", ...}
     correct_answer = Column(String(1), nullable=False)  # A, B, C, D ou E

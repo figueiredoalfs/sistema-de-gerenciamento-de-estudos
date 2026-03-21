@@ -54,6 +54,7 @@ class ImportacaoResponse(BaseModel):
 
 
 class QuestaoUpdateRequest(BaseModel):
+    materia: Optional[str] = None
     subject: Optional[str] = None
     statement: Optional[str] = None
     alternatives: Optional[AlternativasImport] = None
@@ -66,6 +67,7 @@ class QuestaoUpdateRequest(BaseModel):
 class QuestaoBancoResponse(BaseModel):
     id: str
     question_code: str
+    materia: Optional[str] = None
     subject: str
     statement: str
     alternatives_json: str
