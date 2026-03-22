@@ -59,7 +59,7 @@ app = FastAPI(
     lifespan=lifespan,
     title="Skolai API",
     description="Plataforma de gestão de estudos para concursos públicos com IA",
-    version="0.1.0",
+    version="1.0.0-beta",
 )
 
 _allowed_origins = (

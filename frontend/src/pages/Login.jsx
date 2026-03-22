@@ -205,6 +205,7 @@ export default function Login() {
 
         <p className="text-xs text-brand-muted relative z-10">
           © 2026 Skolai — Todos os direitos reservados
+          <span className="ml-3 px-1.5 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-mono">v1.0.0 beta</span>
         </p>
       </div>
 
@@ -282,6 +283,10 @@ export default function Login() {
             >
               Solicite acesso
             </button>
+          </p>
+
+          <p className="text-center text-xs text-brand-muted/40 md:hidden">
+            v1.0.0 beta
           </p>
         </div>
       </div>
