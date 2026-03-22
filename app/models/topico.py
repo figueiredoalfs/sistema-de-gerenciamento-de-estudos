@@ -27,6 +27,9 @@ class Topico(Base):
     # Dependências (IDs de tópicos pré-requisito), armazenados como JSON string
     dependencias_json = Column(Text, default="[]")
 
+    # Pré-requisitos pedagógicos (nivel=2): subtopico_ids que devem ser dominados antes
+    prerequisitos_json = Column(Text, default="[]")
+
     ativo = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

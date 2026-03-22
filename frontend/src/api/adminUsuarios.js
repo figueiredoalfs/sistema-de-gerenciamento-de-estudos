@@ -24,3 +24,8 @@ export async function criarUsuario(body) {
   const { data } = await client.post('/admin/usuarios', body)
   return data
 }
+
+export async function resetSenhaUsuario(id) {
+  const { data } = await client.post(`/admin/usuarios/${id}/reset-senha`)
+  return data
+}

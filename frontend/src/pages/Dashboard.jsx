@@ -120,7 +120,7 @@ export default function Dashboard() {
       {meta && <WeeklyProgressBar meta={meta} />}
 
       {/* Estado: sem meta */}
-      {semMeta && (
+      {semMeta && !user?.diagnostico_pendente && (
         <div className="bg-brand-card border border-brand-border rounded-2xl p-8 text-center">
           <div className="w-14 h-14 rounded-2xl bg-brand-gradient/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
             <svg className="w-7 h-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,8 +171,17 @@ export default function Dashboard() {
       {!semMeta && tasks.length > 0 && tasks.every((t) => t.status === 'completed') && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center">
           <p className="text-2xl mb-2">🎉</p>
-          <p className="text-emerald-400 font-semibold">Todas as tarefas de hoje concluídas!</p>
-          <p className="text-brand-muted text-sm mt-1">Volte amanhã para continuar sua jornada.</p>
+          {meta?.numero_semana === 0 ? (
+            <>
+              <p className="text-emerald-400 font-semibold">Diagnóstico concluído!</p>
+              <p className="text-brand-muted text-sm mt-1">Sua meta inicial será gerada automaticamente com base nos seus resultados.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-emerald-400 font-semibold">Todas as tarefas de hoje concluídas!</p>
+              <p className="text-brand-muted text-sm mt-1">Volte amanhã para continuar sua jornada.</p>
+            </>
+          )}
         </div>
       )}
 

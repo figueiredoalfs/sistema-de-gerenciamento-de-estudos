@@ -63,7 +63,7 @@ def gerar_plano(
 ):
     """Gera um PlanoBase via IA e salva no banco sem revisão."""
     ai = get_ai_provider()
-    fases = gerar_plano_via_ia(body.area, body.perfil, ai)
+    fases = gerar_plano_via_ia(body.area, body.perfil, ai, db=db)
     if not fases:
         raise HTTPException(status_code=422, detail="A IA não retornou fases válidas. Tente novamente.")
 
@@ -163,6 +163,41 @@ def verificar_avanco(
 ):
     """Admin: verifica e executa o avanço de fase do aluno se critérios forem atendidos."""
     return verificar_e_avancar(aluno_id, db)
+
+
+@router.post("/{plano_id}/aplicar")
+def aplicar_plano(
+    plano_id: str,
+    modo: str = Query("novos", description="'novos' aplica só a novos alunos; 'todos' associa a todos com mesma área+perfil"),
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """
+    Aplica o PlanoBase a alunos:
+    - modo=novos (padrão): apenas aprova o plano, fica disponível para novos alunos
+    - modo=todos: associa o plano a todos os PerfilEstudo com a mesma área e perfil,
+      redefinindo a fase_atual para 1
+    """
+    plano = db.query(PlanoBase).filter(PlanoBase.id == plano_id).first()
+    if not plano:
+        raise HTTPException(status_code=404, detail="Plano não encontrado")
+
+    plano.revisado_admin = True
+
+    atualizados = 0
+    if modo == "todos":
+        perfis = (
+            db.query(PerfilEstudo)
+            .filter(PerfilEstudo.area == plano.area)
+            .all()
+        )
+        for perfil in perfis:
+            perfil.plano_base_id = plano_id
+            perfil.fase_atual = 1
+            atualizados += 1
+
+    db.commit()
+    return {"ok": True, "modo": modo, "perfis_atualizados": atualizados}
 
 
 @router.delete("/{plano_id}", status_code=204, response_class=Response)

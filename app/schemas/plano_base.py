@@ -8,7 +8,9 @@ class FasePlano(BaseModel):
     numero: int
     nome: str
     criterio_avanco: str
-    materias: List[str]
+    materias: List[str] = []
+    subtopicos: List[str] = []
+    subtopicos_novos: List[str] = []
 
 
 class PlanoBaseCreate(BaseModel):

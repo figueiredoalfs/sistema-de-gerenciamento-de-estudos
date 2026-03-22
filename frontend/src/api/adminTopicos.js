@@ -29,6 +29,22 @@ export async function questoesPorSubtopico() {
   return data
 }
 
+export async function hierarquiaTopicos() {
+  const { data } = await client.get('/admin/topicos/hierarquia')
+  return data
+}
+
+export async function listarAreasSubtopico(id) {
+  const { data } = await client.get(`/admin/topicos/${id}/areas`)
+  return data
+}
+
+export async function salvarAreaSubtopico(id, body) {
+  // body: { area, peso, complexidade }
+  const { data } = await client.patch(`/admin/topicos/${id}/area`, body)
+  return data
+}
+
 // ─── Bancas ───────────────────────────────────────────────────────────────────
 
 export async function listarBancas(apenasAtivas = true) {

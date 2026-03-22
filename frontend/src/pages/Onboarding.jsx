@@ -26,14 +26,22 @@ export default function Onboarding() {
     horasPorDia: null,
     diasPorSemana: null,
     funcionalidades: [],
+    temPlanoExterno: null,
   })
+
+  const temCronograma = form.funcionalidades.includes('cronograma_estudo')
 
   function canAdvance() {
     if (step === 1) return !!form.area
     if (step === 2) return !!form.fase_estudo
     if (step === 3) return !!form.experiencia && (form.experiencia === 'iniciante' || !!form.tempoEstudo)
     if (step === 4) return form.horasPorDia !== null && form.diasPorSemana !== null
-    if (step === 5) return form.funcionalidades.length > 0
+    if (step === 5) {
+      if (form.funcionalidades.length === 0) return false
+      // Se não tem cronograma, a pergunta de plano externo deve ser respondida
+      if (!temCronograma && form.temPlanoExterno === null) return false
+      return true
+    }
     return false
   }
 
@@ -42,7 +50,6 @@ export default function Onboarding() {
       setStep((s) => s + 1)
       return
     }
-    // Submete no último step
     setLoading(true)
     setError('')
     try {
@@ -54,6 +61,7 @@ export default function Onboarding() {
         horas_por_dia: form.horasPorDia,
         dias_por_semana: form.diasPorSemana,
         funcionalidades: form.funcionalidades,
+        tem_plano_externo: temCronograma ? null : form.temPlanoExterno,
       })
       await refreshUser()
       navigate('/')
@@ -67,7 +75,6 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-[800px]">
-        {/* Logo */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold gradient-text">Skolai</h1>
           <p className="text-brand-muted text-sm mt-1">Vamos configurar sua experiência</p>
@@ -99,7 +106,9 @@ export default function Onboarding() {
           {step === 5 && (
             <StepFeatures
               selected={form.funcionalidades}
+              temPlanoExterno={form.temPlanoExterno}
               onChange={(v) => setForm((f) => ({ ...f, funcionalidades: v }))}
+              onChangePlanoExterno={(v) => setForm((f) => ({ ...f, temPlanoExterno: v }))}
             />
           )}
 

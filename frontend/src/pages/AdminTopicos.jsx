@@ -5,6 +5,8 @@ import {
   editarTopico,
   listarTodosTopicos,
   questoesPorSubtopico,
+  hierarquiaTopicos,
+  salvarAreaSubtopico,
   listarBancas,
   criarBanca,
   editarBanca,
@@ -50,7 +52,7 @@ function IconEye({ off }) {
   )
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
+// ─── Modal criar/editar tópico ─────────────────────────────────────────────────
 function Modal({ titulo, form, setForm, onClose, onSave, saving, erro, isEdit }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -107,6 +109,111 @@ function Modal({ titulo, form, setForm, onClose, onSave, saving, erro, isEdit })
   )
 }
 
+// ─── Modal configurar SubtopicoArea ──────────────────────────────────────────
+const AREAS_OPCOES = [
+  { value: 'fiscal',    label: 'Fiscal' },
+  { value: 'eaof_com',  label: 'EAOF-COM' },
+  { value: 'eaof_svm',  label: 'EAOF-SVM' },
+  { value: 'cfoe_com',  label: 'CFOE-COM' },
+]
+const COMPLEXIDADE_OPCOES = [
+  { value: 'baixa', label: 'Baixa (70%)' },
+  { value: 'media', label: 'Média (75%)' },
+  { value: 'alta',  label: 'Alta (80%)' },
+]
+const COMPLEXIDADE_CORES = { baixa: 'text-green-400', media: 'text-yellow-400', alta: 'text-red-400' }
+
+function ModalAreaSubtopico({ subtopico, areaAtiva, areasConfig, onClose, onSaved }) {
+  const cfg = areasConfig?.find((a) => a.area === areaAtiva)
+  const [peso, setPeso] = useState(String(cfg?.peso ?? '1.0'))
+  const [complexidade, setComplexidade] = useState(cfg?.complexidade ?? 'media')
+  const [saving, setSaving] = useState(false)
+  const [erro, setErro] = useState('')
+
+  async function salvar() {
+    setSaving(true)
+    setErro('')
+    try {
+      await salvarAreaSubtopico(subtopico.id, {
+        area: areaAtiva,
+        peso: parseFloat(peso) || 1.0,
+        complexidade,
+      })
+      onSaved()
+    } catch (e) {
+      setErro(e.response?.data?.detail || e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const areaLabel = AREAS_OPCOES.find((a) => a.value === areaAtiva)?.label ?? areaAtiva
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-brand-surface border border-brand-border rounded-xl p-6 w-full max-w-sm mx-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-brand-text">Configurar para {areaLabel}</h2>
+            <p className="text-xs text-brand-muted mt-0.5">{subtopico.nome}</p>
+          </div>
+          <button onClick={onClose} className="text-brand-muted hover:text-brand-text">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-brand-muted">Peso na área</label>
+            <input
+              type="number" step="0.01" min="0" max="1"
+              value={peso}
+              onChange={(e) => setPeso(e.target.value)}
+              className="w-full mt-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-brand-muted">Complexidade</label>
+            <div className="flex gap-2 mt-1">
+              {COMPLEXIDADE_OPCOES.map((op) => (
+                <button
+                  key={op.value}
+                  onClick={() => setComplexidade(op.value)}
+                  className={`flex-1 py-1.5 text-xs rounded-lg border transition-colors ${
+                    complexidade === op.value
+                      ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300'
+                      : 'border-brand-border text-brand-muted hover:text-brand-text'
+                  }`}
+                >
+                  {op.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-brand-muted mt-1.5">
+              Define o limiar de domínio e o nível das questões selecionadas para esta área.
+            </p>
+          </div>
+        </div>
+
+        {erro && <p className="text-red-400 text-xs">{erro}</p>}
+
+        <div className="flex justify-end gap-3 pt-1">
+          <button onClick={onClose}
+            className="px-4 py-2 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors">
+            Cancelar
+          </button>
+          <button onClick={salvar} disabled={saving}
+            className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors">
+            {saving ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Nível labels ─────────────────────────────────────────────────────────────
 const NIVEL_LABEL  = ['Matéria', 'Bloco', 'Subtópico']
 const NIVEL_COLORS = ['text-indigo-400', 'text-sky-400', 'text-green-400']
@@ -114,32 +221,38 @@ const NIVEL_BG     = ['bg-indigo-500/10', 'bg-sky-500/10', 'bg-green-500/10']
 
 // ─── Aba Matérias ─────────────────────────────────────────────────────────────
 function TabMaterias() {
-  const [topicos, setTopicos]     = useState([])
-  const [contagens, setContagens] = useState({})
-  const [loading, setLoading]     = useState(true)
-  const [erro, setErro]           = useState('')
-  const [abertos, setAbertos]     = useState({})
-  const [modal, setModal]         = useState(null)
-  const [formModal, setFormModal] = useState({ nome: '', peso_edital: '1.0', ativo: true })
-  const [erroModal, setErroModal] = useState('')
-  const [saving, setSaving]       = useState(false)
+  const [hierarquia, setHierarquia] = useState([])
+  const [topicos, setTopicos]       = useState([])   // para criar/editar via modal
+  const [contagens, setContagens]   = useState({})
+  const [loading, setLoading]       = useState(true)
+  const [erro, setErro]             = useState('')
+  const [abertos, setAbertos]       = useState({})
+  const [areaAtiva, setAreaAtiva]   = useState('fiscal')
+
+  const [modal, setModal]           = useState(null)
+  const [formModal, setFormModal]   = useState({ nome: '', peso_edital: '1.0', ativo: true })
+  const [erroModal, setErroModal]   = useState('')
+  const [saving, setSaving]         = useState(false)
+
+  const [modalArea, setModalArea]   = useState(null)  // { subtopico, areasConfig }
 
   function carregar() {
     setLoading(true)
-    Promise.all([listarTodosTopicos(), questoesPorSubtopico()])
-      .then(([ts, cnts]) => { setTopicos(ts); setContagens(cnts) })
+    Promise.all([hierarquiaTopicos(), listarTodosTopicos(), questoesPorSubtopico()])
+      .then(([hier, ts, cnts]) => {
+        setHierarquia(hier)
+        setTopicos(ts)
+        setContagens(cnts)
+      })
       .catch((e) => setErro(e.response?.data?.detail || e.message))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => { carregar() }, [])
 
-  const materias = topicos.filter((t) => t.nivel === 0).sort((a, b) => a.nome.localeCompare(b.nome))
-  const blocosDe  = (id) => topicos.filter((t) => t.nivel === 1 && t.parent_id === id).sort((a, b) => a.nome.localeCompare(b.nome))
-  const subsDe    = (id) => topicos.filter((t) => t.nivel === 2 && t.parent_id === id).sort((a, b) => a.nome.localeCompare(b.nome))
-
   function toggleAberto(id) { setAbertos((p) => ({ ...p, [id]: !p[id] })) }
 
+  // Para criar usamos ainda o endpoint simples (listarTodosTopicos já tem os dados)
   function abrirCriar(nivel, parentId = null) {
     setFormModal({ nome: '', peso_edital: '1.0', ativo: true })
     setErroModal('')
@@ -157,23 +270,22 @@ function TabMaterias() {
     setErroModal('')
     try {
       if (modal.tipo === 'criar') {
-        const criado = await criarTopico({
+        await criarTopico({
           nome: formModal.nome.trim(),
           nivel: modal.nivel,
           parent_id: modal.parentId || null,
           peso_edital: parseFloat(formModal.peso_edital) || 1.0,
         })
-        setTopicos((prev) => [...prev, criado])
         if (modal.parentId) setAbertos((prev) => ({ ...prev, [modal.parentId]: true }))
       } else {
-        const updated = await editarTopico(modal.topico.id, {
+        await editarTopico(modal.topico.id, {
           nome: formModal.nome.trim(),
           peso_edital: parseFloat(formModal.peso_edital) || 1.0,
           ativo: formModal.ativo,
         })
-        setTopicos((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
       }
       setModal(null)
+      carregar()
     } catch (e) {
       setErroModal(e.response?.data?.detail || e.message)
     } finally {
@@ -185,21 +297,93 @@ function TabMaterias() {
     try {
       if (topico.ativo) {
         await desativarTopico(topico.id)
-        setTopicos((prev) => prev.map((t) => (t.id === topico.id ? { ...t, ativo: false } : t)))
       } else {
-        const updated = await editarTopico(topico.id, { ativo: true })
-        setTopicos((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+        await editarTopico(topico.id, { ativo: true })
       }
+      carregar()
     } catch (e) {
       setErro(e.response?.data?.detail || e.message)
     }
   }
 
+  function abrirConfigArea(subtopico, areasConfig) {
+    setModalArea({ subtopico, areasConfig })
+  }
+
+  // ─── Row subtópico ──────────────────────────────────────────────────────────
+  function RowSubtopico({ sub, indent = 2 }) {
+    const inativo  = !sub.ativo
+    const countQ   = contagens[sub.id] ?? sub.num_questoes ?? 0
+    const cfgArea  = sub.areas?.find((a) => a.area === areaAtiva)
+    const temConfig = !!cfgArea
+
+    return (
+      <div
+        className={`group flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-brand-surface ${inativo ? 'opacity-50' : ''}`}
+        style={{ paddingLeft: `${12 + indent * 20}px` }}
+      >
+        <span className="w-3.5 flex-shrink-0" />
+        <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${NIVEL_COLORS[2]} ${NIVEL_BG[2]}`}>
+          Subtópico
+        </span>
+        <span className={`flex-1 text-sm text-brand-text truncate ${inativo ? 'line-through' : ''}`}>
+          {sub.nome}
+        </span>
+
+        {/* Configuração da área ativa */}
+        <button
+          onClick={() => abrirConfigArea(sub, sub.areas ?? [])}
+          title={`Configurar para ${AREAS_OPCOES.find(a => a.value === areaAtiva)?.label}`}
+          className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors ${
+            temConfig
+              ? `${COMPLEXIDADE_CORES[cfgArea.complexidade]} bg-current/10 hover:opacity-80`
+              : 'text-brand-muted border border-brand-border/50 hover:border-indigo-400 hover:text-indigo-400'
+          }`}
+        >
+          {temConfig ? (
+            <>
+              <span>{cfgArea.complexidade}</span>
+              <span className="text-brand-muted">·</span>
+              <span>p{cfgArea.peso.toFixed(2)}</span>
+            </>
+          ) : (
+            <span>+ config</span>
+          )}
+        </button>
+
+        {/* Contador de questões */}
+        <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${countQ > 0 ? 'bg-indigo-500/15 text-indigo-400' : 'bg-brand-border/50 text-brand-muted'}`}>
+          {countQ} q
+        </span>
+
+        {/* Ações (hover) */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <button onClick={() => abrirEditar({ id: sub.id, nome: sub.nome, peso_edital: sub.peso_edital, ativo: sub.ativo, nivel: 2 })}
+            title="Editar"
+            className="p-1 rounded text-brand-muted hover:text-sky-400 hover:bg-sky-500/10 transition-colors">
+            <IconPencil />
+          </button>
+          <button
+            onClick={() => toggleAtivo({ id: sub.id, ativo: sub.ativo })}
+            title={sub.ativo ? (countQ > 0 ? 'Possui questões — não pode desativar' : 'Ocultar') : 'Mostrar'}
+            disabled={sub.ativo && countQ > 0}
+            className={`p-1 rounded transition-colors ${
+              sub.ativo && countQ > 0
+                ? 'text-brand-border cursor-not-allowed'
+                : 'text-brand-muted hover:text-yellow-400 hover:bg-yellow-500/10'
+            }`}>
+            <IconEye off={!sub.ativo} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── Row genérico (matéria / bloco) ────────────────────────────────────────
   function Row({ topico, indent = 0, expandable = false, children }) {
     const isOpen  = abertos[topico.id]
     const inativo = !topico.ativo
     const nivel   = topico.nivel
-    const countQ  = nivel === 2 ? (contagens[topico.id] || 0) : null
     return (
       <div>
         <div
@@ -220,11 +404,6 @@ function TabMaterias() {
             {topico.nome}
           </span>
           <span className="text-xs text-brand-muted flex-shrink-0 hidden sm:block">peso {topico.peso_edital}</span>
-          {countQ !== null && (
-            <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${countQ > 0 ? 'bg-indigo-500/15 text-indigo-400' : 'bg-brand-border/50 text-brand-muted'}`}>
-              {countQ} q
-            </span>
-          )}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             {nivel < 2 && (
               <button onClick={() => abrirCriar(nivel + 1, topico.id)} title={`Adicionar ${NIVEL_LABEL[nivel + 1]}`}
@@ -251,45 +430,69 @@ function TabMaterias() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-xs text-brand-muted">
-          {materias.filter(m => m.ativo).length} matéria{materias.filter(m => m.ativo).length !== 1 ? 's' : ''} ativas
+          {hierarquia.filter((m) => m.ativo).length} matéria{hierarquia.filter((m) => m.ativo).length !== 1 ? 's' : ''} ativas
         </p>
-        <button onClick={() => abrirCriar(0)}
-          className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
-          <IconPlus />
-          Nova Matéria
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Selector de área */}
+          <div className="flex items-center gap-1 bg-brand-card border border-brand-border rounded-lg p-0.5">
+            {AREAS_OPCOES.map((a) => (
+              <button
+                key={a.value}
+                onClick={() => setAreaAtiva(a.value)}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                  areaAtiva === a.value
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-brand-muted hover:text-brand-text'
+                }`}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => abrirCriar(0)}
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
+            <IconPlus />
+            Nova Matéria
+          </button>
+        </div>
       </div>
 
       {erro && <p className="text-red-400 text-sm">{erro}</p>}
 
-      <div className="flex items-center gap-4 text-xs text-brand-muted">
+      <div className="flex items-center gap-4 text-xs text-brand-muted flex-wrap">
         {NIVEL_LABEL.map((l, i) => (
           <span key={i} className={`px-2 py-0.5 rounded ${NIVEL_COLORS[i]} ${NIVEL_BG[i]}`}>{l}</span>
         ))}
-        <span className="ml-2">· Passe o mouse para ações · <span className="text-brand-muted/60">q = questões no banco</span></span>
+        <span className="ml-1">· Subtópico: clique em <span className="text-brand-text">complexidade · peso</span> para configurar por área</span>
       </div>
 
       <div className="bg-brand-card border border-brand-border rounded-xl overflow-hidden divide-y divide-brand-border/40">
-        {materias.length === 0 ? (
+        {hierarquia.length === 0 ? (
           <p className="px-4 py-6 text-sm text-brand-muted text-center">Nenhuma matéria cadastrada.</p>
         ) : (
-          materias.map((mat) => {
-            const blocos = blocosDe(mat.id)
-            return (
-              <Row key={mat.id} topico={mat} indent={0} expandable={blocos.length > 0}>
-                {blocos.map((bloco) => {
-                  const subs = subsDe(bloco.id)
-                  return (
-                    <Row key={bloco.id} topico={bloco} indent={1} expandable={subs.length > 0}>
-                      {subs.map((sub) => <Row key={sub.id} topico={sub} indent={2} expandable={false} />)}
-                    </Row>
-                  )
-                })}
-              </Row>
-            )
-          })
+          hierarquia.map((mat) => (
+            <Row key={mat.id} topico={mat} indent={0} expandable={mat.blocos.length > 0}>
+              {mat.blocos.map((bloco) => (
+                <Row key={bloco.id} topico={bloco} indent={1} expandable={bloco.subtopicos.length > 0}>
+                  {bloco.subtopicos.map((sub) => (
+                    <RowSubtopico key={sub.id} sub={sub} indent={2} />
+                  ))}
+                  {/* Botão adicionar subtópico dentro do bloco */}
+                  <div style={{ paddingLeft: `${12 + 2 * 20}px` }} className="py-1">
+                    <button
+                      onClick={() => abrirCriar(2, bloco.id)}
+                      className="flex items-center gap-1 text-xs text-brand-muted hover:text-indigo-400 transition-colors"
+                    >
+                      <IconPlus />
+                      Novo Subtópico
+                    </button>
+                  </div>
+                </Row>
+              ))}
+            </Row>
+          ))
         )}
       </div>
 
@@ -303,6 +506,16 @@ function TabMaterias() {
           saving={saving}
           erro={erroModal}
           isEdit={modal.tipo === 'editar'}
+        />
+      )}
+
+      {modalArea && (
+        <ModalAreaSubtopico
+          subtopico={modalArea.subtopico}
+          areaAtiva={areaAtiva}
+          areasConfig={modalArea.areasConfig}
+          onClose={() => setModalArea(null)}
+          onSaved={() => { setModalArea(null); carregar() }}
         />
       )}
     </div>
@@ -374,7 +587,6 @@ function TabBancas() {
 
   return (
     <div className="space-y-4">
-      {/* Formulário para nova banca */}
       <div className="flex gap-2">
         <input
           value={novoNome}
@@ -446,11 +658,10 @@ export default function AdminTopicos() {
       <div>
         <h1 className="text-xl font-bold text-brand-text">Matérias e Bancas</h1>
         <p className="text-xs text-brand-muted mt-0.5">
-          Gerencie as matérias (hierarquia de tópicos) e as bancas examinadoras reconhecidas.
+          Gerencie a hierarquia de tópicos, configure peso e complexidade por área, e gerencie bancas.
         </p>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 border-b border-brand-border">
         {[
           { key: 'materias', label: 'Matérias / Tópicos' },

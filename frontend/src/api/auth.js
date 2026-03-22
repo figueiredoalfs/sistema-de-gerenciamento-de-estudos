@@ -24,3 +24,8 @@ export async function register(payload) {
   const { data } = await client.post('/auth/register', payload)
   return data
 }
+
+export async function refreshAccessToken(refreshToken) {
+  const { data } = await client.post('/auth/refresh', { refresh_token: refreshToken })
+  return data // { access_token, refresh_token, role, nome }
+}

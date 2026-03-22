@@ -1,30 +1,83 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import (
+    check_login_rate_limit,
     create_access_token,
+    create_refresh_token,
     get_current_user,
     hash_password,
     verify_password,
+    verify_refresh_token,
 )
 from app.models.aluno import Aluno
 from app.schemas.auth import AlunoCreate, AlunoResponse, AlunoUpdate, AlterarSenhaRequest, TokenResponse
 
+logger = logging.getLogger("skolai.auth")
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 @router.post("/login", response_model=TokenResponse)
-def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(
+    request: Request,
+    form: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    ip = request.client.host if request.client else "unknown"
+    check_login_rate_limit(ip)
+
     aluno = db.query(Aluno).filter(Aluno.email == form.username, Aluno.ativo == True).first()
     if not aluno or not verify_password(form.password, aluno.senha_hash):
+        logger.warning("Login failed for email=%s ip=%s", form.username, ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha incorretos",
         )
-    token = create_access_token({"sub": aluno.id, "role": aluno.role})
-    return TokenResponse(access_token=token, role=aluno.role, nome=aluno.nome)
+
+    logger.info("Login success for aluno_id=%s ip=%s", aluno.id, ip)
+    payload = {"sub": aluno.id, "role": aluno.role}
+    access_token = create_access_token(payload)
+    refresh_token = create_refresh_token(payload)
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        role=aluno.role,
+        nome=aluno.nome,
+    )
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(
+    body: RefreshRequest,
+    db: Session = Depends(get_db),
+):
+    """Troca um refresh token válido por um novo access token."""
+    payload = verify_refresh_token(body.refresh_token)
+    aluno_id = payload.get("sub")
+    aluno = db.query(Aluno).filter(Aluno.id == aluno_id, Aluno.ativo == True).first()
+    if not aluno:
+        raise HTTPException(status_code=401, detail="Usuário não encontrado")
+
+    new_payload = {"sub": aluno.id, "role": aluno.role}
+    access_token = create_access_token(new_payload)
+    refresh_token = create_refresh_token(new_payload)
+    logger.info("Token refreshed for aluno_id=%s", aluno.id)
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        role=aluno.role,
+        nome=aluno.nome,
+    )
 
 
 @router.post("/register", response_model=AlunoResponse, status_code=201)

@@ -8,6 +8,12 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('token'))
   const [loading, setLoading] = useState(true)
 
+  function _saveTokens(accessToken, refreshToken) {
+    localStorage.setItem('token', accessToken)
+    if (refreshToken) localStorage.setItem('refresh_token', refreshToken)
+    setToken(accessToken)
+  }
+
   useEffect(() => {
     if (!token) {
       setLoading(false)
@@ -17,6 +23,7 @@ export function AuthProvider({ children }) {
       .then(setUser)
       .catch(() => {
         localStorage.removeItem('token')
+        localStorage.removeItem('refresh_token')
         setToken(null)
       })
       .finally(() => setLoading(false))
@@ -24,15 +31,15 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, senha) => {
     const data = await apiLogin(email, senha)
-    localStorage.setItem('token', data.access_token)
-    setToken(data.access_token)
+    _saveTokens(data.access_token, data.refresh_token)
     const me = await getMe()
     setUser(me)
     return me
-  }, [])
+  }, []) // eslint-disable-line
 
   const logout = useCallback(() => {
     localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
     setToken(null)
     setUser(null)
   }, [])

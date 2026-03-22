@@ -11,6 +11,7 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     role: str
     nome: str
@@ -85,8 +86,15 @@ class AlterarSenhaRequest(BaseModel):
 
 
 class AlunoAdminUpdate(BaseModel):
-    ativo: Optional[bool] = None
+    nome: Optional[str] = None
+    email: Optional[EmailStr] = None
+    area: Optional[str] = None
     role: Optional[str] = None
+    horas_por_dia: Optional[float] = None
+    dias_por_semana: Optional[float] = None
+    nivel_desafio: Optional[str] = None
+    mentor_id: Optional[str] = None
+    ativo: Optional[bool] = None
 
 
 class AlunoAdminCreate(BaseModel):

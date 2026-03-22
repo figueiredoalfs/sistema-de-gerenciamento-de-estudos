@@ -1,8 +1,8 @@
 {
-  "concluidas": 12,
+  "concluidas": 20,
   "em_andamento": 0,
-  "total": 36,
-  "proxima": 12,
+  "total": 43,
+  "proxima": 20,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -61,74 +61,74 @@
     {
       "fase": "FASE-2",
       "tarefa": "Lançamento manual de bateria",
-      "nota": "Rota /lancar-bateria. Select matéria→subtópico. POST /bateria. Ver impacto em /desempenho.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-3",
       "tarefa": "Layout admin + gestão de questões + botão Sugerir Subtópico",
-      "nota": "Sidebar admin. Tabela questões com filtros. PATCH subtopico. POST sugerir-subtopico via NLP Mapper.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-3",
       "tarefa": "Importação em lote: JSON + PDF TEC Concursos",
-      "nota": "Upload JSON ou PDF. PDF processado por parser regex (pdfplumber). Preview antes de confirmar.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-3",
-      "tarefa": "Gestão de tópicos e subtópicos",
-      "nota": "Árvore matéria→tópico→subtópico. Editar peso_edital. Contador questões.",
-      "status": "pendente"
+      "tarefa": "Gestão de tópicos, subtópicos e configuração por área",
+      "nota": "Árvore matéria→tópico→subtópico. SubtopicoArea com peso e complexidade. Pré-requisitos.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-3",
       "tarefa": "Gestão de usuários + edição de dados",
-      "nota": "Editar todos os campos do aluno. Reset de senha separado. Modal de progresso.",
-      "status": "pendente"
+      "nota": "Editar todos os campos. Reset de senha separado. Modal de progresso.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-3.5",
-      "tarefa": "Onboarding: áreas ativas (Fiscal + CFOE/EAOF) + seleção de matérias",
-      "nota": "Outras áreas bloqueadas. Nova tela: sistema decide vs aluno escolhe matérias.",
-      "status": "pendente"
+      "tarefa": "Onboarding: áreas ativas + perfil de uso + seleção de subtópicos",
+      "nota": "Fiscal + militares ativas. Perfil de uso (funcionalidades). Seleção opcional de matérias.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-3.5",
-      "tarefa": "Model PlanoBase + geração via IA",
-      "nota": "Busca no banco antes de gerar. Gemini gera se não existir. Notifica admin.",
-      "status": "pendente"
+      "tarefa": "Model PlanoBase + geração via IA por subtópico",
+      "nota": "Opera sobre subtopicos por área. Gemini gera ordem pedagógica. Cache por area+perfil.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-3.5",
-      "tarefa": "Lógica de avanço de fase + diagnóstico obrigatório + numeração de metas",
-      "nota": "Meta 00=diagnóstico obrigatório para não-iniciantes. Metas regulares a partir de 01. Metas finalizadas acessíveis.",
-      "status": "pendente"
+      "tarefa": "Lógica de avanço de fase + diagnóstico obrigatório + metas numeradas",
+      "nota": "Meta 00 obrigatória. Dashboard bloqueado até concluir. Metas 01+ acessíveis.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-3.5",
       "tarefa": "Dashboard admin: notificações + revisão PlanoBase",
-      "nota": "Banner de notificações. Editor visual de fases. Aplicar para novos ou todos.",
-      "status": "pendente"
+      "nota": "Banner notificações. Editor visual de fases. Aplicar novos ou todos.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-4",
       "tarefa": "Painel do mentor — lista e detalhe de alunos",
-      "nota": "Rota /mentor. Lista com progresso. Detalhe: desempenho + tasks + histórico metas.",
-      "status": "pendente"
+      "nota": "Rota /mentor. Lista com progresso. Detalhe: desempenho + tasks + histórico.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Segurança antes do deploy",
-      "nota": "Confirmação email, recuperação senha, rate limiting, access+refresh token, logs segurança.",
-      "status": "pendente"
+      "nota": "Rate limiting login (5/10min), refresh token 30d, security logs. Email/recuperação pós-deploy.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Deletar Streamlit + routers inativos",
-      "nota": "Só após todas as fases anteriores estáveis.",
-      "status": "pendente"
+      "nota": "Removido streamlit/plotly de requirements.txt. IMPLEMENTATION_GUIDE.md deletado.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-5",
@@ -138,86 +138,128 @@
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-01: Correções de bugs",
-      "nota": "Reset DEV, lançamento bateria, PlanoBase IA, fontes bancas.",
+      "tarefa": "B-01: Correções de bugs imediatos",
+      "nota": "Reset DEV, bateria, PlanoBase IA, task sem conteúdo, Meta 00, banner diagnóstico, fontes bancas.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-02: Personalização por funcionalidades do onboarding",
-      "nota": "Sidebar e componentes condicionais baseados em funcionalidades_json.",
+      "tarefa": "B-02: Telas aluno — perfil, caderno de questões, dashboard",
+      "nota": "Perfil com edição de dados. Caderno de Questões funcionando. Tasks geram conteúdo.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-03: Índice de Prontidão (IP)",
+      "tarefa": "B-03: Personalização por funcionalidades do onboarding",
+      "nota": "Interface adapta silenciosamente. useFuncionalidades(). GET /auth/me retorna funcionalidades.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-04: Índice de Prontidão (IP)",
       "nota": "service indice_prontidao.py. Alimenta mapa calor, projeção, mentor, admin.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-04: Dashboard desempenho — novos gráficos",
-      "nota": "Radar matérias, velocidade domínio, volume semanal, heatmap, projeção.",
+      "tarefa": "B-05: Dashboard desempenho — novos gráficos",
+      "nota": "Radar, velocidade domínio, volume semanal, heatmap, projeção prontidão.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-05: Mapa de Calor do Edital",
-      "nota": "Grade peso_edital × accuracy_rate. Depende do IP (B-03).",
+      "tarefa": "B-06: Mapa de Calor do Edital",
+      "nota": "Grade peso_area × accuracy_rate. Depende IP (B-04).",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-06: Mapa de Lacunas + Caderno de Questões",
-      "nota": "Salvar alternativa escolhida. Padrões de erro. Renomear lançar bateria.",
+      "tarefa": "B-07: Mapa de Lacunas",
+      "nota": "Salvar alternativa escolhida. Padrões de erro. Caderno de Questões alimenta o mapa.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-07: Questões de validação geradas por IA",
-      "nota": "Pool por subtópico. Threshold 10/30. Celery assíncrono. origem=quiz_ia.",
+      "tarefa": "B-08: Base de conhecimento por upload de fontes",
+      "nota": "Admin upa PDFs brutos. RAG com chunking. Prioridade sobre geração de memória. /admin/fontes.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-08: Progressão de dificuldade dentro das tasks",
-      "nota": "Usar campo nivel por exposure_count no quiz_generator.",
+      "tarefa": "B-09: Questões geradas por IA (fallback + pool)",
+      "nota": "Pool por subtópico. Threshold 10/30. Celery. board=IA. Aviso de origem obrigatório.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-09: Sistema de reporte de conteúdo IA",
-      "nota": "Botão reporte em todo conteúdo IA. Painel admin de reportes pendentes.",
+      "tarefa": "B-10: Progressão de dificuldade dentro das tasks",
+      "nota": "nivel por exposure_count no quiz_generator.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-10: Painel financeiro no admin",
-      "nota": "Log custos IA por tipo. Infraestrutura manual. Receita futura.",
+      "tarefa": "B-11: Sistema de reporte de conteúdo IA",
+      "nota": "Botão reporte em todo conteúdo IA. Painel admin de reportes.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-11: Fluxo pós-edital via upload de PDF",
-      "nota": "Gemini extrai edital. NLP Mapper mapeia subtópicos. Admin valida.",
+      "tarefa": "B-12: Painel financeiro (pré-beta + monetização pós-beta)",
+      "nota": "B-12a: log custos IA antes do deploy. B-12b: planos, gateway, MRR após beta.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-12: Mapa de Concursos",
-      "nota": "Calendário visual + mapa geográfico. Scraping Celery + manual admin.",
+      "tarefa": "B-13: Fluxo pós-edital via upload de PDF",
+      "nota": "Gemini extrai edital. NLP Mapper. Admin valida. PlanoBase por urgência.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-13: Horas líquidas de estudo",
-      "nota": "duracao_real_min já existe. Campo ao finalizar task. Comparativo no dashboard.",
+      "tarefa": "B-14: Chat com IA contextualizado por plano",
+      "nota": "Contexto automático. Ícone flutuante + dentro da task. Limite por plano.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-14: Segurança avançada pós-deploy",
-      "nota": "Sentry, backup PostgreSQL, alertas custo IA, auditoria acessos admin.",
+      "tarefa": "B-15: Mapa de Concursos",
+      "nota": "Calendário visual + mapa geográfico. Scraping + manual admin.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-16: Horas líquidas de estudo",
+      "nota": "Campo ao finalizar task. Comparativo no dashboard.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-17: Upload de PDF de prova pelo aluno (meio do beta)",
+      "nota": "IA extrai questões. Fila revisão admin. Pendente só para o aluno que enviou.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-18: Áreas militares — subtópicos e banco",
+      "nota": "Criar subtópicos COM e SVM. Upar legislações FAB como fontes. GIT/MAT/Inglês já existem.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-19: Segurança avançada pós-deploy",
+      "nota": "Sentry, backup PostgreSQL, alertas custo IA, auditoria admin.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-20: Aviso de origem nas questões",
+      "nota": "Banca real, IA, ou contribuição aluno. Aparece no enunciado e pós-resposta.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-21: Arquitetura pedagógica por subtópico e área",
+      "nota": "Corrigir campo area em Topico. SubtopicoArea ativo. plano_inicial.py e engine operam sobre subtópicos.",
       "status": "pendente"
     }
   ]

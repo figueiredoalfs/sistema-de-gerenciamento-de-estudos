@@ -65,6 +65,7 @@ def onboarding(
 
     # ── 2. Upsert PerfilEstudo ───────────────────────────────────────────
     funcionalidades_json = json.dumps(body.funcionalidades)
+    materias_json = json.dumps(body.materias_selecionadas) if body.materias_selecionadas else None
 
     perfil = db.query(PerfilEstudo).filter(PerfilEstudo.aluno_id == aluno.id).first()
 
@@ -74,6 +75,8 @@ def onboarding(
         perfil.experiencia = body.experiencia
         perfil.tempo_estudo = body.tempo_estudo
         perfil.funcionalidades_json = funcionalidades_json
+        perfil.tem_plano_externo = body.tem_plano_externo
+        perfil.materias_selecionadas_json = materias_json
         perfil.updated_at = datetime.now(timezone.utc)
     else:
         perfil = PerfilEstudo(
@@ -84,17 +87,24 @@ def onboarding(
             experiencia=body.experiencia,
             tempo_estudo=body.tempo_estudo,
             funcionalidades_json=funcionalidades_json,
+            tem_plano_externo=body.tem_plano_externo,
+            materias_selecionadas_json=materias_json,
         )
         db.add(perfil)
 
     db.commit()
     db.refresh(perfil)
 
-    # ── 3. Gerar Meta 01 via engine pedagógica ───────────────────────────
+    # ── 3. Gerar meta via engine pedagógica ──────────────────────────────
+    # Não-iniciantes recebem Meta 00 (diagnóstico) antes da Meta 01.
+    # Iniciantes recebem Meta 01 diretamente.
     tasks_geradas = 0
     try:
-        from app.services.engine_pedagogica import gerar_meta
-        meta = gerar_meta(db=db, aluno_id=aluno.id)
+        from app.services.engine_pedagogica import gerar_meta, gerar_meta_00
+        if body.experiencia and body.experiencia != "iniciante":
+            meta = gerar_meta_00(db=db, aluno_id=aluno.id)
+        else:
+            meta = gerar_meta(db=db, aluno_id=aluno.id)
         tasks_geradas = meta.tasks_meta
     except HTTPException:
         # Engine sem ciclo configurado ainda — aluno poderá gerar do Dashboard

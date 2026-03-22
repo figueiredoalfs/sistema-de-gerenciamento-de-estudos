@@ -1,13 +1,19 @@
-from typing import List
+from datetime import datetime, timezone
+from typing import List, Optional
 
+import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import require_admin, require_mentor, hash_password
 from app.models.aluno import Aluno
+from app.models.meta import Meta
+from app.models.perfil_estudo import PerfilEstudo
 from app.models.proficiencia import Proficiencia
+from app.models.resposta_questao import RespostaQuestao
 from app.models.sessao import Sessao
+from app.models.study_task import StudyTask
 from app.schemas.auth import AlunoAdminResponse, AlunoAdminUpdate, AlunoMentoradoResponse, AtribuirMentorRequest, AlunoAdminCreate
 
 router = APIRouter(tags=["usuários"])
@@ -53,19 +59,63 @@ def atualizar_usuario(
     db: Session = Depends(get_db),
     current_user: Aluno = Depends(require_admin),
 ):
-    """Admin: ativa/desativa usuário ou altera role."""
+    """Admin: edita dados completos de um usuário."""
     aluno = db.query(Aluno).filter(Aluno.id == usuario_id).first()
     if not aluno:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    if aluno.id == current_user.id:
-        raise HTTPException(status_code=400, detail="Não é possível alterar o próprio usuário")
-    if body.ativo is not None:
-        aluno.ativo = body.ativo
+    if aluno.id == current_user.id and body.ativo is False:
+        raise HTTPException(status_code=400, detail="Não é possível desativar o próprio usuário")
+
+    if body.nome is not None:
+        aluno.nome = body.nome
+    if body.email is not None and body.email != aluno.email:
+        if db.query(Aluno).filter(Aluno.email == body.email).first():
+            raise HTTPException(status_code=400, detail="E-mail já cadastrado")
+        aluno.email = body.email
+    if body.area is not None:
+        aluno.area = body.area
     if body.role is not None:
         aluno.role = body.role
+    if body.horas_por_dia is not None:
+        aluno.horas_por_dia = body.horas_por_dia
+    if body.dias_por_semana is not None:
+        aluno.dias_por_semana = body.dias_por_semana
+    if body.nivel_desafio is not None:
+        aluno.nivel_desafio = body.nivel_desafio
+    if body.mentor_id is not None:
+        mentor = db.query(Aluno).filter(Aluno.id == body.mentor_id, Aluno.role == "mentor").first()
+        if not mentor:
+            raise HTTPException(status_code=404, detail="Mentor não encontrado")
+        aluno.mentor_id = body.mentor_id
+    if "mentor_id" in body.model_fields_set and body.mentor_id is None:
+        aluno.mentor_id = None
+    if body.ativo is not None:
+        aluno.ativo = body.ativo
+
     db.commit()
     db.refresh(aluno)
     return aluno
+
+
+@router.post("/admin/usuarios/{usuario_id}/reset-senha")
+def reset_senha_usuario(
+    usuario_id: str,
+    db: Session = Depends(get_db),
+    current_user: Aluno = Depends(require_admin),
+):
+    """Admin: gera senha temporária para o usuário (8 chars alfanuméricos)."""
+    import secrets
+    import string
+
+    aluno = db.query(Aluno).filter(Aluno.id == usuario_id).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    alphabet = string.ascii_letters + string.digits
+    senha_temp = "".join(secrets.choice(alphabet) for _ in range(8))
+    aluno.senha_hash = hash_password(senha_temp)
+    db.commit()
+    return {"senha_temporaria": senha_temp, "mensagem": "Senha redefinida. Informe ao usuário para trocar no primeiro acesso."}
 
 
 @router.patch("/admin/usuarios/{usuario_id}/mentor", response_model=AlunoAdminResponse)
@@ -188,6 +238,104 @@ def progresso_aluno_mentor(
         "total_acertos": total_a,
         "perc_geral": perc(total_a, total_q),
         "total_sessoes": total_sessoes,
+        "por_materia": por_materia,
+    }
+
+
+@router.get("/mentor/alunos/{aluno_id}/resumo")
+def resumo_aluno_mentor(
+    aluno_id: str,
+    db: Session = Depends(get_db),
+    current_user: Aluno = Depends(require_mentor),
+):
+    """Mentor: retorna resumo detalhado de um aluno mentorado (fase, meta, pontos fortes/fracos)."""
+    if current_user.role != "administrador":
+        ids_mentorados = [a.id for a in current_user.alunos_mentorados]
+        if aluno_id not in ids_mentorados:
+            raise HTTPException(status_code=403, detail="Aluno não pertence ao seu grupo de mentoreados")
+
+    aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Aluno não encontrado")
+
+    def perc(a, t):
+        return round(a / t * 100, 1) if t > 0 else 0.0
+
+    # Fase do plano e perfil
+    perfil = db.query(PerfilEstudo).filter(PerfilEstudo.aluno_id == aluno_id).first()
+    fase_atual = perfil.fase_atual if perfil else None
+    experiencia = perfil.experiencia if perfil else None
+
+    # Meta ativa
+    meta_ativa = db.query(Meta).filter(Meta.aluno_id == aluno_id, Meta.status == "aberta").first()
+    meta_info = None
+    if meta_ativa:
+        total_tasks = db.query(sa.func.count(StudyTask.id)).filter(StudyTask.goal_id == meta_ativa.id).scalar() or 0
+        done_tasks = (
+            db.query(sa.func.count(StudyTask.id))
+            .filter(StudyTask.goal_id == meta_ativa.id, StudyTask.status == "completed")
+            .scalar()
+            or 0
+        )
+        meta_info = {
+            "numero_semana": meta_ativa.numero_semana,
+            "tasks_total": total_tasks,
+            "tasks_concluidas": done_tasks,
+            "progresso_pct": perc(done_tasks, total_tasks),
+        }
+
+    # Última atividade (última resposta)
+    ultima_resposta = (
+        db.query(RespostaQuestao.respondida_em)
+        .filter(RespostaQuestao.aluno_id == aluno_id)
+        .order_by(RespostaQuestao.respondida_em.desc())
+        .first()
+    )
+    ultima_atividade = ultima_resposta[0] if ultima_resposta else None
+
+    # Desempenho por matéria via Proficiencia
+    registros = db.query(Proficiencia).filter(Proficiencia.aluno_id == aluno_id).all()
+    agrup: dict = {}
+    for r in registros:
+        mat = r.materia or "Sem matéria"
+        if mat not in agrup:
+            agrup[mat] = {"acertos": 0, "total": 0}
+        agrup[mat]["acertos"] += r.acertos or 0
+        agrup[mat]["total"] += r.total or 0
+
+    total_q = sum(v["total"] for v in agrup.values())
+    total_a = sum(v["acertos"] for v in agrup.values())
+
+    por_materia = sorted(
+        [
+            {"materia": m, "realizadas": v["total"], "acertos": v["acertos"], "perc": perc(v["acertos"], v["total"])}
+            for m, v in agrup.items()
+            if v["total"] > 0
+        ],
+        key=lambda x: -x["perc"],
+    )
+
+    pontos_fortes = [m for m in por_materia if m["perc"] >= 70][:3]
+    pontos_fracos = sorted([m for m in por_materia if m["perc"] < 50], key=lambda x: x["perc"])[:3]
+
+    return {
+        "aluno_id": aluno_id,
+        "nome": aluno.nome,
+        "email": aluno.email,
+        "area": aluno.area,
+        "ativo": aluno.ativo,
+        "fase_atual": fase_atual,
+        "experiencia": experiencia,
+        "diagnostico_pendente": aluno.diagnostico_pendente,
+        "meta_ativa": meta_info,
+        "ultima_atividade": ultima_atividade,
+        "desempenho": {
+            "total_questoes": total_q,
+            "total_acertos": total_a,
+            "perc_geral": perc(total_a, total_q),
+        },
+        "pontos_fortes": pontos_fortes,
+        "pontos_fracos": pontos_fracos,
         "por_materia": por_materia,
     }
 

@@ -30,6 +30,8 @@ from app.models.plano_base import PlanoBase
 from app.models.banca import Banca
 from app.models.area import Area
 from app.models.question_area import QuestionArea
+from app.models.subtopico_area import SubtopicoArea
+from app.models.notificacao import Notificacao
 
 __all__ = [
     "Aluno",
@@ -64,4 +66,6 @@ __all__ = [
     "Banca",
     "Area",
     "QuestionArea",
+    "SubtopicoArea",
+    "Notificacao",
 ]

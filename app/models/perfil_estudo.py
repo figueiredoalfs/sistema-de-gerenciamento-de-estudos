@@ -39,6 +39,12 @@ class PerfilEstudo(Base):
     # Ex: '["geracao_conteudo", "analise_desempenho", "cronograma_estudo", "geracao_questoes"]'
     funcionalidades_json = Column(Text, nullable=False, default="[]")
 
+    # Se aluno NÃO selecionou cronograma: indica se tem plano externo (mentor, outra plataforma, próprio)
+    tem_plano_externo = Column(Boolean, default=False, nullable=True)
+
+    # Matérias selecionadas manualmente (null = deixar o sistema decidir)
+    materias_selecionadas_json = Column(Text, nullable=True)
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,

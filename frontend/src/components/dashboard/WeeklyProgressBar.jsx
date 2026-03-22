@@ -9,7 +9,9 @@ export default function WeeklyProgressBar({ meta }) {
     <div className="bg-brand-card border border-brand-border rounded-2xl p-5">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-brand-muted text-xs uppercase tracking-wider">Meta Semanal</p>
+          <p className="text-brand-muted text-xs uppercase tracking-wider">
+            {meta.numero_semana === 0 ? 'Diagnóstico' : 'Meta Semanal'}
+          </p>
           <p className="text-brand-text font-semibold mt-0.5">
             {done} <span className="text-brand-muted font-normal">de</span> {total} tarefas
           </p>
@@ -24,7 +26,11 @@ export default function WeeklyProgressBar({ meta }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-brand-muted text-xs mt-2">Semana #{meta.numero_semana}</p>
+      <p className="text-brand-muted text-xs mt-2">
+        {meta.numero_semana === 0
+          ? 'Diagnóstico inicial'
+          : `Meta ${String(meta.numero_semana).padStart(2, '0')}`}
+      </p>
     </div>
   )
 }

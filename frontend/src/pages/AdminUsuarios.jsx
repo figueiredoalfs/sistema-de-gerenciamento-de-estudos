@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listarUsuarios, atualizarUsuario, atribuirMentor, progressoUsuario, criarUsuario } from '../api/adminUsuarios'
+import { listarUsuarios, atualizarUsuario, atribuirMentor, progressoUsuario, criarUsuario, resetSenhaUsuario } from '../api/adminUsuarios'
 
 const ROLE_LABEL = {
   administrador: { label: 'Admin', cls: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
@@ -11,6 +11,183 @@ function RoleBadge({ role }) {
   const { label, cls } = ROLE_LABEL[role] ?? { label: role, cls: 'bg-brand-surface text-brand-muted border-brand-border' }
   return (
     <span className={`text-xs font-medium px-2 py-0.5 rounded border ${cls}`}>{label}</span>
+  )
+}
+
+const AREAS_OPCOES = ['fiscal', 'eaof_com', 'eaof_svm', 'cfoe_com', 'juridica', 'policial', 'ti', 'saude', 'outro']
+const ROLES_OPCOES = ['estudante', 'mentor', 'administrador']
+const NIVEIS_DESAFIO = ['conservador', 'moderado', 'agressivo']
+
+function ModalEditarUsuario({ usuario, onClose, onSalvo }) {
+  const [form, setForm] = useState({
+    nome: usuario.nome,
+    email: usuario.email,
+    area: usuario.area ?? '',
+    role: usuario.role,
+    horas_por_dia: String(usuario.horas_por_dia ?? 3),
+    dias_por_semana: String(usuario.dias_por_semana ?? 5),
+    nivel_desafio: usuario.nivel_desafio ?? 'moderado',
+    ativo: usuario.ativo,
+  })
+  const [loading, setLoading] = useState(false)
+  const [erro, setErro] = useState('')
+
+  function set(field, value) { setForm((f) => ({ ...f, [field]: value })) }
+
+  async function salvar(e) {
+    e.preventDefault()
+    setErro('')
+    setLoading(true)
+    try {
+      const body = {
+        nome: form.nome.trim(),
+        email: form.email.trim(),
+        area: form.area || null,
+        role: form.role,
+        horas_por_dia: parseFloat(form.horas_por_dia) || 3,
+        dias_por_semana: parseFloat(form.dias_por_semana) || 5,
+        nivel_desafio: form.nivel_desafio,
+        ativo: form.ativo,
+      }
+      const atualizado = await atualizarUsuario(usuario.id, body)
+      onSalvo(atualizado)
+      onClose()
+    } catch (err) {
+      setErro(err.response?.data?.detail || 'Erro ao salvar.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-brand-card border border-brand-border rounded-xl p-6 w-full max-w-lg space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-brand-text">Editar usuário</h2>
+        <form onSubmit={salvar} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="text-xs text-brand-muted block mb-1">Nome</label>
+              <input required value={form.nome} onChange={(e) => set('nome', e.target.value)}
+                className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs text-brand-muted block mb-1">E-mail</label>
+              <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)}
+                className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label className="text-xs text-brand-muted block mb-1">Área</label>
+              <select value={form.area} onChange={(e) => set('area', e.target.value)}
+                className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="">— Sem área —</option>
+                {AREAS_OPCOES.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-brand-muted block mb-1">Perfil</label>
+              <select value={form.role} onChange={(e) => set('role', e.target.value)}
+                className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                {ROLES_OPCOES.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-brand-muted block mb-1">Horas/dia</label>
+              <input type="number" step="0.5" min="0.5" max="24" value={form.horas_por_dia} onChange={(e) => set('horas_por_dia', e.target.value)}
+                className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label className="text-xs text-brand-muted block mb-1">Dias/semana</label>
+              <input type="number" step="1" min="1" max="7" value={form.dias_por_semana} onChange={(e) => set('dias_por_semana', e.target.value)}
+                className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label className="text-xs text-brand-muted block mb-1">Nível de desafio</label>
+              <select value={form.nivel_desafio} onChange={(e) => set('nivel_desafio', e.target.value)}
+                className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                {NIVEIS_DESAFIO.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 pt-4">
+              <button type="button" onClick={() => set('ativo', !form.ativo)}
+                className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${form.ativo ? 'bg-indigo-500' : 'bg-brand-border'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.ativo ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </button>
+              <span className="text-sm text-brand-muted">{form.ativo ? 'Ativo' : 'Inativo'}</span>
+            </div>
+          </div>
+          {erro && <p className="text-red-400 text-sm">{erro}</p>}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-sm text-brand-muted hover:text-brand-text border border-brand-border rounded-lg transition-colors">
+              Cancelar
+            </button>
+            <button type="submit" disabled={loading}
+              className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-50">
+              {loading ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ModalResetSenha({ usuario, onClose }) {
+  const [senha, setSenha] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [erro, setErro] = useState('')
+
+  async function confirmar() {
+    setLoading(true)
+    setErro('')
+    try {
+      const res = await resetSenhaUsuario(usuario.id)
+      setSenha(res.senha_temporaria)
+    } catch (err) {
+      setErro(err.response?.data?.detail || 'Erro ao redefinir senha.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-brand-card border border-brand-border rounded-xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+        <h2 className="text-lg font-semibold text-brand-text">Redefinir senha</h2>
+        <p className="text-brand-muted text-sm">{usuario.nome} — {usuario.email}</p>
+
+        {!senha ? (
+          <>
+            <p className="text-sm text-brand-muted">Isso irá gerar uma senha temporária para o usuário. Ele deve trocá-la no primeiro acesso.</p>
+            {erro && <p className="text-red-400 text-sm">{erro}</p>}
+            <div className="flex gap-2 justify-end pt-2">
+              <button onClick={onClose}
+                className="px-4 py-2 text-sm text-brand-muted hover:text-brand-text border border-brand-border rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button onClick={confirmar} disabled={loading}
+                className="px-4 py-2 text-sm bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg transition-colors disabled:opacity-50">
+                {loading ? 'Gerando...' : 'Gerar senha'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-brand-surface border border-brand-border rounded-lg px-4 py-3 text-center">
+              <p className="text-xs text-brand-muted mb-1">Senha temporária</p>
+              <p className="text-2xl font-mono font-bold text-indigo-400 tracking-widest">{senha}</p>
+            </div>
+            <p className="text-xs text-brand-muted">Copie e envie ao usuário. Esta senha não será exibida novamente.</p>
+            <div className="flex justify-end">
+              <button onClick={onClose}
+                className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors">
+                Fechar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -261,6 +438,8 @@ export default function AdminUsuarios() {
   const [modalProgresso, setModalProgresso] = useState(null)
   const [toggling, setToggling] = useState(null)
   const [modalCriar, setModalCriar] = useState(false)
+  const [modalEditar, setModalEditar] = useState(null)
+  const [modalReset, setModalReset] = useState(null)
 
   useEffect(() => {
     listarUsuarios()
@@ -321,6 +500,16 @@ export default function AdminUsuarios() {
           onClose={() => setModalCriar(false)}
           onCriado={(novo) => setUsuarios((prev) => [novo, ...prev])}
         />
+      )}
+      {modalEditar && (
+        <ModalEditarUsuario
+          usuario={modalEditar}
+          onClose={() => setModalEditar(null)}
+          onSalvo={(atualizado) => setUsuarios((prev) => prev.map((u) => u.id === atualizado.id ? atualizado : u))}
+        />
+      )}
+      {modalReset && (
+        <ModalResetSenha usuario={modalReset} onClose={() => setModalReset(null)} />
       )}
       {modalMentor && (
         <ModalMentor
@@ -431,38 +620,43 @@ export default function AdminUsuarios() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        title="Ver progresso"
-                        onClick={() => setModalProgresso(u)}
-                        className="text-brand-muted hover:text-sky-400 transition-colors p-1 rounded"
-                      >
+                    <div className="flex items-center justify-end gap-1">
+                      <button title="Editar" onClick={() => setModalEditar(u)}
+                        className="text-brand-muted hover:text-indigo-400 transition-colors p-1.5 rounded hover:bg-indigo-500/10">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M15.232 5.232l3.536 3.536M9 13l6.5-6.5a2 2 0 012.828 2.828L11.828 15.828A2 2 0 0111 16.414V18h1.586a2 2 0 001.414-.586L18 14" />
+                        </svg>
+                      </button>
+                      <button title="Redefinir senha" onClick={() => setModalReset(u)}
+                        className="text-brand-muted hover:text-yellow-400 transition-colors p-1.5 rounded hover:bg-yellow-500/10">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                      </button>
+                      <button title="Ver progresso" onClick={() => setModalProgresso(u)}
+                        className="text-brand-muted hover:text-sky-400 transition-colors p-1.5 rounded hover:bg-sky-500/10">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                       </button>
                       {u.role === 'estudante' && (
-                        <button
-                          title="Atribuir mentor"
-                          onClick={() => setModalMentor(u)}
-                          className="text-brand-muted hover:text-indigo-400 transition-colors p-1 rounded"
-                        >
+                        <button title="Atribuir mentor" onClick={() => setModalMentor(u)}
+                          className="text-brand-muted hover:text-indigo-400 transition-colors p-1.5 rounded hover:bg-indigo-500/10">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
                           </svg>
                         </button>
                       )}
-                      <button
-                        title={u.ativo ? 'Desativar' : 'Ativar'}
-                        onClick={() => toggleAtivo(u)}
+                      <button title={u.ativo ? 'Desativar' : 'Ativar'} onClick={() => toggleAtivo(u)}
                         disabled={toggling === u.id}
-                        className={`transition-colors px-2 py-1 rounded text-xs font-medium disabled:opacity-40 ${u.ativo ? 'text-red-400 hover:bg-red-400/10 border border-red-400/30' : 'text-emerald-400 hover:bg-emerald-400/10 border border-emerald-400/30 !opacity-100'}`}
-                      >
-                        {toggling === u.id ? (
-                          <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                        ) : u.ativo ? 'Desativar' : 'Ativar'}
+                        className={`transition-colors px-2 py-1 rounded text-xs font-medium disabled:opacity-40 ${u.ativo ? 'text-red-400 hover:bg-red-400/10 border border-red-400/30' : 'text-emerald-400 hover:bg-emerald-400/10 border border-emerald-400/30 !opacity-100'}`}>
+                        {toggling === u.id
+                          ? <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                          : u.ativo ? 'Desativar' : 'Ativar'}
                       </button>
                     </div>
                   </td>

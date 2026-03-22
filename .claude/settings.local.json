@@ -30,7 +30,8 @@
       "Bash(alembic stamp:*)",
       "Bash(alembic current:*)",
       "Bash(ls -lh /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/app/models/*.py)",
-      "Bash(python -m alembic revision --autogenerate -m \"limpar_enum_tipo_task\")"
+      "Bash(python -m alembic revision --autogenerate -m \"limpar_enum_tipo_task\")",
+      "Bash(pip show:*)"
     ]
   }
 }

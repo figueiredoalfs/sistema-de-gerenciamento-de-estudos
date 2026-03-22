@@ -48,7 +48,11 @@ export function useTasks() {
     await updateTaskStatus(taskId, 'completed')
     setMeta((prev) => prev ? { ...prev, tasks_concluidas: prev.tasks_concluidas + 1 } : prev)
     await fetchData()
-  }, [fetchData])
+    // Atualiza diagnostico_pendente no contexto após concluir task diagnóstica
+    if (user?.diagnostico_pendente) {
+      await refreshUser()
+    }
+  }, [fetchData, refreshUser, user])
 
   const criarMeta = useCallback(async () => {
     setMetaError(null)

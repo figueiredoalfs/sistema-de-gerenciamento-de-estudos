@@ -36,6 +36,12 @@ class OnboardingRequest(BaseModel):
     # Passo 5 — funcionalidades desejadas (pelo menos 1)
     funcionalidades: List[str]
 
+    # Passo 5b — se cronograma NÃO selecionado: tem plano externo?
+    tem_plano_externo: Optional[bool] = None
+
+    # Passo 6 (opcional) — matérias selecionadas manualmente (null = sistema decide)
+    materias_selecionadas: Optional[List[str]] = None
+
     @model_validator(mode="after")
     def validar_campos(self) -> "OnboardingRequest":
         if self.experiencia == "tempo_de_estudo":

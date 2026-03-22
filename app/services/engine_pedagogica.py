@@ -423,6 +423,7 @@ def verificar_encerramento_meta(db: Session, goal_id: str) -> None:
     """
     Chamado após a conclusão de uma task. Atualiza tasks_concluidas e,
     se todas as tasks foram concluídas, encerra a Meta automaticamente.
+    Quando a Meta diagnóstica (numero_semana=0) encerra, limpa diagnostico_pendente.
     """
     meta = db.query(Meta).filter(Meta.id == goal_id).first()
     if not meta or meta.status == "encerrada":
@@ -437,6 +438,10 @@ def verificar_encerramento_meta(db: Session, goal_id: str) -> None:
     meta.tasks_concluidas = concluidas
     if meta.tasks_concluidas >= meta.tasks_meta:
         meta.status = "encerrada"
+        if meta.numero_semana == 0:
+            aluno = db.query(Aluno).filter(Aluno.id == meta.aluno_id).first()
+            if aluno:
+                aluno.diagnostico_pendente = False
     db.commit()
 
 
@@ -490,6 +495,113 @@ def gerar_meta(db: Session, aluno_id: str) -> Meta:
     for task in tasks:
         db.add(task)
 
+    db.commit()
+    db.refresh(meta)
+    return meta
+
+
+# ---------------------------------------------------------------------------
+# Meta diagnóstica (Meta 00)
+# ---------------------------------------------------------------------------
+
+def _build_diagnostic_tasks(
+    db: Session,
+    aluno: Aluno,
+    meta: Meta,
+    tasks_meta: int,
+) -> list[StudyTask]:
+    """
+    Gera tasks diagnósticas: um questionário por matéria (até tasks_meta),
+    com 10 questões cada, para calibrar o nível de conhecimento do aluno.
+    """
+    area = aluno.area or "fiscal"
+    subjects = _subjects_do_ciclo(db, area) or _subjects_fallback(db, area)
+    if not subjects:
+        return []
+
+    agora = datetime.now(timezone.utc)
+    tasks_criadas: list[StudyTask] = []
+    order = 1
+
+    for subject in subjects[:tasks_meta]:
+        triplas = _subtopicos_da_materia(db, subject)
+        if not triplas:
+            continue
+
+        # Seleciona o primeiro subtópico com questões disponíveis
+        _, topic, subtopic = triplas[0]
+        questoes_ids = _selecionar_questoes(db, subtopic.id, aluno.id, 10)
+        if not questoes_ids:
+            continue
+
+        task = StudyTask(
+            id=str(uuid.uuid4()),
+            aluno_id=aluno.id,
+            subject_id=subject.id,
+            topic_id=topic.id,
+            subtopic_id=subtopic.id,
+            tipo="questionario",
+            status="pending",
+            goal_id=meta.id,
+            week_number=0,
+            order_in_week=order,
+            questoes_json=json.dumps(questoes_ids),
+            created_at=agora,
+        )
+        tasks_criadas.append(task)
+        order += 1
+
+    return tasks_criadas
+
+
+def gerar_meta_00(db: Session, aluno_id: str) -> Meta:
+    """
+    Gera a Meta diagnóstica (numero_semana=0) para alunos não-iniciantes.
+    Cria tasks de questionário para calibrar o nível do aluno e define
+    diagnostico_pendente=True no Aluno.
+
+    Raises:
+        HTTPException 404 — aluno não encontrado
+        HTTPException 409 — já existe uma meta aberta para o aluno
+        HTTPException 422 — não foi possível gerar tasks diagnósticas
+    """
+    aluno: Optional[Aluno] = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Aluno não encontrado.")
+
+    _assert_no_open_meta(db, aluno_id)
+
+    tasks_meta = 5  # uma task diagnóstica por matéria principal (até 5)
+
+    meta = Meta(
+        id=str(uuid.uuid4()),
+        aluno_id=aluno_id,
+        numero_semana=0,
+        tasks_meta=tasks_meta,
+        tasks_concluidas=0,
+        status="aberta",
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(meta)
+    db.flush()
+
+    tasks = _build_diagnostic_tasks(db, aluno, meta, tasks_meta)
+
+    if not tasks:
+        db.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Não foi possível gerar tasks diagnósticas. "
+                "Verifique se os ciclos de matérias e subtópicos estão configurados para a área do aluno."
+            ),
+        )
+
+    meta.tasks_meta = len(tasks)  # ajusta para o número real de tasks geradas
+    for task in tasks:
+        db.add(task)
+
+    aluno.diagnostico_pendente = True
     db.commit()
     db.refresh(meta)
     return meta

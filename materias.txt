@@ -1,0 +1,57 @@
+01. Administração Financeira e Orçamentária (AFO)
+02. Administração Geral
+03. Administração Pública
+04. Arquivologia
+05. Atualidades
+06. Auditoria Governamental
+07. Ciência de Dados e Analytics
+08. Comércio Internacional
+09. Conhecimentos Pedagógicos
+10. Contabilidade Geral
+11. Contabilidade Pública
+12. Contabilidade de Custos
+13. Direito Administrativo
+14. Direito Ambiental
+15. Direito Civil
+16. Direito Constitucional
+17. Direito Eleitoral
+18. Direito Penal
+19. Direito Previdenciário
+20. Direito Processual Civil
+21. Direito Processual Penal
+22. Direito Processual do Trabalho
+23. Direito Tributário
+24. Direito do Consumidor
+25. Direito do Trabalho
+26. Direitos Humanos
+27. Diversidade e Inclusão
+28. Economia (Micro e Macro)
+29. Estatuto da Criança e do Adolescente (ECA)
+30. Estatuto do Idoso
+31. Estatística
+32. Gestão de Pessoas
+33. Gestão de Processos
+34. Gestão de Projetos
+35. Governança Pública
+36. Governança de TI
+37. Informática
+38. Inteligência Artificial
+39. Legislação Educacional (LDB)
+40. Legislação Específica
+41. Legislação Extravagante
+42. Legislação do SUS
+43. Lei de Responsabilidade Fiscal (LRF)
+44. Licitações e Contratos
+45. Linguagens de Programação
+46. Língua Portuguesa
+47. Matemática
+48. Matemática Financeira
+49. Políticas Públicas
+50. Raciocínio Lógico-Matemático
+51. Realidade Brasileira
+52. Redação Oficial
+53. Saúde Pública (SUS)
+54. Segurança da Informação
+55. Sustentabilidade e Meio Ambiente
+56. Vigilância Sanitária
+57. Ética no Serviço Público

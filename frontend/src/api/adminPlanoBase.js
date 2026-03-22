@@ -27,3 +27,8 @@ export async function atualizarPlano(id, body) {
 export async function deletarPlano(id) {
   await client.delete(`/admin/planos-base/${id}`)
 }
+
+export async function aplicarPlano(id, modo = 'novos') {
+  const { data } = await client.post(`/admin/planos-base/${id}/aplicar`, null, { params: { modo } })
+  return data
+}

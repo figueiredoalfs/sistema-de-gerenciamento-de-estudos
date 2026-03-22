@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { listarPlanos } from '../api/adminPlanoBase'
+import { listarNotificacoes, marcarNotificacaoLida, deletarNotificacao } from '../api/adminNotificacoes'
 
 const CARDS = [
   {
@@ -61,15 +62,68 @@ const CARDS = [
   },
 ]
 
+const TIPO_CORES = {
+  info:    'bg-indigo-500/10 border-indigo-500/30 text-indigo-300',
+  aviso:   'bg-yellow-500/10 border-yellow-500/30 text-yellow-300',
+  critico: 'bg-red-500/10 border-red-500/30 text-red-400',
+}
+
+function NotificacoesBanner({ notificacoes, onMarcarLida, onDeletar }) {
+  if (!notificacoes.length) return null
+  return (
+    <div className="space-y-2">
+      {notificacoes.map((n) => (
+        <div key={n.id} className={`border rounded-xl p-4 flex items-start gap-3 ${TIPO_CORES[n.tipo] || TIPO_CORES.info}`}>
+          <div className="flex-1">
+            <p className="font-semibold text-sm">{n.titulo}</p>
+            <p className="text-xs opacity-80 mt-0.5">{n.mensagem}</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => onMarcarLida(n.id)}
+              className="text-xs opacity-60 hover:opacity-100 transition-opacity underline underline-offset-2"
+            >
+              marcar lida
+            </button>
+            <button
+              onClick={() => onDeletar(n.id)}
+              className="opacity-60 hover:opacity-100 transition-opacity"
+              title="Remover"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth()
   const [pendentesPlano, setPendentesPlano] = useState(0)
+  const [notificacoes, setNotificacoes] = useState([])
 
   useEffect(() => {
     listarPlanos({ pendente_revisao: true })
       .then((data) => setPendentesPlano(data.length))
       .catch(() => { /* silencia */ })
+    listarNotificacoes({ lida: false })
+      .then(setNotificacoes)
+      .catch(() => { /* silencia */ })
   }, [])
+
+  async function handleMarcarLida(id) {
+    await marcarNotificacaoLida(id).catch(() => {})
+    setNotificacoes((prev) => prev.filter((n) => n.id !== id))
+  }
+
+  async function handleDeletar(id) {
+    await deletarNotificacao(id).catch(() => {})
+    setNotificacoes((prev) => prev.filter((n) => n.id !== id))
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -77,6 +131,12 @@ export default function AdminDashboard() {
         <h1 className="text-2xl font-bold text-brand-text">Painel Admin</h1>
         <p className="text-brand-muted text-sm mt-1">Olá, {user?.nome}. Gerencie a plataforma Skolai.</p>
       </div>
+
+      <NotificacoesBanner
+        notificacoes={notificacoes}
+        onMarcarLida={handleMarcarLida}
+        onDeletar={handleDeletar}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {CARDS.map((card) =>
