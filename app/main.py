@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.config import settings
 from app.core.database import Base  # noqa: F401 — importado para Alembic detectar os models
 from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes, admin_importar_questoes, task_conteudo, admin_plano_base, admin_importar_tec, admin_pendencias, admin_bancas, admin_notificacoes  # noqa: E501
 from app.routers import cronograma_semanal
@@ -61,9 +62,15 @@ app = FastAPI(
     version="0.1.0",
 )
 
+_allowed_origins = (
+    [o.strip() for o in settings.ALLOWED_ORIGINS.split(",")]
+    if settings.ALLOWED_ORIGINS != "*"
+    else ["*"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     ADMIN_SENHA: str = "admin123"
     ADMIN_NOME: str = "Admin"
 
+    # CORS: domínios permitidos separados por vírgula.
+    # Em produção, defina apenas o domínio do frontend, ex:
+    # ALLOWED_ORIGINS=https://skolai.railway.app
+    ALLOWED_ORIGINS: str = "*"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
