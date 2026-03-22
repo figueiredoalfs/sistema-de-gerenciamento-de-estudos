@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "NODE_ENV=development npm install && npm run build"
+buildCommand = "npm install --include=dev && npm run build"
 
 [deploy]
 restartPolicyType = "on_failure"
