@@ -5,8 +5,13 @@ from app.core.config import settings
 
 DATABASE_URL = settings.database_url_compat
 
-# SQLite precisa de connect_args; Postgres não
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+# SQLite precisa de check_same_thread; Postgres precisa de sslmode em produção
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+elif DATABASE_URL.startswith("postgresql"):
+    connect_args = {"sslmode": "require"}
+else:
+    connect_args = {}
 
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
 
