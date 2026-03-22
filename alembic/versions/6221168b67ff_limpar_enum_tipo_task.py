@@ -60,10 +60,6 @@ def upgrade() -> None:
                    END)
         """)
         op.drop_index('ix_study_tasks_subtopic_id', table_name='study_tasks')
-        op.create_foreign_key(
-            'fk_study_tasks_task_code', 'study_tasks', 'task_conteudo',
-            ['task_code'], ['task_code']
-        )
 
         # --- subtopico_estados: unique constraint (pode já existir se criada inline em k1l2m3n4o5p6) ---
         result = bind.execute(sa.text(
@@ -76,9 +72,20 @@ def upgrade() -> None:
             )
 
         # --- task_conteudo: recriar index como unique ---
+        # fk_task_videos_task_code e fk_study_tasks_task_code dependem de uq_task_conteudo_task_code
+        # É necessário dropar os FKs antes de dropar a unique constraint, depois recriar
+        op.drop_constraint('fk_task_videos_task_code', 'task_videos', type_='foreignkey')
         op.drop_constraint('uq_task_conteudo_task_code', 'task_conteudo', type_='unique')
         op.drop_index('ix_task_conteudo_task_code', table_name='task_conteudo')
         op.create_index('ix_task_conteudo_task_code', 'task_conteudo', ['task_code'], unique=True)
+        op.create_foreign_key(
+            'fk_task_videos_task_code', 'task_videos', 'task_conteudo',
+            ['task_code'], ['task_code']
+        )
+        op.create_foreign_key(
+            'fk_study_tasks_task_code', 'study_tasks', 'task_conteudo',
+            ['task_code'], ['task_code']
+        )
 
     else:
         # SQLite: usar batch mode (comportamento original)
