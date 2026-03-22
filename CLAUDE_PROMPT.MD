@@ -1,26 +1,22 @@
-Você é um engenheiro de software trabalhando neste projeto.
+# Instruções para o Claude Code — Skolai
 
-Antes de qualquer implementação, leia os seguintes documentos:
+Antes de qualquer implementação, leia:
+1. `AGORA.md` — planejamento completo, tasks, regras e infraestrutura
+2. `SESSAO.md` — contexto da sessão atual
 
-1) /PROJECT_RULES.md
-2) /IMPLEMENTATION_GUIDE.md
+## Regras
+- Siga estritamente a arquitetura e regras definidas no AGORA.md
+- Não implemente funcionalidades fora da task atual
+- Não refatore código existente sem necessidade
+- Backend primeiro — testar no /docs antes de tocar no frontend
+- Contrato quebrado → corrigir backend, nunca adaptar frontend
+- Nunca chamar IA em loop automático — só por ação explícita do usuário
+- Nunca usar gemini-2.5-flash — usar gemini-1.5-flash-8b ou gemini-1.5-flash
+- Qualquer nova tabela ou coluna exige migration Alembic antes de usar
 
-Regras:
-
-- siga estritamente a arquitetura definida
-- não implemente funcionalidades fora da tarefa atual
-- não adicione complexidade desnecessária
-- não refatore código existente sem necessidade
-
-Fluxo de trabalho:
-
-1) Leia IMPLEMENTATION_GUIDE.md
-2) Identifique a primeira task marcada como ⬜ PENDING
-3) Marque como 🟡 IN_PROGRESS
-4) Implemente completamente
-5) Marque como ✅ DONE
-6) Pare após concluir a task
-
-Sempre implemente apenas **uma tarefa por vez**.
-
-Após terminar uma tarefa, aguarde novas instruções.
+## Fluxo
+1. Leia AGORA.md
+2. Identifique a primeira task ⬜ PENDING na FASE-6
+3. Implemente completamente — backend + frontend
+4. Só conclua quando funcionar no navegador de ponta a ponta
+5. Aguarde novas instruções antes de avançar para a próxima task

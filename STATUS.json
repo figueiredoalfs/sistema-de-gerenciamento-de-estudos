@@ -1,8 +1,8 @@
 {
-  "concluidas": 21,
+  "concluidas": 22,
   "em_andamento": 0,
-  "total": 43,
-  "proxima": 21,
+  "total": 46,
+  "proxima": 22,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -79,79 +79,85 @@
     {
       "fase": "FASE-3",
       "tarefa": "Gestão de tópicos, subtópicos e configuração por área",
-      "nota": "Árvore matéria→tópico→subtópico. SubtopicoArea com peso e complexidade. Pré-requisitos.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-3",
       "tarefa": "Gestão de usuários + edição de dados",
-      "nota": "Editar todos os campos. Reset de senha separado. Modal de progresso.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-3.5",
       "tarefa": "Onboarding: áreas ativas + perfil de uso + seleção de subtópicos",
-      "nota": "Fiscal + militares ativas. Perfil de uso (funcionalidades). Seleção opcional de matérias.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-3.5",
       "tarefa": "Model PlanoBase + geração via IA por subtópico",
-      "nota": "Opera sobre subtopicos por área. Gemini gera ordem pedagógica. Cache por area+perfil.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-3.5",
       "tarefa": "Lógica de avanço de fase + diagnóstico obrigatório + metas numeradas",
-      "nota": "Meta 00 obrigatória. Dashboard bloqueado até concluir. Metas 01+ acessíveis.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-3.5",
       "tarefa": "Dashboard admin: notificações + revisão PlanoBase",
-      "nota": "Banner notificações. Editor visual de fases. Aplicar novos ou todos.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-4",
       "tarefa": "Painel do mentor — lista e detalhe de alunos",
-      "nota": "Rota /mentor. Lista com progresso. Detalhe: desempenho + tasks + histórico.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Segurança antes do deploy",
-      "nota": "Rate limiting login (5/10min), refresh token 30d, security logs. Email/recuperação pós-deploy.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Deletar Streamlit + routers inativos",
-      "nota": "Removido streamlit/plotly de requirements.txt. IMPLEMENTATION_GUIDE.md deletado.",
+      "nota": "",
       "status": "concluida"
     },
     {
       "fase": "FASE-5",
       "tarefa": "Deploy Railway",
-      "nota": "Frontend (Dockerfile+Caddy) e backend online. Domínio www.skolai.com.br configurado. CORS + variáveis + nixpacks.toml substituído por Dockerfile customizado.",
+      "nota": "www.skolai.com.br no ar",
       "status": "concluida"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-01: Correções de bugs imediatos",
-      "nota": "Reset DEV, bateria, PlanoBase IA, task sem conteúdo, Meta 00, banner diagnóstico, fontes bancas.",
+      "tarefa": "B-00: Migrar dados do dev.db para o PostgreSQL do Railway",
+      "nota": "Matérias, subtópicos, questões, ciclos. Script migrar_dev_para_railway.py com upsert. Verificar /admin/topicos e /admin/questoes após rodar.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-02: Telas aluno — perfil, caderno de questões, dashboard",
-      "nota": "Perfil com edição de dados. Caderno de Questões funcionando. Tasks geram conteúdo.",
+      "tarefa": "B-01: Correções de bugs imediatos",
+      "nota": "Modelo IA, conteúdo tasks, bateria, PlanoBase prompt, Meta 00, banner, bancas.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-02: Telas do aluno funcionando de fato",
+      "nota": "Perfil, Caderno de Questões, tasks com conteúdo, aviso origem IA.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
       "tarefa": "B-03: Personalização por funcionalidades do onboarding",
-      "nota": "Interface adapta silenciosamente. useFuncionalidades(). GET /auth/me retorna funcionalidades.",
+      "nota": "useFuncionalidades(). Sidebar e componentes condicionais. tem_plano_externo.",
       "status": "pendente"
     },
     {
@@ -163,31 +169,31 @@
     {
       "fase": "FASE-6",
       "tarefa": "B-05: Dashboard desempenho — novos gráficos",
-      "nota": "Radar, velocidade domínio, volume semanal, heatmap, projeção prontidão.",
+      "nota": "Radar, velocidade domínio, volume semanal, heatmap, projeção.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
       "tarefa": "B-06: Mapa de Calor do Edital",
-      "nota": "Grade peso_area × accuracy_rate. Depende IP (B-04).",
+      "nota": "Grade peso_area × accuracy_rate. Depende B-04.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
       "tarefa": "B-07: Mapa de Lacunas",
-      "nota": "Salvar alternativa escolhida. Padrões de erro. Caderno de Questões alimenta o mapa.",
+      "nota": "Salvar alternativa escolhida. Padrões de erro por subtópico.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
       "tarefa": "B-08: Base de conhecimento por upload de fontes",
-      "nota": "Admin upa PDFs brutos. RAG com chunking. Prioridade sobre geração de memória. /admin/fontes.",
+      "nota": "RAG com chunking. PDFs brutos. /admin/fontes. Prioridade sobre geração de memória.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
       "tarefa": "B-09: Questões geradas por IA (fallback + pool)",
-      "nota": "Pool por subtópico. Threshold 10/30. Celery. board=IA. Aviso de origem obrigatório.",
+      "nota": "Pool por subtópico. Threshold 10/30. Celery. board=IA. Aviso obrigatório.",
       "status": "pendente"
     },
     {
@@ -204,19 +210,19 @@
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-12: Painel financeiro (pré-beta + monetização pós-beta)",
-      "nota": "B-12a: log custos IA antes do deploy. B-12b: planos, gateway, MRR após beta.",
+      "tarefa": "B-12: Painel financeiro + seleção de modelo IA",
+      "nota": "B-12a: log custos. B-12b: seleção modelo por operação. B-12c: monetização pós-beta.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
       "tarefa": "B-13: Fluxo pós-edital via upload de PDF",
-      "nota": "Gemini extrai edital. NLP Mapper. Admin valida. PlanoBase por urgência.",
+      "nota": "Gemini extrai edital. NLP Mapper. PlanoBase por urgência.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-14: Chat com IA contextualizado por plano",
+      "tarefa": "B-14: Chat com IA contextualizado",
       "nota": "Contexto automático. Ícone flutuante + dentro da task. Limite por plano.",
       "status": "pendente"
     },
@@ -234,32 +240,44 @@
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-17: Upload de PDF de prova pelo aluno (meio do beta)",
-      "nota": "IA extrai questões. Fila revisão admin. Pendente só para o aluno que enviou.",
+      "tarefa": "B-17: Ordem de aparição dos subtópicos",
+      "nota": "Campo ordem. Drag-and-drop admin. Sugestão IA por matéria.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
       "tarefa": "B-18: Áreas militares — subtópicos e banco",
-      "nota": "Criar subtópicos COM e SVM. Upar legislações FAB como fontes. GIT/MAT/Inglês já existem.",
+      "nota": "Criar subtópicos COM e SVM. Upar legislações FAB como fontes.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-19: Segurança avançada pós-deploy",
-      "nota": "Sentry, backup PostgreSQL, alertas custo IA, auditoria admin.",
+      "tarefa": "B-19: Arquitetura pedagógica por subtópico e área",
+      "nota": "Corrigir campo area em Topico. Engine opera sobre subtópicos tagueados.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
       "tarefa": "B-20: Aviso de origem nas questões",
-      "nota": "Banca real, IA, ou contribuição aluno. Aparece no enunciado e pós-resposta.",
+      "nota": "Banca real, IA ou contribuição aluno. Enunciado e pós-resposta.",
       "status": "pendente"
     },
     {
       "fase": "FASE-6",
-      "tarefa": "B-21: Arquitetura pedagógica por subtópico e área",
-      "nota": "Corrigir campo area em Topico. SubtopicoArea ativo. plano_inicial.py e engine operam sobre subtópicos.",
+      "tarefa": "B-21: Upload de PDF de prova pelo aluno",
+      "nota": "Meio do beta. IA extrai. Fila revisão admin.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-22: Segurança avançada pós-deploy",
+      "nota": "Sentry, backup PostgreSQL → Google Drive via GitHub Actions (retenção 30 dias), alertas custo IA, auditoria admin.",
+      "status": "pendente"
+    },
+    {
+      "fase": "FASE-6",
+      "tarefa": "B-23: Confirmação de email e recuperação de senha",
+      "nota": "Confirmação email no cadastro (Resend/SendGrid). Recuperação senha token único 1h. Email boas-vindas.",
       "status": "pendente"
     }
   ]
