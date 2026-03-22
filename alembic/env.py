@@ -37,7 +37,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     url = settings.database_url_compat
     connect_args = {}
-    if url.startswith("postgresql"):
+    if url.startswith("postgresql") and ".railway.internal" not in url:
         connect_args["sslmode"] = "require"
     connectable = create_engine(url, connect_args=connect_args, poolclass=pool.NullPool)
     with connectable.connect() as connection:

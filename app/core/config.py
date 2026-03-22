@@ -34,8 +34,8 @@ class Settings(BaseSettings):
         url = self.DATABASE_URL
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
-        # Railway PostgreSQL exige SSL
-        if url.startswith("postgresql://") and "sslmode" not in url:
+        # SSL obrigatório apenas na URL externa (proxy); URL interna (.railway.internal) não usa SSL
+        if url.startswith("postgresql://") and "sslmode" not in url and ".railway.internal" not in url:
             url += "?sslmode=require"
         return url
 

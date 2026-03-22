@@ -8,7 +8,7 @@ DATABASE_URL = settings.database_url_compat
 # SQLite precisa de check_same_thread; Postgres precisa de sslmode em produção
 if DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
-elif DATABASE_URL.startswith("postgresql"):
+elif DATABASE_URL.startswith("postgresql") and ".railway.internal" not in DATABASE_URL:
     connect_args = {"sslmode": "require"}
 else:
     connect_args = {}
