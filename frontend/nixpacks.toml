@@ -1,0 +1,3 @@
+[variables]
+NODE_ENV = "development"
+npm_config_production = "false"
