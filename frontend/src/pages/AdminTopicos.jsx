@@ -330,9 +330,8 @@ function TabBancas() {
 
   useEffect(() => { carregar() }, [])
 
-  async function handleCriar(e) {
-    e.preventDefault()
-    if (!novoNome.trim()) return
+  async function handleCriar() {
+    if (!novoNome.trim() || criando) return
     setCriando(true)
     setErroCriar('')
     try {
@@ -376,18 +375,19 @@ function TabBancas() {
   return (
     <div className="space-y-4">
       {/* Formulário para nova banca */}
-      <form onSubmit={handleCriar} className="flex gap-2">
+      <div className="flex gap-2">
         <input
           value={novoNome}
           onChange={(e) => setNovoNome(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleCriar() }}
           placeholder="Nome da banca (ex: CESPE, FGV, VUNESP)"
           className="flex-1 bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500"
         />
-        <button type="submit" disabled={criando || !novoNome.trim()}
+        <button type="button" onClick={handleCriar} disabled={criando || !novoNome.trim()}
           className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium disabled:opacity-50 transition-colors">
           {criando ? 'Salvando…' : 'Adicionar'}
         </button>
-      </form>
+      </div>
       {erroCriar && <p className="text-red-400 text-xs">{erroCriar}</p>}
       {erro && <p className="text-red-400 text-sm">{erro}</p>}
 

@@ -104,6 +104,8 @@ export default function AdminPendencias() {
         banca_id: r.acao === 'vincular' ? r.banca_id : undefined,
         nova_banca: r.acao === 'criar' ? q.board : undefined,
       })
+      const newBancas = await listarBancas(true)
+      setBancas(newBancas)
       if (updated.materia_pendente) {
         setQuestoes(prev => prev.map(x => x.id === q.id ? updated : x))
         patchRes(q.id, 'ban', { salvando: false, acao: '', banca_id: '' })

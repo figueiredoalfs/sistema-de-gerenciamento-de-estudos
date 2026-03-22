@@ -212,6 +212,7 @@ export default function AdminImportar() {
   const [tecImportando, setTecImportando] = useState(false)
   const [tecResultado, setTecResultado]   = useState(null)
   const [tecEditando, setTecEditando]     = useState(null) // {index, item}
+  const [tecClassificarIA, setTecClassificarIA] = useState(false)
 
   const fileRef     = useRef()
   const pdfRef      = useRef()
@@ -219,7 +220,7 @@ export default function AdminImportar() {
   const resultadoRef = useRef()
 
   useEffect(() => {
-    if (resultado) resultadoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (resultado) window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [resultado])
 
   function trocarAba(novaAba) {
@@ -262,7 +263,7 @@ export default function AdminImportar() {
           : null,
         correct_answer: q.correct_answer ?? 'A',
       }))
-      const res = await importarQuestoes({ questoes: payload, classificar_subtopicos: false, classificar_areas: false })
+      const res = await importarQuestoes({ questoes: payload, classificar_subtopicos: tecClassificarIA, classificar_areas: false })
       setTecResultado(res)
     } catch (e) {
       const detail = e.response?.data?.detail
@@ -602,16 +603,38 @@ export default function AdminImportar() {
             </div>
           )}
 
+          {/* Resultado TEC */}
+          {tecResultado && (
+            <div className={`border rounded-xl p-4 space-y-2 ${tecResultado.importadas > 0 ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
+              <p className="text-sm font-semibold text-brand-text">
+                {tecResultado.importadas} questão{tecResultado.importadas !== 1 ? 'ões' : ''} importada{tecResultado.importadas !== 1 ? 's' : ''} com sucesso
+              </p>
+              {tecResultado.erros?.length > 0 && (
+                <ul className="text-xs text-red-400 space-y-0.5 list-disc list-inside">
+                  {tecResultado.erros.map((e, i) => <li key={i}>{e}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+
           {/* Preview TEC */}
           {tecQuestoes.length > 0 && (
             <div className="bg-brand-card border border-brand-border rounded-xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border">
                 <h2 className="text-sm font-semibold text-brand-text">{tecQuestoes.length} questão{tecQuestoes.length !== 1 ? 'ões' : ''} encontrada{tecQuestoes.length !== 1 ? 's' : ''}</h2>
-                <button onClick={handleImportarTec} disabled={tecImportando}
-                  className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all">
-                  {tecImportando && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
-                  {tecImportando ? 'Importando…' : `Importar ${tecQuestoes.length} questões`}
-                </button>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-brand-muted cursor-pointer select-none">
+                    <input type="checkbox" checked={tecClassificarIA}
+                      onChange={e => setTecClassificarIA(e.target.checked)}
+                      className="accent-indigo-500" />
+                    Classificar tópico/subtópico com IA
+                  </label>
+                  <button onClick={handleImportarTec} disabled={tecImportando}
+                    className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all">
+                    {tecImportando && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
+                    {tecImportando ? 'Importando…' : `Importar ${tecQuestoes.length} questões`}
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -666,19 +689,6 @@ export default function AdminImportar() {
             </div>
           )}
 
-          {/* Resultado TEC */}
-          {tecResultado && (
-            <div className={`border rounded-xl p-4 space-y-2 ${tecResultado.importadas > 0 ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
-              <p className="text-sm font-semibold text-brand-text">
-                {tecResultado.importadas} questão{tecResultado.importadas !== 1 ? 'ões' : ''} importada{tecResultado.importadas !== 1 ? 's' : ''} com sucesso
-              </p>
-              {tecResultado.erros?.length > 0 && (
-                <ul className="text-xs text-red-400 space-y-0.5 list-disc list-inside">
-                  {tecResultado.erros.map((e, i) => <li key={i}>{e}</li>)}
-                </ul>
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -770,6 +780,36 @@ export default function AdminImportar() {
           </div>
         </div>
       </details>}
+
+      {/* Resultado */}
+      {resultado && (
+        <section
+          className={`border rounded-xl p-4 space-y-3 ${
+            resultado.importadas > 0 ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'
+          }`}
+        >
+          <p className="text-sm font-semibold text-brand-text">
+            {resultado.importadas} questão{resultado.importadas !== 1 ? 'ões' : ''} importada
+            {resultado.importadas !== 1 ? 's' : ''} com sucesso
+          </p>
+          {resultado.erros?.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-red-400 mb-1">Erros:</p>
+              <ul className="text-xs text-red-400 space-y-0.5 list-disc list-inside">
+                {resultado.erros.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+          {resultado.avisos_ia?.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-yellow-400 mb-1">Avisos IA (classificação):</p>
+              <ul className="text-xs text-yellow-400/80 space-y-0.5 list-disc list-inside">
+                {resultado.avisos_ia.map((a, i) => <li key={i}>{a}</li>)}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Preview */}
       {preview && (
@@ -889,37 +929,6 @@ export default function AdminImportar() {
               </tbody>
             </table>
           </div>
-        </section>
-      )}
-
-      {/* Resultado */}
-      {resultado && (
-        <section
-          ref={resultadoRef}
-          className={`border rounded-xl p-4 space-y-3 ${
-            resultado.importadas > 0 ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'
-          }`}
-        >
-          <p className="text-sm font-semibold text-brand-text">
-            {resultado.importadas} questão{resultado.importadas !== 1 ? 'ões' : ''} importada
-            {resultado.importadas !== 1 ? 's' : ''} com sucesso
-          </p>
-          {resultado.erros?.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-red-400 mb-1">Erros:</p>
-              <ul className="text-xs text-red-400 space-y-0.5 list-disc list-inside">
-                {resultado.erros.map((e, i) => <li key={i}>{e}</li>)}
-              </ul>
-            </div>
-          )}
-          {resultado.avisos_ia?.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-yellow-400 mb-1">Avisos IA (classificação):</p>
-              <ul className="text-xs text-yellow-400/80 space-y-0.5 list-disc list-inside">
-                {resultado.avisos_ia.map((a, i) => <li key={i}>{a}</li>)}
-              </ul>
-            </div>
-          )}
         </section>
       )}
 

@@ -1,5 +1,6 @@
 import json
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
@@ -182,8 +183,12 @@ def importar_questoes(
                 db.query(Topico).filter(Topico.nivel == 2, Topico.ativo == True).all()
             )
             if subtopicos_nivel2:
-                for questao in questoes_importadas:
-                    ids_sugeridos = sugerir_subtopicos(questao, subtopicos_nivel2, ai)
+                with ThreadPoolExecutor(max_workers=10) as ex:
+                    resultados = list(ex.map(
+                        lambda q: (q, sugerir_subtopicos(q, subtopicos_nivel2, ai)),
+                        questoes_importadas,
+                    ))
+                for questao, ids_sugeridos in resultados:
                     if ids_sugeridos:
                         salvar_sugestoes(str(questao.id), ids_sugeridos, db)
                     else:
@@ -197,8 +202,12 @@ def importar_questoes(
             ai = get_ai_provider()
             areas_ativas = db.query(Area).filter(Area.ativo == True).all()
             if areas_ativas:
-                for questao in questoes_importadas:
-                    ids_areas = sugerir_areas(questao, areas_ativas, ai)
+                with ThreadPoolExecutor(max_workers=10) as ex:
+                    resultados = list(ex.map(
+                        lambda q: (q, sugerir_areas(q, areas_ativas, ai)),
+                        questoes_importadas,
+                    ))
+                for questao, ids_areas in resultados:
                     if ids_areas:
                         salvar_sugestoes_areas(str(questao.id), ids_areas, db)
                     else:

@@ -41,7 +41,7 @@ export async function importarQuestoes({ questoes, classificar_subtopicos = fals
   const { data } = await client.post(
     '/admin/importar-questoes',
     { questoes, classificar_subtopicos, classificar_areas },
-    { timeout: 180000 },
+    { timeout: 600000 },
   )
   return data
 }
@@ -94,7 +94,7 @@ export async function extrairQuestoesPdf(file) {
   const formData = new FormData()
   formData.append('file', file)
   const { data } = await client.post('/admin/importar-questoes-pdf', formData, {
-    timeout: 120000,
+    timeout: 300000,
     headers: { 'Content-Type': undefined },
   })
   return data

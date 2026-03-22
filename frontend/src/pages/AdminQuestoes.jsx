@@ -13,7 +13,7 @@ function RowExpandida({ questao }) {
   const temAlts = LETRAS.some(k => alts[k])
   return (
     <tr>
-      <td colSpan={6} className="px-5 pb-4 pt-1 bg-brand-surface/60">
+      <td colSpan={8} className="px-5 pb-4 pt-1 bg-brand-surface/60">
         <p className="text-sm text-brand-text leading-relaxed mb-3">{questao.statement}</p>
         {temAlts ? (
           <div className="space-y-1">
@@ -79,7 +79,12 @@ function ModalEditar({ questao, onClose, onSaved }) {
       const match = data.find(m => m.nome.toLowerCase() === matNome.toLowerCase())
       setMateriaSel(match ? String(match.id) : (matNome ? 'outra' : ''))
     })
-    listarTodosTopicos().then(setTodosTopicos)
+    listarTodosTopicos().then(data => {
+      setTodosTopicos(data)
+      const matNome = questao.materia || questao.subject || ''
+      const match = data.find(t => t.nivel === 0 && t.nome.toLowerCase() === matNome.toLowerCase())
+      if (match) setAddMateriaSel(String(match.id))
+    })
     listarBancas(true).then(setBancasModal)
     listarAreas().then(setTodasAreas)
   }, [])
@@ -546,9 +551,16 @@ export default function AdminQuestoes() {
 
   const [topicos, setTopicos] = useState([])
   const [bancasLista, setBancasLista] = useState([])
+  const [todasAreas, setTodasAreas] = useState([])
+  const [selecionadas, setSelecionadas] = useState(new Set())
+  const [batchAreaId, setBatchAreaId] = useState('')
+  const [batchMatSel, setBatchMatSel] = useState('')
+  const [batchSubSel, setBatchSubSel] = useState('')
+  const [batchLoading, setBatchLoading] = useState(false)
   useEffect(() => {
     listarTodosTopicos().then(setTopicos).catch(() => {})
     listarBancas(true).then(setBancasLista).catch(() => {})
+    listarAreas().then(setTodasAreas).catch(() => {})
   }, [])
 
   const materias = topicos.filter(t => t.nivel === 0).sort((a, b) => a.nome.localeCompare(b.nome))
@@ -575,6 +587,7 @@ export default function AdminQuestoes() {
     setLoading(true)
     setErro('')
     setExpandedId(null)
+    setSelecionadas(new Set())
     listarQuestoes({ materia, subtopico, banca, ano: ano ? Number(ano) : undefined, page: pg, per_page: PER_PAGE })
       .then(({ questoes: data, totalFiltro: tf, totalBanco: tb }) => {
         setQuestoes(data)
@@ -609,6 +622,45 @@ export default function AdminQuestoes() {
       setDeletando(null)
     } finally {
       setDeletandoId(false)
+    }
+  }
+
+  const batchSubtopicosDisponiveis = (() => {
+    if (!batchMatSel) return []
+    const mat = topicos.find(t => t.id === batchMatSel)
+    if (!mat) return []
+    const blocoIds = new Set(topicos.filter(t => t.nivel === 1 && t.parent_id === mat.id).map(t => t.id))
+    return topicos.filter(t => t.nivel === 2 && blocoIds.has(t.parent_id)).sort((a, b) => a.nome.localeCompare(b.nome))
+  })()
+
+  async function handleBatchArea() {
+    if (!batchAreaId || selecionadas.size === 0) return
+    setBatchLoading(true)
+    try {
+      for (const id of selecionadas) await associarAreas(id, [batchAreaId])
+      setBatchAreaId('')
+      setSelecionadas(new Set())
+      buscar(page)
+    } catch (e) {
+      setErro(e.response?.data?.detail || e.message)
+    } finally {
+      setBatchLoading(false)
+    }
+  }
+
+  async function handleBatchSubtopico() {
+    if (!batchSubSel || selecionadas.size === 0) return
+    setBatchLoading(true)
+    try {
+      for (const id of selecionadas) await associarSubtopicos(id, [batchSubSel])
+      setBatchMatSel('')
+      setBatchSubSel('')
+      setSelecionadas(new Set())
+      buscar(page)
+    } catch (e) {
+      setErro(e.response?.data?.detail || e.message)
+    } finally {
+      setBatchLoading(false)
     }
   }
 
@@ -694,14 +746,58 @@ export default function AdminQuestoes() {
       ) : questoes.length === 0 && page === 1 ? (
         <p className="text-brand-muted text-sm">Nenhuma questão encontrada.</p>
       ) : questoes.length === 0 ? null : (
+        <>
+        {selecionadas.size > 0 && (
+          <div className="flex flex-wrap items-center gap-3 mb-3 px-4 py-2 bg-brand-card border border-brand-border rounded-xl text-sm">
+            <span className="text-brand-muted">{selecionadas.size} selecionada(s)</span>
+            <span className="text-brand-border">|</span>
+            <select value={batchAreaId} onChange={e => setBatchAreaId(e.target.value)}
+              className="bg-brand-surface border border-brand-border rounded-lg px-2 py-1 text-xs text-brand-text focus:outline-none">
+              <option value="">Área...</option>
+              {todasAreas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+            <button onClick={handleBatchArea} disabled={!batchAreaId || batchLoading}
+              className="px-3 py-1 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors">
+              Associar área
+            </button>
+            <span className="text-brand-border">|</span>
+            <select value={batchMatSel} onChange={e => { setBatchMatSel(e.target.value); setBatchSubSel('') }}
+              className="bg-brand-surface border border-brand-border rounded-lg px-2 py-1 text-xs text-brand-text focus:outline-none">
+              <option value="">Matéria...</option>
+              {topicos.filter(t => t.nivel === 0).sort((a,b) => a.nome.localeCompare(b.nome)).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+            </select>
+            <select value={batchSubSel} onChange={e => setBatchSubSel(e.target.value)}
+              className="bg-brand-surface border border-brand-border rounded-lg px-2 py-1 text-xs text-brand-text focus:outline-none"
+              disabled={!batchMatSel}>
+              <option value="">Subtópico...</option>
+              {batchSubtopicosDisponiveis.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+            </select>
+            <button onClick={handleBatchSubtopico} disabled={!batchSubSel || batchLoading}
+              className="px-3 py-1 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors">
+              Associar subtópico
+            </button>
+            <button onClick={() => setSelecionadas(new Set())}
+              className="ml-auto text-xs text-brand-muted hover:text-brand-text transition-colors">
+              Limpar
+            </button>
+          </div>
+        )}
         <div className="bg-brand-card border border-brand-border rounded-xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-brand-border">
               <tr>
+                <th className="px-4 py-3">
+                  <input type="checkbox" className="accent-indigo-500"
+                    checked={questoes.length > 0 && selecionadas.size === questoes.length}
+                    onChange={() => setSelecionadas(
+                      selecionadas.size === questoes.length ? new Set() : new Set(questoes.map(q => q.id))
+                    )} />
+                </th>
                 <th className="text-left px-4 py-3 text-brand-muted font-medium">Código</th>
                 <th className="text-left px-4 py-3 text-brand-muted font-medium">Matéria</th>
                 <th className="text-left px-4 py-3 text-brand-muted font-medium">Banca / Ano</th>
                 <th className="text-left px-4 py-3 text-brand-muted font-medium">Subtópicos</th>
+                <th className="text-left px-4 py-3 text-brand-muted font-medium">Áreas</th>
                 <th className="text-left px-4 py-3 text-brand-muted font-medium">Gabarito</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -716,6 +812,15 @@ export default function AdminQuestoes() {
                       onClick={() => setExpandedId(expanded ? null : q.id)}
                       className="hover:bg-brand-surface transition-colors cursor-pointer select-none"
                     >
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" className="accent-indigo-500"
+                          checked={selecionadas.has(q.id)}
+                          onChange={() => setSelecionadas(prev => {
+                            const s = new Set(prev)
+                            s.has(q.id) ? s.delete(q.id) : s.add(q.id)
+                            return s
+                          })} />
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs text-brand-muted whitespace-nowrap">{q.question_code}</td>
                       <td className="px-4 py-3 max-w-xs truncate">
                         <span className="text-brand-text">{q.materia || q.subject}</span>
@@ -728,6 +833,11 @@ export default function AdminQuestoes() {
                         {q.subtopicos?.length > 0
                           ? q.subtopicos.map(s => s.nome).join(', ')
                           : <span className="text-xs text-yellow-500/70">sem subtópico</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-brand-muted max-w-xs truncate">
+                        {q.areas?.length > 0
+                          ? q.areas.map(a => a.nome).join(', ')
+                          : <span className="text-brand-border">—</span>}
                       </td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold text-xs">{q.correct_answer}</span>
@@ -750,6 +860,7 @@ export default function AdminQuestoes() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Paginação — sempre visível se há navegação possível */}

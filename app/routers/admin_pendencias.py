@@ -210,6 +210,7 @@ def resolver_materia(
     disciplina_sigla = (questao.materia or "SEM-DISCIPLINA").upper().replace(" ", "_")
     questao.question_code = _gerar_question_code(disciplina_sigla, questao.board or "", questao.year, db)
 
+    db.flush()  # garante que novo Topico (se criado) é visível ao _materia_existe abaixo
     _set_pendente(questao, db)
     db.commit()
     db.refresh(questao)
@@ -250,6 +251,7 @@ def resolver_banca(
     disciplina_sigla = (questao.materia or "SEM-DISCIPLINA").upper().replace(" ", "_")
     questao.question_code = _gerar_question_code(disciplina_sigla, questao.board or "", questao.year, db)
 
+    db.flush()  # garante que nova Banca (se criada) é visível ao _banca_existe abaixo
     _set_pendente(questao, db)
     db.commit()
     db.refresh(questao)

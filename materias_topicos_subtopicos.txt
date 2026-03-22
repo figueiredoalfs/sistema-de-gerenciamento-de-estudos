@@ -1,0 +1,1103 @@
+MATÉRIAS, TÓPICOS E SUBTÓPICOS DO BANCO DE DADOS
+============================================================
+
+[MATÉRIA] Administração Financeira e Orçamentária (AFO)
+  [TÓPICO] Ciclo Orçamentário
+    [SUBTÓPICO] Controle e avaliação
+    [SUBTÓPICO] Elaboração e aprovação
+    [SUBTÓPICO] Execução (empenho, liquidação, pagamento)
+  [TÓPICO] Créditos Adicionais
+    [SUBTÓPICO] Abertura e fontes de recursos
+    [SUBTÓPICO] Suplementares, especiais e extraordinários
+  [TÓPICO] Despesa Pública
+    [SUBTÓPICO] Despesas de pessoal
+    [SUBTÓPICO] Dotação e restos a pagar
+    [SUBTÓPICO] Limites de gastos (EC 95)
+  [TÓPICO] Orçamento Público
+    [SUBTÓPICO] Classificação da receita e despesa
+    [SUBTÓPICO] PPA, LDO e LOA
+    [SUBTÓPICO] Princípios orçamentários
+  [TÓPICO] Receita Pública
+    [SUBTÓPICO] Previsão e arrecadação
+    [SUBTÓPICO] Receitas originárias e derivadas
+    [SUBTÓPICO] Renúncia de receita
+
+[MATÉRIA] Administração Geral
+  [TÓPICO] Fundamentos da Administração
+    [SUBTÓPICO] Abordagem sistêmica e contingencial
+    [SUBTÓPICO] Funções administrativas (PODC)
+    [SUBTÓPICO] Teorias clássica e neoclássica
+  [TÓPICO] Gestão de Desempenho
+    [SUBTÓPICO] Avaliação de desempenho
+    [SUBTÓPICO] Indicadores e metas
+    [SUBTÓPICO] Melhoria contínua (PDCA)
+  [TÓPICO] Liderança e Motivação
+    [SUBTÓPICO] Clima e cultura organizacional
+    [SUBTÓPICO] Estilos de liderança
+    [SUBTÓPICO] Teorias motivacionais (Maslow, Herzberg, McClelland)
+  [TÓPICO] Organização
+    [SUBTÓPICO] Amplitude e cadeia de comando
+    [SUBTÓPICO] Departamentalização
+    [SUBTÓPICO] Estruturas organizacionais
+  [TÓPICO] Planejamento
+    [SUBTÓPICO] Análise SWOT
+    [SUBTÓPICO] BSC — Balanced Scorecard
+    [SUBTÓPICO] Cronograma (Gantt, PERT/CPM)
+    [SUBTÓPICO] EAP — Estrutura Analítica do Projeto
+    [SUBTÓPICO] Planejamento estratégico, tático e operacional
+
+[MATÉRIA] Administração Pública
+  [TÓPICO] Controle
+    [SUBTÓPICO] Controle externo (TCU)
+    [SUBTÓPICO] Controle interno (CGU)
+    [SUBTÓPICO] Controle social e ouvidorias
+  [TÓPICO] Estrutura da Administração Federal
+    [SUBTÓPICO] Decreto 9.745/19 e organização ministerial
+    [SUBTÓPICO] Descentralização e desconcentração
+    [SUBTÓPICO] Órgãos e entidades
+  [TÓPICO] Modelos de Gestão
+    [SUBTÓPICO] Governança pública
+    [SUBTÓPICO] Nova Gestão Pública (NGP)
+    [SUBTÓPICO] Patrimonialismo, burocracia e gerencialismo
+  [TÓPICO] Reforma Administrativa
+    [SUBTÓPICO] Agências reguladoras
+    [SUBTÓPICO] Parceria público-privada (PPP)
+    [SUBTÓPICO] Plano Diretor de Reforma do Estado (1995)
+
+[MATÉRIA] Arquivologia
+  [TÓPICO] Arquivos Especiais
+    [SUBTÓPICO] Arquivo digital e microfilmagem
+    [SUBTÓPICO] Preservação e conservação
+  [TÓPICO] Ciclo de Vida
+    [SUBTÓPICO] Destinação: eliminação e recolhimento
+    [SUBTÓPICO] Fase corrente, intermediária e permanente
+  [TÓPICO] Gestão de Documentos
+    [SUBTÓPICO] Classificação de documentos
+    [SUBTÓPICO] Protocolo e tramitação
+    [SUBTÓPICO] Tabela de temporalidade
+  [TÓPICO] Legislação Arquivística
+    [SUBTÓPICO] CONARQ e SINAR
+    [SUBTÓPICO] Lei 8.159/91
+
+[MATÉRIA] Atualidades
+  [TÓPICO] Ciência e Tecnologia
+    [SUBTÓPICO] Inovações tecnológicas
+    [SUBTÓPICO] Inteligência Artificial aplicada
+    [SUBTÓPICO] Meio ambiente e COP
+  [TÓPICO] Economia Brasileira
+    [SUBTÓPICO] Comércio exterior
+    [SUBTÓPICO] Indicadores (IPCA, PIB, taxa Selic)
+    [SUBTÓPICO] Política fiscal e monetária
+  [TÓPICO] Política Nacional
+    [SUBTÓPICO] Eleições e partidos
+    [SUBTÓPICO] Poderes da República
+    [SUBTÓPICO] Reformas e legislação recente
+  [TÓPICO] Relações Internacionais
+    [SUBTÓPICO] Acordos e tratados
+    [SUBTÓPICO] Geopolítica contemporânea
+    [SUBTÓPICO] Organismos internacionais (ONU, OMC, FMI)
+  [TÓPICO] Temas Sociais
+    [SUBTÓPICO] Educação e desigualdade
+    [SUBTÓPICO] Saúde pública (pandemias, SUS)
+    [SUBTÓPICO] Segurança pública
+
+[MATÉRIA] Auditoria Governamental
+  [TÓPICO] Controle Interno
+    [SUBTÓPICO] Componentes do COSO
+    [SUBTÓPICO] Gestão de riscos integrada
+  [TÓPICO] Planejamento e Execução
+    [SUBTÓPICO] Evidências e papéis de trabalho
+    [SUBTÓPICO] Materialidade e relevância
+    [SUBTÓPICO] Risco de auditoria
+  [TÓPICO] TCU e CGU
+    [SUBTÓPICO] Atuação da CGU
+    [SUBTÓPICO] Competências constitucionais do TCU
+  [TÓPICO] Tipos de Auditoria
+    [SUBTÓPICO] Auditoria de conformidade
+    [SUBTÓPICO] Auditoria de gestão
+    [SUBTÓPICO] Auditoria operacional
+
+[MATÉRIA] Banco de Dados
+  [TÓPICO] Administração
+    [SUBTÓPICO] Backup e recuperação
+    [SUBTÓPICO] Índices e otimização
+  [TÓPICO] Bancos NoSQL
+    [SUBTÓPICO] CAP Theorem
+    [SUBTÓPICO] MongoDB, Redis, Cassandra
+    [SUBTÓPICO] Tipos (chave-valor, documento, coluna, grafo)
+  [TÓPICO] SQL
+    [SUBTÓPICO] DDL (CREATE, ALTER, DROP)
+    [SUBTÓPICO] DML (SELECT, INSERT, UPDATE, DELETE)
+    [SUBTÓPICO] Funções de agregação
+    [SUBTÓPICO] JOINs e subconsultas
+
+[MATÉRIA] Ciência de Dados e Analytics
+  [TÓPICO] Aprendizado de Máquina
+    [SUBTÓPICO] Overfitting, underfitting e validação
+    [SUBTÓPICO] Regressão, classificação e clustering
+    [SUBTÓPICO] Supervisionado, não-supervisionado e por reforço
+  [TÓPICO] Big Data
+    [SUBTÓPICO] 5 Vs (Volume, Velocidade, Variedade, Veracidade, Valor)
+    [SUBTÓPICO] Hadoop e Spark
+  [TÓPICO] Visualização de Dados
+    [SUBTÓPICO] BI — Business Intelligence
+    [SUBTÓPICO] Gráficos e dashboards
+    [SUBTÓPICO] Power BI e Tableau
+
+[MATÉRIA] Comércio Internacional
+  [TÓPICO] Câmbio
+    [SUBTÓPICO] Regimes cambiais
+    [SUBTÓPICO] Taxa de câmbio nominal e real
+  [TÓPICO] Organismos Internacionais
+    [SUBTÓPICO] MERCOSUL e acordos regionais
+    [SUBTÓPICO] OMC — Organização Mundial do Comércio
+  [TÓPICO] Teoria do Comércio
+    [SUBTÓPICO] Política comercial (tarifas, quotas)
+    [SUBTÓPICO] Vantagem comparativa e absoluta
+
+[MATÉRIA] Conhecimentos Pedagógicos
+  [TÓPICO] Currículo
+    [SUBTÓPICO] BNCC
+    [SUBTÓPICO] Organização curricular
+    [SUBTÓPICO] PCN e DCN
+  [TÓPICO] Didática e Metodologias
+    [SUBTÓPICO] Avaliação da aprendizagem
+    [SUBTÓPICO] Metodologias ativas
+    [SUBTÓPICO] Planejamento de ensino
+  [TÓPICO] Educação Inclusiva
+    [SUBTÓPICO] AEE — Atendimento Educacional Especializado
+    [SUBTÓPICO] Adaptações curriculares
+    [SUBTÓPICO] Legislação (Lei 13.146/15)
+  [TÓPICO] Teorias da Aprendizagem
+    [SUBTÓPICO] Aprendizagem significativa (Ausubel)
+    [SUBTÓPICO] Behaviorismo (Pavlov, Skinner)
+    [SUBTÓPICO] Construtivismo (Piaget)
+    [SUBTÓPICO] Sociointeracionismo (Vygotsky)
+
+[MATÉRIA] Contabilidade Geral
+  [TÓPICO] Análise das Demonstrações
+    [SUBTÓPICO] Índices de endividamento
+    [SUBTÓPICO] Índices de liquidez
+    [SUBTÓPICO] Índices de rentabilidade
+  [TÓPICO] Demonstrações Contábeis
+    [SUBTÓPICO] DLPA e DFC
+    [SUBTÓPICO] DRE — Demonstração de Resultado
+    [SUBTÓPICO] Notas explicativas
+  [TÓPICO] NBC e CPC
+    [SUBTÓPICO] CPC 00 — Estrutura Conceitual
+    [SUBTÓPICO] Principais CPCs
+  [TÓPICO] Plano de Contas e Escrituração
+    [SUBTÓPICO] Lançamentos contábeis
+    [SUBTÓPICO] Livros contábeis (Diário, Razão)
+    [SUBTÓPICO] Plano de contas
+
+[MATÉRIA] Contabilidade Pública
+  [TÓPICO] Balanços Públicos
+    [SUBTÓPICO] Balanço Financeiro
+    [SUBTÓPICO] Balanço Orçamentário
+    [SUBTÓPICO] Demonstração das Variações Patrimoniais (DVP)
+  [TÓPICO] MCASP — Manual de Contabilidade Aplicada ao Setor Público
+    [SUBTÓPICO] Plano de Contas Aplicado ao Setor Público (PCASP)
+    [SUBTÓPICO] Receita e despesa orçamentária
+    [SUBTÓPICO] Registros contábeis patrimoniais
+  [TÓPICO] NBCASP
+    [SUBTÓPICO] Convergência às IPSAS
+    [SUBTÓPICO] NBC T 16 e normas correlatas
+
+[MATÉRIA] Contabilidade de Custos
+  [TÓPICO] Análise Custo-Volume-Lucro
+    [SUBTÓPICO] Alavancagem operacional
+    [SUBTÓPICO] Margem de contribuição
+    [SUBTÓPICO] Ponto de equilíbrio
+  [TÓPICO] Custeio ABC
+    [SUBTÓPICO] Aplicação no setor público
+    [SUBTÓPICO] Atividades e direcionadores
+  [TÓPICO] Fundamentos de Custos
+    [SUBTÓPICO] Conceito e classificação (fixo, variável, direto, indireto)
+    [SUBTÓPICO] Custeio por absorção
+    [SUBTÓPICO] Custeio variável (direto)
+
+[MATÉRIA] Direito Administrativo
+  [TÓPICO] Atos Administrativos
+    [SUBTÓPICO] Atributos (presunção de legitimidade, imperatividade, autoexecutoriedade)
+    [SUBTÓPICO] Classificação dos atos
+    [SUBTÓPICO] Conceito, requisitos e elementos
+    [SUBTÓPICO] Convalidação
+    [SUBTÓPICO] Extinção (revogação, anulação, cassação, caducidade)
+  [TÓPICO] Controle da Administração
+    [SUBTÓPICO] Controle interno e externo
+    [SUBTÓPICO] Controle judicial
+    [SUBTÓPICO] Controle pelo Legislativo e TCU
+  [TÓPICO] Licitações e Contratos (Lei 14.133/21)
+    [SUBTÓPICO] Contratos administrativos: cláusulas e alteração
+    [SUBTÓPICO] Dispensa e inexigibilidade
+    [SUBTÓPICO] Extinção e sanções contratuais
+    [SUBTÓPICO] Fases da licitação
+    [SUBTÓPICO] Princípios e modalidades
+  [TÓPICO] Organização da Administração Pública
+    [SUBTÓPICO] Administração direta
+    [SUBTÓPICO] Autarquias e fundações públicas
+    [SUBTÓPICO] Consórcios públicos
+    [SUBTÓPICO] Empresas públicas e sociedades de economia mista
+  [TÓPICO] Poderes Administrativos
+    [SUBTÓPICO] Poder de polícia
+    [SUBTÓPICO] Poder disciplinar
+    [SUBTÓPICO] Poder hierárquico
+    [SUBTÓPICO] Poder regulamentar
+    [SUBTÓPICO] Poder vinculado e discricionário
+  [TÓPICO] Princípios do Direito Administrativo
+    [SUBTÓPICO] LIMPE (legalidade, impessoalidade, moralidade, publicidade, eficiência)
+    [SUBTÓPICO] Princípios implícitos (razoabilidade, proporcionalidade, segurança jurídica)
+    [SUBTÓPICO] Supremacia e indisponibilidade do interesse público
+  [TÓPICO] Processo Administrativo (Lei 9.784/99)
+    [SUBTÓPICO] Direitos do administrado
+    [SUBTÓPICO] Prazos e recursos
+    [SUBTÓPICO] Princípios e aplicação
+  [TÓPICO] Responsabilidade Civil do Estado
+    [SUBTÓPICO] Ação regressiva
+    [SUBTÓPICO] Excludentes de responsabilidade
+    [SUBTÓPICO] Teoria objetiva (risco administrativo)
+  [TÓPICO] Servidores Públicos (Lei 8.112/90)
+    [SUBTÓPICO] Cargo, emprego e função
+    [SUBTÓPICO] Direitos e vantagens
+    [SUBTÓPICO] Processo administrativo disciplinar (PAD)
+    [SUBTÓPICO] Provimento e vacância
+    [SUBTÓPICO] Responsabilidades e penalidades
+  [TÓPICO] Serviços Públicos
+    [SUBTÓPICO] Autorização
+    [SUBTÓPICO] Conceito e princípios
+    [SUBTÓPICO] Concessão e permissão
+
+[MATÉRIA] Direito Ambiental
+  [TÓPICO] Código Florestal (Lei 12.651/12)
+    [SUBTÓPICO] APP e Reserva Legal
+    [SUBTÓPICO] CAR e PRA
+    [SUBTÓPICO] Uso restrito e consolidado
+  [TÓPICO] Política Nacional do Meio Ambiente (PNMA)
+    [SUBTÓPICO] Objetivos e instrumentos
+    [SUBTÓPICO] SISNAMA e CONAMA
+  [TÓPICO] Responsabilidade Ambiental
+    [SUBTÓPICO] Responsabilidade civil objetiva
+    [SUBTÓPICO] Sanções administrativas
+
+[MATÉRIA] Direito Civil
+  [TÓPICO] Bens
+    [SUBTÓPICO] Bens públicos e privados
+    [SUBTÓPICO] Classificação dos bens
+  [TÓPICO] Contratos
+    [SUBTÓPICO] Contratos em espécie (compra e venda, locação, doação...)
+    [SUBTÓPICO] Extinção dos contratos
+    [SUBTÓPICO] Princípios contratuais
+  [TÓPICO] Família
+    [SUBTÓPICO] Alimentos e guarda
+    [SUBTÓPICO] Casamento e união estável
+    [SUBTÓPICO] Filiação e reconhecimento
+  [TÓPICO] Fatos e Negócios Jurídicos
+    [SUBTÓPICO] Classificação dos fatos jurídicos
+    [SUBTÓPICO] Nulidade e anulabilidade
+    [SUBTÓPICO] Requisitos de validade
+    [SUBTÓPICO] Vícios do negócio jurídico
+  [TÓPICO] Lei de Introdução às Normas do Direito Brasileiro
+    [SUBTÓPICO] Conflito de leis no tempo e no espaço
+    [SUBTÓPICO] Vigência e eficácia
+  [TÓPICO] Obrigações
+    [SUBTÓPICO] Adimplemento e extinção
+    [SUBTÓPICO] Inadimplemento e mora
+    [SUBTÓPICO] Modalidades de obrigações
+  [TÓPICO] Pessoas
+    [SUBTÓPICO] Domicílio
+    [SUBTÓPICO] Pessoa jurídica: tipos e registro
+    [SUBTÓPICO] Pessoa natural: capacidade e personalidade
+  [TÓPICO] Responsabilidade Civil
+    [SUBTÓPICO] Dano moral e material
+    [SUBTÓPICO] Elementos: conduta, dano, nexo causal, culpa
+    [SUBTÓPICO] Responsabilidade subjetiva e objetiva
+  [TÓPICO] Sucessões
+    [SUBTÓPICO] Inventário e partilha
+    [SUBTÓPICO] Sucessão legítima
+    [SUBTÓPICO] Sucessão testamentária
+
+[MATÉRIA] Direito Constitucional
+  [TÓPICO] Controle de Constitucionalidade
+    [SUBTÓPICO] ADI, ADC, ADPF
+    [SUBTÓPICO] Controle difuso e concentrado
+    [SUBTÓPICO] Efeitos das decisões
+  [TÓPICO] Direitos e Garantias Fundamentais
+    [SUBTÓPICO] Direitos individuais e coletivos (art. 5º)
+    [SUBTÓPICO] Direitos políticos (arts. 14-16)
+    [SUBTÓPICO] Direitos sociais (arts. 6º-11)
+    [SUBTÓPICO] Remédios constitucionais (HC, MS, MI, HD, AP)
+  [TÓPICO] Ordem Econômica e Social
+    [SUBTÓPICO] Educação, saúde e meio ambiente
+    [SUBTÓPICO] Ordem social e seguridade
+    [SUBTÓPICO] Princípios da ordem econômica
+  [TÓPICO] Organização do Estado
+    [SUBTÓPICO] Competências da União, estados e municípios
+    [SUBTÓPICO] Forma de Estado e de governo
+    [SUBTÓPICO] Organização político-administrativa
+  [TÓPICO] Poder Executivo
+    [SUBTÓPICO] Medidas Provisórias
+    [SUBTÓPICO] Ministros e Conselho de Ministros
+    [SUBTÓPICO] Presidente e atribuições
+  [TÓPICO] Poder Judiciário
+    [SUBTÓPICO] Estrutura e competências
+    [SUBTÓPICO] Garantias da magistratura
+    [SUBTÓPICO] STF, STJ, TST, TSE, STM
+  [TÓPICO] Poder Legislativo
+    [SUBTÓPICO] Congresso Nacional, Câmara e Senado
+    [SUBTÓPICO] Imunidades parlamentares
+    [SUBTÓPICO] Processo legislativo
+  [TÓPICO] Princípios Fundamentais
+    [SUBTÓPICO] Fundamentos da República (art. 1º)
+    [SUBTÓPICO] Objetivos fundamentais (art. 3º)
+    [SUBTÓPICO] Princípios das relações internacionais
+  [TÓPICO] Teoria do Direito Constitucional
+    [SUBTÓPICO] Conceito e Fontes
+
+[MATÉRIA] Direito Eleitoral
+  [TÓPICO] Alistamento e Domicílio Eleitoral
+    [SUBTÓPICO] Cancelamento do título
+    [SUBTÓPICO] Obrigatoriedade e alistamento
+  [TÓPICO] Candidaturas
+    [SUBTÓPICO] Condições de elegibilidade
+    [SUBTÓPICO] Inelegibilidades (Lei Ficha Limpa)
+    [SUBTÓPICO] Registro de candidatura
+  [TÓPICO] Crimes Eleitorais
+    [SUBTÓPICO] Captação ilícita de sufrágio
+    [SUBTÓPICO] Corrupção eleitoral
+  [TÓPICO] Sistemas Eleitorais
+    [SUBTÓPICO] Maioritário, proporcional e misto
+    [SUBTÓPICO] Quociente eleitoral e partidário
+
+[MATÉRIA] Direito Penal
+  [TÓPICO] Causas Excludentes
+    [SUBTÓPICO] Estado de necessidade e legítima defesa
+    [SUBTÓPICO] Excludentes de culpabilidade
+    [SUBTÓPICO] Excludentes de tipicidade
+  [TÓPICO] Crimes em Espécie (CP)
+    [SUBTÓPICO] Crimes contra a Administração Pública (arts. 312-359)
+    [SUBTÓPICO] Crimes contra a fé pública
+    [SUBTÓPICO] Crimes contra a vida (arts. 121-128)
+    [SUBTÓPICO] Crimes contra o patrimônio (arts. 155-183)
+  [TÓPICO] Legislação Penal Especial
+    [SUBTÓPICO] Lei de Abuso de Autoridade (13.869/19)
+    [SUBTÓPICO] Lei de Drogas (11.343/06)
+    [SUBTÓPICO] Lei de Lavagem de Dinheiro (9.613/98)
+    [SUBTÓPICO] Lei de Tortura (9.455/97)
+  [TÓPICO] Penas e Aplicação
+    [SUBTÓPICO] Dosimetria (circunstâncias judiciais, atenuantes, agravantes)
+    [SUBTÓPICO] Espécies de pena
+    [SUBTÓPICO] Extinção da punibilidade
+    [SUBTÓPICO] Penas restritivas de direitos
+  [TÓPICO] Princípios
+    [SUBTÓPICO] Culpabilidade e proporcionalidade
+    [SUBTÓPICO] Desenvolvimento sustentável
+    [SUBTÓPICO] Intervenção mínima e fragmentariedade
+    [SUBTÓPICO] Legalidade, anterioridade, retroatividade benéfica
+    [SUBTÓPICO] Poluidor-pagador
+    [SUBTÓPICO] Precaução e prevenção
+  [TÓPICO] Teoria do Crime
+    [SUBTÓPICO] Concurso de crimes
+    [SUBTÓPICO] Concurso de pessoas
+    [SUBTÓPICO] Conduta, tipicidade, ilicitude, culpabilidade
+    [SUBTÓPICO] Crimes dolosos e culposos
+    [SUBTÓPICO] Tentativa e consumação
+
+[MATÉRIA] Direito Previdenciário
+  [TÓPICO] Benefícios Previdenciários
+    [SUBTÓPICO] Aposentadorias (programada, por incapacidade)
+    [SUBTÓPICO] Auxílios (doença, acidente)
+    [SUBTÓPICO] Pensão por morte
+    [SUBTÓPICO] Salário-família e salário-maternidade
+  [TÓPICO] Regime Geral de Previdência (RGPS)
+    [SUBTÓPICO] Carência
+    [SUBTÓPICO] Salário de contribuição
+    [SUBTÓPICO] Segurados obrigatórios e facultativos
+  [TÓPICO] Regime Próprio (RPPS)
+    [SUBTÓPICO] Reforma da Previdência (EC 103/19)
+    [SUBTÓPICO] Servidores públicos
+  [TÓPICO] Seguridade Social
+    [SUBTÓPICO] Custeio (contribuições)
+    [SUBTÓPICO] Princípios constitucionais
+    [SUBTÓPICO] Saúde, previdência e assistência social
+
+[MATÉRIA] Direito Processual Civil
+  [TÓPICO] Atos Processuais e Prazos
+    [SUBTÓPICO] Comunicação dos atos (citação e intimação)
+    [SUBTÓPICO] Forma e lugar dos atos
+    [SUBTÓPICO] Prazos e preclusão
+  [TÓPICO] Competência
+    [SUBTÓPICO] Competência absoluta e relativa
+    [SUBTÓPICO] Competência territorial e funcional
+    [SUBTÓPICO] Conflito de competência
+    [SUBTÓPICO] Foro privilegiado
+    [SUBTÓPICO] Ratione materiae e ratione personae
+  [TÓPICO] Execução
+    [SUBTÓPICO] Embargos à execução
+    [SUBTÓPICO] Penhora e avaliação
+    [SUBTÓPICO] Título executivo judicial e extrajudicial
+  [TÓPICO] Partes e Procuradores
+    [SUBTÓPICO] Capacidade processual
+    [SUBTÓPICO] Legitimidade e interesse processual
+    [SUBTÓPICO] Litisconsórcio e intervenção de terceiros
+  [TÓPICO] Princípios e Normas Fundamentais (CPC/15)
+    [SUBTÓPICO] Contraditório e ampla defesa
+    [SUBTÓPICO] Primazia do julgamento de mérito
+    [SUBTÓPICO] Princípio da cooperação
+  [TÓPICO] Procedimento Comum
+    [SUBTÓPICO] Audiência de conciliação
+    [SUBTÓPICO] Contestação e reconvenção
+    [SUBTÓPICO] Petição inicial e emenda
+    [SUBTÓPICO] Sentença e coisa julgada
+  [TÓPICO] Recursos
+    [SUBTÓPICO] Agravo de instrumento e interno
+    [SUBTÓPICO] Apelação
+    [SUBTÓPICO] Apelação criminal
+    [SUBTÓPICO] Embargos de declaração
+    [SUBTÓPICO] Habeas corpus e revisão criminal
+    [SUBTÓPICO] Recurso em sentido estrito
+    [SUBTÓPICO] Recurso especial e extraordinário
+  [TÓPICO] Tutelas Provisórias
+    [SUBTÓPICO] Tutela antecipada e cautelar
+    [SUBTÓPICO] Tutela de urgência e evidência
+
+[MATÉRIA] Direito Processual Penal
+  [TÓPICO] Ação Penal
+    [SUBTÓPICO] Ação privada
+    [SUBTÓPICO] Condições da ação
+    [SUBTÓPICO] Pública incondicionada e condicionada
+  [TÓPICO] Princípios e Inquérito Policial
+    [SUBTÓPICO] Arquivamento
+    [SUBTÓPICO] Inquisitoriedade do inquérito
+    [SUBTÓPICO] Procedimento e prazo
+  [TÓPICO] Prisão e Liberdade
+    [SUBTÓPICO] Liberdade provisória e fiança
+    [SUBTÓPICO] Medidas cautelares diversas
+    [SUBTÓPICO] Prisão em flagrante
+    [SUBTÓPICO] Prisão preventiva e temporária
+  [TÓPICO] Procedimentos
+    [SUBTÓPICO] Juizados Especiais Criminais (9.099/95)
+    [SUBTÓPICO] Júri popular
+    [SUBTÓPICO] Procedimento ordinário e sumário
+  [TÓPICO] Provas
+    [SUBTÓPICO] Prova ilícita
+    [SUBTÓPICO] Provas em espécie (documental, testemunhal, pericial)
+    [SUBTÓPICO] Ônus da prova e inadmissibilidade
+
+[MATÉRIA] Direito Processual do Trabalho
+  [TÓPICO] Ação Trabalhista
+    [SUBTÓPICO] Dissídio coletivo
+    [SUBTÓPICO] Prazo prescricional
+    [SUBTÓPICO] Reclamação trabalhista
+  [TÓPICO] Execução Trabalhista
+    [SUBTÓPICO] Cálculo e liquidação
+    [SUBTÓPICO] Penhora e expropriação
+    [SUBTÓPICO] Título executivo
+  [TÓPICO] Organização da Justiça do Trabalho
+    [SUBTÓPICO] Varas, TRT e TST
+  [TÓPICO] Provas e Audiências
+    [SUBTÓPICO] Audiências e julgamento
+    [SUBTÓPICO] Prova testemunhal e documental
+    [SUBTÓPICO] Ônus da prova
+
+[MATÉRIA] Direito Tributário
+  [TÓPICO] CTN — Código Tributário Nacional
+    [SUBTÓPICO] Disposições gerais
+    [SUBTÓPICO] Interpretação e integração
+    [SUBTÓPICO] Legislação tributária
+  [TÓPICO] Crédito Tributário
+    [SUBTÓPICO] Constituição (lançamento)
+    [SUBTÓPICO] Exclusão (isenção e anistia)
+    [SUBTÓPICO] Extinção (pagamento, prescrição, decadência)
+    [SUBTÓPICO] Suspensão do crédito
+  [TÓPICO] Obrigação Tributária
+    [SUBTÓPICO] Fato gerador
+    [SUBTÓPICO] Solidariedade e responsabilidade tributária
+    [SUBTÓPICO] Sujeitos ativo e passivo
+  [TÓPICO] Processo Tributário
+    [SUBTÓPICO] Consulta fiscal
+    [SUBTÓPICO] Execução fiscal
+    [SUBTÓPICO] Processo administrativo fiscal
+  [TÓPICO] Sistema Tributário Nacional
+    [SUBTÓPICO] Competência tributária
+    [SUBTÓPICO] Imunidades e isenções
+    [SUBTÓPICO] Limitações constitucionais ao poder de tributar
+  [TÓPICO] Tributos em Espécie
+    [SUBTÓPICO] Contribuições (PIS, COFINS, CSLL)
+    [SUBTÓPICO] ICMS e ISS
+    [SUBTÓPICO] IPVA e IPTU
+    [SUBTÓPICO] Impostos federais (IR, IPI, IOF, II, IE)
+
+[MATÉRIA] Direito do Consumidor
+  [TÓPICO] Defesa do Consumidor
+    [SUBTÓPICO] Ações coletivas
+    [SUBTÓPICO] PROCON e órgãos de defesa
+  [TÓPICO] Princípios e Direitos Básicos (CDC)
+    [SUBTÓPICO] Boa-fé objetiva e transparência
+    [SUBTÓPICO] Direitos básicos (art. 6º)
+    [SUBTÓPICO] Vulnerabilidade do consumidor
+  [TÓPICO] Proteção Contratual
+    [SUBTÓPICO] Contrato de adesão
+    [SUBTÓPICO] Prazo de reflexão
+  [TÓPICO] Práticas Comerciais
+    [SUBTÓPICO] Cláusulas abusivas
+    [SUBTÓPICO] Cobrança de dívidas
+    [SUBTÓPICO] Publicidade enganosa e abusiva
+  [TÓPICO] Responsabilidade pelo Fato e Vício
+    [SUBTÓPICO] Fato do produto e serviço
+    [SUBTÓPICO] Vício do produto e serviço
+
+[MATÉRIA] Direito do Trabalho
+  [TÓPICO] Contrato de Trabalho
+    [SUBTÓPICO] Alteração e suspensão
+    [SUBTÓPICO] Formação e requisitos
+    [SUBTÓPICO] Modalidades (prazo indeterminado, determinado, intermitente)
+  [TÓPICO] Férias e FGTS
+    [SUBTÓPICO] Concessão e pagamento de férias
+    [SUBTÓPICO] FGTS: recolhimento e saque
+  [TÓPICO] Jornada de Trabalho
+    [SUBTÓPICO] Duração e horas extras
+    [SUBTÓPICO] Trabalho noturno
+    [SUBTÓPICO] Turnos e compensações
+  [TÓPICO] Princípios e Fontes
+    [SUBTÓPICO] CLT e legislação complementar
+    [SUBTÓPICO] Fontes formais e materiais
+    [SUBTÓPICO] Princípios protetivos
+  [TÓPICO] Remuneração
+    [SUBTÓPICO] 13º salário e participação nos lucros
+    [SUBTÓPICO] Adicionais (insalubridade, periculosidade, noturno)
+    [SUBTÓPICO] Salário mínimo e piso salarial
+  [TÓPICO] Rescisão Contratual
+    [SUBTÓPICO] Aviso prévio
+    [SUBTÓPICO] Demissão por justa causa
+    [SUBTÓPICO] Demissão sem justa causa
+    [SUBTÓPICO] Pedido de demissão e rescisão indireta
+  [TÓPICO] Seguridade e Previdência Trabalhista
+    [SUBTÓPICO] Acidente de trabalho
+    [SUBTÓPICO] Estabilidade e garantias de emprego
+    [SUBTÓPICO] Licença maternidade e paternidade
+
+[MATÉRIA] Direitos Humanos
+  [TÓPICO] Direitos na Constituição Federal
+    [SUBTÓPICO] Direitos individuais e coletivos
+    [SUBTÓPICO] Direitos sociais
+    [SUBTÓPICO] Incorporação de tratados (§3º, art. 5º)
+  [TÓPICO] Fundamentos e Geração de Direitos
+    [SUBTÓPICO] Gerações (1ª, 2ª, 3ª e 4ª)
+    [SUBTÓPICO] Universalidade e indivisibilidade
+  [TÓPICO] Grupos Vulneráveis
+    [SUBTÓPICO] Crianças e adolescentes
+    [SUBTÓPICO] Migrantes e refugiados
+    [SUBTÓPICO] Mulheres e violência doméstica
+    [SUBTÓPICO] Pessoas com deficiência
+  [TÓPICO] Sistemas de Proteção
+    [SUBTÓPICO] Sistema Interamericano (CADH, CIDH, Corte IDH)
+    [SUBTÓPICO] Sistema ONU (PIDCP, PIDESC)
+
+[MATÉRIA] Diversidade e Inclusão
+  [TÓPICO] Direitos das Minorias
+    [SUBTÓPICO] Direitos LGBTQIA+
+    [SUBTÓPICO] Igualdade racial (Lei 12.288/10)
+    [SUBTÓPICO] Pessoas com deficiência (Lei 13.146/15)
+  [TÓPICO] Políticas de Inclusão
+    [SUBTÓPICO] Acessibilidade
+    [SUBTÓPICO] Cotas raciais e sociais
+    [SUBTÓPICO] Educação inclusiva
+
+[MATÉRIA] Economia (Micro e Macro)
+  [TÓPICO] Macroeconomia
+    [SUBTÓPICO] Balanço de pagamentos
+    [SUBTÓPICO] Inflação e índices de preços
+    [SUBTÓPICO] PIB e contas nacionais
+    [SUBTÓPICO] Política monetária e fiscal
+  [TÓPICO] Microeconomia
+    [SUBTÓPICO] Elasticidades
+    [SUBTÓPICO] Estruturas de mercado
+    [SUBTÓPICO] Teoria da firma (oferta)
+    [SUBTÓPICO] Teoria do consumidor (demanda)
+  [TÓPICO] Teoria Econômica
+    [SUBTÓPICO] Externalidades e bens públicos
+    [SUBTÓPICO] Falhas de mercado
+
+[MATÉRIA] Engenharia de Software
+  [TÓPICO] Arquitetura de Software
+    [SUBTÓPICO] Padrões arquiteturais (MVC, microsserviços)
+    [SUBTÓPICO] Padrões de projeto (GoF)
+    [SUBTÓPICO] REST e SOA
+  [TÓPICO] Processos de Software
+    [SUBTÓPICO] Cascata, incremental e espiral
+    [SUBTÓPICO] DevOps
+    [SUBTÓPICO] Metodologias ágeis (Scrum, XP, Kanban)
+  [TÓPICO] Qualidade e Testes
+    [SUBTÓPICO] Métricas de qualidade (CMMI, MPS-BR)
+    [SUBTÓPICO] TDD e BDD
+    [SUBTÓPICO] Testes unitários, integração e sistema
+  [TÓPICO] Requisitos
+    [SUBTÓPICO] Casos de uso e histórias de usuário
+    [SUBTÓPICO] Levantamento e análise
+    [SUBTÓPICO] Rastreabilidade
+
+[MATÉRIA] Estatuto da Criança e do Adolescente (ECA)
+  [TÓPICO] Adoção
+    [SUBTÓPICO] Cadastro de adoção
+  [TÓPICO] Ato Infracional
+    [SUBTÓPICO] Apuração do ato infracional
+    [SUBTÓPICO] Internação
+    [SUBTÓPICO] Medidas socioeducativas
+  [TÓPICO] Direitos Fundamentais
+    [SUBTÓPICO] Direito à convivência familiar
+    [SUBTÓPICO] Direito à educação e ao esporte
+    [SUBTÓPICO] Direito à moradia e transporte
+    [SUBTÓPICO] Direito à saúde e à assistência social
+    [SUBTÓPICO] Direito à vida e à saúde
+  [TÓPICO] Medidas de Proteção
+    [SUBTÓPICO] Conselho Tutelar
+    [SUBTÓPICO] Curatela e tutela
+    [SUBTÓPICO] Entidades de atendimento
+    [SUBTÓPICO] Medidas protetivas (art. 101)
+
+[MATÉRIA] Estatuto do Idoso
+  [TÓPICO] Crimes contra o Idoso
+    [SUBTÓPICO] Abandono e maus-tratos
+    [SUBTÓPICO] Discriminação
+
+[MATÉRIA] Estatística
+  [TÓPICO] Correlação e Regressão
+    [SUBTÓPICO] Coeficiente de correlação
+    [SUBTÓPICO] Regressão linear simples
+  [TÓPICO] Distribuições de Frequência
+    [SUBTÓPICO] Amplitude e classes
+    [SUBTÓPICO] Histograma e polígono
+    [SUBTÓPICO] Tabelas de frequência
+  [TÓPICO] Estatística Descritiva
+    [SUBTÓPICO] Média, mediana e moda
+    [SUBTÓPICO] Quartis e percentis
+    [SUBTÓPICO] Variância e desvio padrão
+  [TÓPICO] Probabilidade Estatística
+    [SUBTÓPICO] Distribuição binomial
+    [SUBTÓPICO] Distribuição normal
+    [SUBTÓPICO] Espaço amostral
+
+[MATÉRIA] Gestão de Pessoas
+  [TÓPICO] Comportamento Organizacional
+    [SUBTÓPICO] Conflito e negociação
+    [SUBTÓPICO] Grupos e equipes
+    [SUBTÓPICO] Motivação no trabalho
+  [TÓPICO] Gestão Estratégica de Pessoas
+    [SUBTÓPICO] Alinhamento estratégico de RH
+    [SUBTÓPICO] Competências essenciais
+    [SUBTÓPICO] Gestão por competências
+  [TÓPICO] Subsistemas de RH
+    [SUBTÓPICO] Cargos e salários
+    [SUBTÓPICO] Recrutamento e seleção
+    [SUBTÓPICO] Treinamento e desenvolvimento
+
+[MATÉRIA] Gestão de Processos
+  [TÓPICO] BPM — Business Process Management
+    [SUBTÓPICO] Ciclo de vida do processo
+    [SUBTÓPICO] Mapeamento AS-IS e TO-BE
+    [SUBTÓPICO] Modelagem de processos (BPMN)
+  [TÓPICO] Ferramentas de Qualidade
+    [SUBTÓPICO] Diagrama de Causa e Efeito (Ishikawa)
+    [SUBTÓPICO] Diagrama de Pareto
+    [SUBTÓPICO] Fluxograma e 5S
+  [TÓPICO] Melhoria de Processos
+    [SUBTÓPICO] Kaizen
+    [SUBTÓPICO] Lean e eliminação de desperdícios
+    [SUBTÓPICO] Six Sigma
+
+[MATÉRIA] Gestão de Projetos
+  [TÓPICO] Execução e Controle
+    [SUBTÓPICO] Encerramento do projeto
+    [SUBTÓPICO] Gerenciamento de mudanças
+    [SUBTÓPICO] Indicadores (CPI, SPI)
+  [TÓPICO] Fundamentos (PMBOK)
+    [SUBTÓPICO] Ciclo de vida do projeto
+    [SUBTÓPICO] Grupos de processos
+    [SUBTÓPICO] Áreas de conhecimento
+  [TÓPICO] Metodologias Ágeis
+    [SUBTÓPICO] Kanban
+    [SUBTÓPICO] SAFe e escalabilidade
+    [SUBTÓPICO] Scrum (sprints, papéis, cerimônias)
+
+[MATÉRIA] Governança Pública
+  [TÓPICO] Modelos e Ferramentas
+    [SUBTÓPICO] Auditoria interna
+    [SUBTÓPICO] Gestão de riscos (ISO 31000)
+    [SUBTÓPICO] Governança de TI (COBIT, ITIL)
+  [TÓPICO] Princípios de Governança
+    [SUBTÓPICO] Accountability e transparência
+    [SUBTÓPICO] Responsividade e equidade
+  [TÓPICO] Órgãos de Controle
+    [SUBTÓPICO] CGU, TCU e AGU
+    [SUBTÓPICO] Ouvidorias
+
+[MATÉRIA] Governança de TI
+  [TÓPICO] COBIT
+    [SUBTÓPICO] Cascata de metas
+    [SUBTÓPICO] Objetivos de governança e gestão
+    [SUBTÓPICO] Princípios do COBIT 2019
+  [TÓPICO] ITIL
+    [SUBTÓPICO] Cadeia de valor de serviço
+    [SUBTÓPICO] Gerenciamento de incidentes e mudanças
+    [SUBTÓPICO] Práticas de ITIL 4
+  [TÓPICO] Planejamento Estratégico de TI
+    [SUBTÓPICO] Indicadores de TI
+    [SUBTÓPICO] PDTI — Plano Diretor de TI
+  [TÓPICO] Segurança e Gestão de Riscos
+    [SUBTÓPICO] ISO 27001 — SGSI
+    [SUBTÓPICO] ISO 31000 — Gestão de riscos
+    [SUBTÓPICO] NIST Cybersecurity Framework
+
+[MATÉRIA] Inteligência Artificial
+  [TÓPICO] Machine Learning
+    [SUBTÓPICO] Algoritmos supervisionados
+    [SUBTÓPICO] NLP — Processamento de linguagem natural
+    [SUBTÓPICO] Redes neurais e deep learning
+  [TÓPICO] Ética em IA
+    [SUBTÓPICO] Explicabilidade (XAI)
+    [SUBTÓPICO] Regulação de IA
+    [SUBTÓPICO] Viés e discriminação
+
+[MATÉRIA] Legislação Educacional (LDB)
+  [TÓPICO] Educação Básica
+    [SUBTÓPICO] Educação Infantil
+    [SUBTÓPICO] Ensino Fundamental
+    [SUBTÓPICO] Ensino Médio e reforma
+  [TÓPICO] Educação Superior
+    [SUBTÓPICO] Organização e avaliação
+    [SUBTÓPICO] SINAES e ENADE
+  [TÓPICO] LDB (Lei 9.394/96)
+    [SUBTÓPICO] Níveis e modalidades
+    [SUBTÓPICO] Organização da educação nacional
+    [SUBTÓPICO] Princípios e fins da educação
+  [TÓPICO] Profissionais da Educação
+    [SUBTÓPICO] Formação de professores
+    [SUBTÓPICO] Piso salarial (Lei 11.738/08)
+    [SUBTÓPICO] Plano de Carreira
+
+[MATÉRIA] Legislação Específica
+  (sem tópicos)
+
+[MATÉRIA] Legislação Extravagante
+  [TÓPICO] LGPD (13.709/18)
+  [TÓPICO] Lei de Acesso à Informação (12.527/11)
+    [SUBTÓPICO] Recursos e penalidades
+    [SUBTÓPICO] Sigilo e restrições
+    [SUBTÓPICO] Transparência ativa e passiva
+  [TÓPICO] Lei de Improbidade (8.429/92)
+    [SUBTÓPICO] Atos de improbidade e sanções
+    [SUBTÓPICO] Prescrição
+  [TÓPICO] Lei de Responsabilidade Fiscal (LC 101/00)
+    [SUBTÓPICO] Dívida pública
+    [SUBTÓPICO] Planejamento e transparência
+    [SUBTÓPICO] Receita e despesa
+
+[MATÉRIA] Legislação do SUS
+  (sem tópicos)
+
+[MATÉRIA] Lei de Responsabilidade Fiscal (LRF)
+  [TÓPICO] Dívida e Endividamento
+    [SUBTÓPICO] Dívida consolidada e mobiliária
+    [SUBTÓPICO] Limites de endividamento
+    [SUBTÓPICO] Operações de crédito
+  [TÓPICO] Equilíbrio Fiscal
+    [SUBTÓPICO] Metas e resultados fiscais
+    [SUBTÓPICO] Resultado primário e nominal
+  [TÓPICO] Receitas e Despesas
+    [SUBTÓPICO] Despesas com pessoal (limites)
+    [SUBTÓPICO] Geração de despesa e impacto orçamentário
+  [TÓPICO] Transparência e Controle
+    [SUBTÓPICO] Audiências públicas
+    [SUBTÓPICO] Relatório Resumido de Execução Orçamentária (RREO)
+    [SUBTÓPICO] Relatório de Gestão Fiscal (RGF)
+
+[MATÉRIA] Licitações e Contratos
+  [TÓPICO] Contratos Administrativos
+    [SUBTÓPICO] Alteração unilateral e bilateral
+    [SUBTÓPICO] Cláusulas exorbitantes
+    [SUBTÓPICO] Equilíbrio econômico-financeiro
+    [SUBTÓPICO] Extinção e sanções
+  [TÓPICO] Lei 14.133/21 — Nova Lei de Licitações
+    [SUBTÓPICO] Fases da licitação (preparatória, divulgação, propostas, julgamento, habilitação)
+    [SUBTÓPICO] Modalidades (pregão, concorrência, concurso, leilão, diálogo competitivo)
+  [TÓPICO] Registro de Preços
+    [SUBTÓPICO] Ata de Registro de Preços
+    [SUBTÓPICO] Sistema de Registro de Preços (SRP)
+
+[MATÉRIA] Linguagens de Programação
+  [TÓPICO] Conceitos Gerais
+    [SUBTÓPICO] Compilação vs. interpretação
+    [SUBTÓPICO] Paradigmas (imperativo, OO, funcional)
+    [SUBTÓPICO] Tipagem estática e dinâmica
+  [TÓPICO] Estruturas de Dados e Algoritmos
+    [SUBTÓPICO] Algoritmos de ordenação e busca
+    [SUBTÓPICO] Complexidade (Big O)
+    [SUBTÓPICO] Listas, pilhas, filas e árvores
+  [TÓPICO] Orientação a Objetos
+    [SUBTÓPICO] Encapsulamento, herança e polimorfismo
+    [SUBTÓPICO] Interfaces e classes abstratas
+    [SUBTÓPICO] SOLID
+
+[MATÉRIA] Língua Portuguesa
+  [TÓPICO] Coesão e Coerência Textual
+    [SUBTÓPICO] Conectivos e operadores argumentativos
+    [SUBTÓPICO] Paralelismo
+    [SUBTÓPICO] Progressão temática
+    [SUBTÓPICO] Referência e substituição
+  [TÓPICO] Compreensão e Interpretação Textual
+    [SUBTÓPICO] Informações implícitas e explícitas
+    [SUBTÓPICO] Intelecção e inferência
+    [SUBTÓPICO] Sentido figurado e conotativo
+    [SUBTÓPICO] Tipos e gêneros textuais
+  [TÓPICO] Morfologia
+    [SUBTÓPICO] Classes de palavras (substantivo, adjetivo, verbo...)
+    [SUBTÓPICO] Flexão nominal e verbal
+    [SUBTÓPICO] Formação de palavras (derivação, composição)
+    [SUBTÓPICO] Pronomes: tipos e colocação pronominal
+  [TÓPICO] Ortografia e Acentuação
+    [SUBTÓPICO] Acentuação gráfica
+    [SUBTÓPICO] Emprego de maiúsculas e minúsculas
+    [SUBTÓPICO] Novo Acordo Ortográfico
+    [SUBTÓPICO] Uso do hífen
+  [TÓPICO] Pontuação
+    [SUBTÓPICO] Ponto-e-vírgula e dois-pontos
+    [SUBTÓPICO] Travessão, parênteses e aspas
+    [SUBTÓPICO] Uso da vírgula
+  [TÓPICO] Semântica e Estilística
+    [SUBTÓPICO] Denotação e conotação
+    [SUBTÓPICO] Figuras de linguagem
+    [SUBTÓPICO] Funções da linguagem
+    [SUBTÓPICO] Sinonímia, antonímia e polissemia
+  [TÓPICO] Sintaxe
+    [SUBTÓPICO] Concordância nominal
+    [SUBTÓPICO] Concordância verbal
+    [SUBTÓPICO] Período composto por coordenação
+    [SUBTÓPICO] Período composto por subordinação
+    [SUBTÓPICO] Regência nominal e verbal
+    [SUBTÓPICO] Termos essenciais e acessórios da oração
+
+[MATÉRIA] Matemática
+  (sem tópicos)
+
+[MATÉRIA] Matemática Financeira
+  [TÓPICO] Análise de Investimentos
+    [SUBTÓPICO] Payback simples e descontado
+  [TÓPICO] Juros Compostos
+    [SUBTÓPICO] Desconto composto
+    [SUBTÓPICO] Montante e fórmula
+    [SUBTÓPICO] Taxa equivalente
+  [TÓPICO] Juros Simples
+    [SUBTÓPICO] Desconto simples (comercial e racional)
+    [SUBTÓPICO] Montante e capital
+    [SUBTÓPICO] Taxa e prazo
+  [TÓPICO] Séries de Pagamentos
+    [SUBTÓPICO] Anuidades (prestações iguais)
+    [SUBTÓPICO] SAC e PRICE
+    [SUBTÓPICO] Valor presente e futuro
+
+[MATÉRIA] Noções de Informática
+  [TÓPICO] Armazenamento em Nuvem
+    [SUBTÓPICO] Conceitos de cloud computing
+    [SUBTÓPICO] OneDrive, Google Drive, Dropbox
+  [TÓPICO] Correio Eletrônico
+    [SUBTÓPICO] Boas práticas e etiqueta
+    [SUBTÓPICO] Protocolos de e-mail (POP3, IMAP, SMTP)
+  [TÓPICO] Hardware e Software
+    [SUBTÓPICO] Componentes do computador
+    [SUBTÓPICO] Licenças de software
+    [SUBTÓPICO] Sistemas operacionais (Windows, Linux)
+  [TÓPICO] Internet e Redes
+    [SUBTÓPICO] IP, DNS e servidores
+    [SUBTÓPICO] Navegadores e mecanismos de busca
+    [SUBTÓPICO] Protocolos (HTTP, HTTPS, FTP, SMTP)
+    [SUBTÓPICO] Redes LAN, WAN, Wi-Fi
+  [TÓPICO] Pacote Office / LibreOffice
+    [SUBTÓPICO] Apresentações (PowerPoint)
+    [SUBTÓPICO] Editor de textos (Word)
+    [SUBTÓPICO] Planilha eletrônica (Excel)
+  [TÓPICO] Segurança Básica
+    [SUBTÓPICO] Backup e antivírus
+    [SUBTÓPICO] Phishing e engenharia social
+    [SUBTÓPICO] Vírus, trojans e malware
+
+[MATÉRIA] Políticas Públicas
+  [TÓPICO] Atores e Arenas
+    [SUBTÓPICO] Coalizões e redes de política
+    [SUBTÓPICO] Stakeholders e grupos de interesse
+  [TÓPICO] Avaliação de Políticas
+    [SUBTÓPICO] Avaliação ex-ante e ex-post
+    [SUBTÓPICO] Indicadores de resultado e impacto
+  [TÓPICO] Ciclo de Políticas Públicas
+    [SUBTÓPICO] Avaliação e monitoramento
+    [SUBTÓPICO] Formação de agenda
+    [SUBTÓPICO] Formulação e tomada de decisão
+    [SUBTÓPICO] Implementação
+
+[MATÉRIA] Raciocínio Lógico-Matemático
+  [TÓPICO] Combinatória e Probabilidade
+    [SUBTÓPICO] Permutação, arranjo e combinação
+    [SUBTÓPICO] Princípio fundamental da contagem
+    [SUBTÓPICO] Probabilidade simples e condicional
+  [TÓPICO] Lógica Proposicional
+    [SUBTÓPICO] Conectivos lógicos (e, ou, se...então, sse)
+    [SUBTÓPICO] Negação de proposições compostas
+    [SUBTÓPICO] Proposições simples e compostas
+    [SUBTÓPICO] Tabelas-verdade
+    [SUBTÓPICO] Tautologia, contradição e contingência
+  [TÓPICO] Lógica de Argumentação
+    [SUBTÓPICO] Inferência e dedução
+    [SUBTÓPICO] Silogismo categórico
+    [SUBTÓPICO] Validade de argumentos
+  [TÓPICO] Raciocínio Quantitativo
+    [SUBTÓPICO] Porcentagem e variação percentual
+    [SUBTÓPICO] Problemas de mistura
+    [SUBTÓPICO] Razão e proporção
+    [SUBTÓPICO] Regra de três simples e composta
+  [TÓPICO] Sequências e Progressões
+    [SUBTÓPICO] Progressão Aritmética (PA)
+    [SUBTÓPICO] Progressão Geométrica (PG)
+    [SUBTÓPICO] Sequências lógicas numéricas e figurativas
+  [TÓPICO] Teoria dos Conjuntos
+    [SUBTÓPICO] Diagramas de Venn
+    [SUBTÓPICO] Operações (união, interseção, diferença)
+    [SUBTÓPICO] Pertinência e inclusão
+
+[MATÉRIA] Realidade Brasileira
+  [TÓPICO] Economia e Desenvolvimento
+    [SUBTÓPICO] Desigualdades regionais
+    [SUBTÓPICO] Infraestrutura e logística
+    [SUBTÓPICO] Matriz produtiva
+  [TÓPICO] Geografia do Brasil
+    [SUBTÓPICO] Biomas brasileiros
+    [SUBTÓPICO] Regiões, estados e capitais
+    [SUBTÓPICO] Relevo, clima e hidrografia
+  [TÓPICO] História do Brasil
+    [SUBTÓPICO] Ditadura Militar e redemocratização
+    [SUBTÓPICO] Independência e Império
+    [SUBTÓPICO] Período colonial
+    [SUBTÓPICO] República Velha e Era Vargas
+
+[MATÉRIA] Redação Oficial
+  [TÓPICO] Características e Princípios
+    [SUBTÓPICO] Formalidade e padronização
+    [SUBTÓPICO] Impessoalidade, clareza e concisão
+    [SUBTÓPICO] Uso da norma culta
+  [TÓPICO] Correspondências Oficiais
+    [SUBTÓPICO] Email institucional
+    [SUBTÓPICO] Exposição de motivos
+    [SUBTÓPICO] Memorando interno
+    [SUBTÓPICO] Ofício (padrão único)
+  [TÓPICO] Estrutura dos Documentos
+    [SUBTÓPICO] Cabeçalho e identificação
+    [SUBTÓPICO] Corpo do texto e numeração
+    [SUBTÓPICO] Vocativo e fecho
+  [TÓPICO] Normas do Manual de Redação da Presidência
+    [SUBTÓPICO] Fechos de comunicações
+    [SUBTÓPICO] Pronome de tratamento
+    [SUBTÓPICO] Siglas e abreviaturas
+
+[MATÉRIA] Redes de Computadores
+  (sem tópicos)
+
+[MATÉRIA] Saúde Pública (SUS)
+  [TÓPICO] Atenção à Saúde
+    [SUBTÓPICO] Atenção Básica (AB) e ESF
+    [SUBTÓPICO] Atenção especializada e hospitalar
+    [SUBTÓPICO] Urgência e emergência (RUE)
+  [TÓPICO] Fundamentos do SUS
+    [SUBTÓPICO] Princípios doutrinários (universalidade, integralidade, equidade)
+    [SUBTÓPICO] Princípios organizativos (descentralização, hierarquização, participação)
+  [TÓPICO] Legislação do SUS
+    [SUBTÓPICO] Lei 8.080/90 (organização do SUS)
+    [SUBTÓPICO] Lei 8.142/90 (controle social)
+  [TÓPICO] Políticas de Saúde
+    [SUBTÓPICO] PMAQ e QualiAB
+    [SUBTÓPICO] PNAB — Política Nacional de Atenção Básica
+    [SUBTÓPICO] Saúde mental (CAPS)
+  [TÓPICO] Vigilâncias em Saúde
+    [SUBTÓPICO] Vigilância ambiental em saúde
+    [SUBTÓPICO] Vigilância epidemiológica
+    [SUBTÓPICO] Vigilância sanitária (ANVISA)
+
+[MATÉRIA] Segurança da Informação
+  [TÓPICO] Ameaças e Ataques
+    [SUBTÓPICO] Ataques de negação de serviço (DoS/DDoS)
+    [SUBTÓPICO] Engenharia social e phishing
+    [SUBTÓPICO] Malware (vírus, ransomware, spyware)
+    [SUBTÓPICO] SQL Injection e XSS
+  [TÓPICO] Controles e Políticas
+    [SUBTÓPICO] Gestão de riscos
+    [SUBTÓPICO] ISO 27001 / 27002
+    [SUBTÓPICO] Política de segurança da informação
+  [TÓPICO] Criptografia
+    [SUBTÓPICO] Certificado digital e PKI
+    [SUBTÓPICO] Criptografia simétrica e assimétrica
+    [SUBTÓPICO] Hash e assinatura digital
+  [TÓPICO] Fundamentos
+    [SUBTÓPICO] ANVISA e vigilâncias estaduais e municipais
+    [SUBTÓPICO] Agentes inteligentes
+    [SUBTÓPICO] Autenticação e autorização
+    [SUBTÓPICO] Busca e resolução de problemas
+    [SUBTÓPICO] CID: Confidencialidade, Integridade, Disponibilidade
+    [SUBTÓPICO] Conceito e base legal (Lei 9.782/99)
+    [SUBTÓPICO] Entidade-Relacionamento (ER)
+    [SUBTÓPICO] Equação patrimonial
+    [SUBTÓPICO] Fatos contábeis (permutativos, modificativos, mistos)
+    [SUBTÓPICO] Histórico e conceitos
+    [SUBTÓPICO] Modelo relacional
+    [SUBTÓPICO] Normalização (1FN, 2FN, 3FN, BCNF)
+    [SUBTÓPICO] Não-repúdio
+    [SUBTÓPICO] Patrimônio, ativo e passivo
+    [SUBTÓPICO] Processo KDD e CRISP-DM
+    [SUBTÓPICO] Tipos de dados e ETL
+  [TÓPICO] LGPD
+    [SUBTÓPICO] ANPD e sanções
+    [SUBTÓPICO] Direitos do titular
+    [SUBTÓPICO] Princípios e bases legais
+
+[MATÉRIA] Sustentabilidade e Meio Ambiente
+  [TÓPICO] Desenvolvimento Sustentável
+    [SUBTÓPICO] Economia circular
+    [SUBTÓPICO] Mudanças climáticas e Acordo de Paris
+    [SUBTÓPICO] ODS — Agenda 2030
+  [TÓPICO] Gestão Ambiental
+    [SUBTÓPICO] EIA/RIMA
+    [SUBTÓPICO] Licenciamento ambiental
+    [SUBTÓPICO] SISNAMA
+  [TÓPICO] Legislação Ambiental
+    [SUBTÓPICO] Crimes ambientais (Lei 9.605/98)
+    [SUBTÓPICO] Código Florestal (Lei 12.651/12)
+    [SUBTÓPICO] PNMA (Lei 6.938/81)
+
+[MATÉRIA] Vigilância Sanitária
+  [TÓPICO] Inspeção e Fiscalização
+    [SUBTÓPICO] Alimentos e medicamentos
+    [SUBTÓPICO] Cosméticos e saneantes
+    [SUBTÓPICO] Serviços de saúde
+  [TÓPICO] Registro e Autorização
+    [SUBTÓPICO] Boas práticas de fabricação
+    [SUBTÓPICO] Licença sanitária
+    [SUBTÓPICO] Registro de produtos
+
+[MATÉRIA] Ética no Serviço Público
+  [TÓPICO] Conflito de Interesses (Lei 12.813/13)
+    [SUBTÓPICO] Impedimentos e vedações
+    [SUBTÓPICO] Situações de conflito
+  [TÓPICO] Código de Ética do Servidor (Dec. 1.171/94)
+    [SUBTÓPICO] Comissões de Ética
+    [SUBTÓPICO] Deveres e proibições
+    [SUBTÓPICO] Regras deontológicas
+  [TÓPICO] Improbidade Administrativa (Lei 8.429/92)
+    [SUBTÓPICO] Atos de enriquecimento ilícito
+    [SUBTÓPICO] Atos que atentam contra princípios
+    [SUBTÓPICO] Atos que causam dano ao erário
+    [SUBTÓPICO] Sanções
+  [TÓPICO] Lei Anticorrupção (Lei 12.846/13)
+    [SUBTÓPICO] Acordos de leniência
+    [SUBTÓPICO] Atos lesivos à Administração
+    [SUBTÓPICO] Responsabilização de pessoas jurídicas
+  [TÓPICO] Ética e Moral
+    [SUBTÓPICO] Conceitos e distinções
+    [SUBTÓPICO] Virtudes e deveres funcionais
+    [SUBTÓPICO] Ética individual e profissional
