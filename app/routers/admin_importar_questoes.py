@@ -464,19 +464,38 @@ def sugerir_areas_questao(
 
 # ─── Endpoints — CRUD de questões ────────────────────────────────────────────
 
+@router.get("/materias-por-area")
+def materias_por_area(
+    area_id: str = Query(..., description="ID da área"),
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(require_admin),
+):
+    """Admin: retorna nomes de matérias distintas que têm questões na área informada."""
+    rows = (
+        db.query(QuestaoBanco.materia)
+        .join(QuestionArea, QuestionArea.question_id == QuestaoBanco.id)
+        .filter(QuestionArea.area_id == area_id, QuestaoBanco.materia.isnot(None))
+        .distinct()
+        .order_by(QuestaoBanco.materia)
+        .all()
+    )
+    return [r[0] for r in rows]
+
+
 @router.get("/questoes")
 def listar_questoes(
     materia: Optional[str] = Query(None, description="Filtra por subject (matéria)"),
     subtopico: Optional[str] = Query(None, description="Filtra por nome de subtópico associado"),
     banca: Optional[str] = Query(None, description="Filtra por banca"),
     ano: Optional[int] = Query(None, description="Filtra por ano"),
+    area_id: Optional[str] = Query(None, description="Filtra por área associada"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     response: Response = None,
     db: Session = Depends(get_db),
     _: Aluno = Depends(require_admin),
 ):
-    """Admin: lista questões com filtros por matéria, subtópico, banca e ano, paginado."""
+    """Admin: lista questões com filtros por matéria, subtópico, banca, ano e área, paginado."""
     q = db.query(QuestaoBanco)
 
     if materia:
@@ -487,6 +506,11 @@ def listar_questoes(
             q.join(QuestionSubtopic, QuestionSubtopic.question_id == QuestaoBanco.id)
             .join(Topico, Topico.id == QuestionSubtopic.subtopic_id)
             .filter(Topico.nome.ilike(f"%{subtopico}%"))
+        )
+
+    if area_id:
+        q = q.join(QuestionArea, QuestionArea.question_id == QuestaoBanco.id).filter(
+            QuestionArea.area_id == area_id
         )
 
     if banca:
@@ -697,14 +721,8 @@ async def extrair_questoes_pdf(
     prompt_com_texto = _PROMPT_PDF + f"\n\nTEXTO DO PDF:\n{texto_pdf}"
 
     try:
-        import google.generativeai as genai_sdk
-        genai_sdk.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai_sdk.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(
-            prompt_com_texto,
-            generation_config={"max_output_tokens": 8192},
-        )
-        raw = response.text.strip()
+        ai = get_ai_provider()
+        raw = ai.generate(prompt_com_texto, max_tokens=8192)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Erro na IA: {str(exc)}")
 

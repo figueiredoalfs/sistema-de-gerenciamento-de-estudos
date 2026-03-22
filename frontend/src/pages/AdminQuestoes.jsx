@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listarQuestoes, editarQuestao, deletarQuestao, sugerirSubtopico, associarSubtopicos, removerSubtopico, listarAreas, sugerirArea, associarAreas, removerArea } from '../api/adminQuestoes'
+import { listarQuestoes, listarMateriasPorArea, editarQuestao, deletarQuestao, sugerirSubtopico, associarSubtopicos, removerSubtopico, listarAreas, sugerirArea, associarAreas, removerArea } from '../api/adminQuestoes'
 import { listarTodosTopicos, listarMaterias, listarBancas } from '../api/adminTopicos'
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E']
@@ -541,10 +541,12 @@ export default function AdminQuestoes() {
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState('')
 
+  const [filtroArea, setFiltroArea] = useState('')
   const [filtroMateria, setFiltroMateria] = useState('')
   const [filtroSubtopico, setFiltroSubtopico] = useState('')
   const [filtroBanca, setFiltroBanca] = useState('')
   const [filtroAno, setFiltroAno] = useState('')
+  const [materiasPorArea, setMateriasPorArea] = useState(null) // null = sem filtro de área
   const [page, setPage] = useState(1)
   const [totalBanco, setTotalBanco] = useState(0)
   const [totalFiltro, setTotalFiltro] = useState(0)
@@ -563,7 +565,7 @@ export default function AdminQuestoes() {
     listarAreas().then(setTodasAreas).catch(() => {})
   }, [])
 
-  const materias = topicos.filter(t => t.nivel === 0).sort((a, b) => a.nome.localeCompare(b.nome))
+  const materias = topicos.filter(t => t.nivel === 0 && t.ativo).sort((a, b) => a.nome.localeCompare(b.nome))
   const subtopicosDisponiveis = (() => {
     const subs = topicos.filter(t => t.nivel === 2)
     if (!filtroMateria) return subs.sort((a, b) => a.nome.localeCompare(b.nome))
@@ -580,6 +582,7 @@ export default function AdminQuestoes() {
   const [deletandoId, setDeletandoId] = useState(false)
 
   function buscar(pg = 1, overrides = {}) {
+    const area = 'area' in overrides ? overrides.area : filtroArea
     const materia = 'materia' in overrides ? overrides.materia : filtroMateria
     const subtopico = 'subtopico' in overrides ? overrides.subtopico : filtroSubtopico
     const banca = 'banca' in overrides ? overrides.banca : filtroBanca
@@ -588,7 +591,7 @@ export default function AdminQuestoes() {
     setErro('')
     setExpandedId(null)
     setSelecionadas(new Set())
-    listarQuestoes({ materia, subtopico, banca, ano: ano ? Number(ano) : undefined, page: pg, per_page: PER_PAGE })
+    listarQuestoes({ area_id: area || undefined, materia, subtopico, banca, ano: ano ? Number(ano) : undefined, page: pg, per_page: PER_PAGE })
       .then(({ questoes: data, totalFiltro: tf, totalBanco: tb }) => {
         setQuestoes(data)
         setTotalFiltro(tf)
@@ -673,7 +676,7 @@ export default function AdminQuestoes() {
         <h1 className="text-xl font-bold text-brand-text">Questões</h1>
         <div className="flex items-center gap-3 text-sm text-brand-muted">
           <span>Banco: <span className="text-brand-text font-medium">{totalBanco}</span></span>
-          {(filtroMateria || filtroSubtopico || filtroBanca || filtroAno) && (
+          {(filtroArea || filtroMateria || filtroSubtopico || filtroBanca || filtroAno) && (
             <span>· Filtro: <span className="text-indigo-400 font-medium">{totalFiltro}</span></span>
           )}
           <span className="text-brand-border">|</span>
@@ -684,6 +687,27 @@ export default function AdminQuestoes() {
       {/* Filtros */}
       <form onSubmit={handleFiltrar} className="flex flex-wrap gap-3 items-end">
         <div>
+          <label className="text-xs text-brand-muted block mb-1">Área</label>
+          <select
+            value={filtroArea}
+            onChange={e => {
+              const val = e.target.value
+              setFiltroArea(val)
+              setFiltroMateria('')
+              setFiltroSubtopico('')
+              if (val) {
+                listarMateriasPorArea(val).then(nomes => setMateriasPorArea(nomes)).catch(() => setMateriasPorArea(null))
+              } else {
+                setMateriasPorArea(null)
+              }
+            }}
+            className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-36"
+          >
+            <option value="">Todas</option>
+            {todasAreas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+          </select>
+        </div>
+        <div>
           <label className="text-xs text-brand-muted block mb-1">Matéria</label>
           <select
             value={filtroMateria}
@@ -691,7 +715,10 @@ export default function AdminQuestoes() {
             className="bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-indigo-500 w-48"
           >
             <option value="">Todas</option>
-            {materias.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+            {(materiasPorArea
+              ? materias.filter(m => materiasPorArea.includes(m.nome))
+              : materias
+            ).map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
           </select>
         </div>
         <div>
@@ -731,8 +758,9 @@ export default function AdminQuestoes() {
           Filtrar
         </button>
         <button type="button" onClick={() => {
+          setFiltroArea(''); setMateriasPorArea(null)
           setFiltroMateria(''); setFiltroSubtopico(''); setFiltroBanca(''); setFiltroAno('')
-          buscar(1, { materia: '', subtopico: '', banca: '', ano: '' })
+          buscar(1, { area: '', materia: '', subtopico: '', banca: '', ano: '' })
         }}
           className="px-4 py-2 text-sm rounded-lg border border-brand-border text-brand-muted hover:text-brand-text transition-colors">
           Limpar
@@ -764,7 +792,7 @@ export default function AdminQuestoes() {
             <select value={batchMatSel} onChange={e => { setBatchMatSel(e.target.value); setBatchSubSel('') }}
               className="bg-brand-surface border border-brand-border rounded-lg px-2 py-1 text-xs text-brand-text focus:outline-none">
               <option value="">Matéria...</option>
-              {topicos.filter(t => t.nivel === 0).sort((a,b) => a.nome.localeCompare(b.nome)).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+              {topicos.filter(t => t.nivel === 0 && t.ativo).sort((a,b) => a.nome.localeCompare(b.nome)).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
             </select>
             <select value={batchSubSel} onChange={e => setBatchSubSel(e.target.value)}
               className="bg-brand-surface border border-brand-border rounded-lg px-2 py-1 text-xs text-brand-text focus:outline-none"

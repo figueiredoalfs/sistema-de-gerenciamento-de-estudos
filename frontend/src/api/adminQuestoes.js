@@ -1,11 +1,17 @@
 import client from './client'
 
-export async function listarQuestoes({ materia, subtopico, banca, ano, page = 1, per_page = 20 } = {}) {
+export async function listarMateriasPorArea(areaId) {
+  const { data } = await client.get('/admin/materias-por-area', { params: { area_id: areaId } })
+  return data
+}
+
+export async function listarQuestoes({ materia, subtopico, banca, ano, area_id, page = 1, per_page = 20 } = {}) {
   const params = { page, per_page }
   if (materia) params.materia = materia
   if (subtopico) params.subtopico = subtopico
   if (banca) params.banca = banca
   if (ano) params.ano = ano
+  if (area_id) params.area_id = area_id
   const res = await client.get('/admin/questoes', { params })
   return {
     questoes: res.data,

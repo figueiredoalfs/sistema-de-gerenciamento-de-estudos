@@ -80,12 +80,17 @@ def editar_banca(
     banca = db.query(Banca).filter(Banca.id == banca_id).first()
     if not banca:
         raise HTTPException(status_code=404, detail="Banca não encontrada")
-    if body.nome is not None:
+    nome_mudou = body.nome is not None
+    ativo_mudou = body.ativo is not None
+    if nome_mudou:
         banca.nome = body.nome.strip()
-    if body.ativo is not None:
+    if ativo_mudou:
         banca.ativo = body.ativo
     db.commit()
     db.refresh(banca)
+    if nome_mudou or ativo_mudou:
+        from app.scripts.reclassificar_pendencias import reclassificar
+        reclassificar(db)
     return banca
 
 
@@ -101,3 +106,5 @@ def desativar_banca(
         raise HTTPException(status_code=404, detail="Banca não encontrada")
     banca.ativo = False
     db.commit()
+    from app.scripts.reclassificar_pendencias import reclassificar
+    reclassificar(db)
