@@ -44,8 +44,8 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            # Necessário para SQLite com ENUMs (não suportados nativamente)
-            render_as_batch=True,
+            # batch mode apenas para SQLite (PostgreSQL usa ALTER TABLE nativo)
+            render_as_batch=(connection.dialect.name == "sqlite"),
         )
         with context.begin_transaction():
             context.run_migrations()
