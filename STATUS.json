@@ -1,8 +1,8 @@
 {
-  "concluidas": 20,
+  "concluidas": 21,
   "em_andamento": 0,
   "total": 43,
-  "proxima": 20,
+  "proxima": 21,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -133,8 +133,8 @@
     {
       "fase": "FASE-5",
       "tarefa": "Deploy Railway",
-      "nota": "CORS restrito + variáveis + alembic upgrade head + teste completo.",
-      "status": "pendente"
+      "nota": "Frontend (Dockerfile+Caddy) e backend online. Domínio www.skolai.com.br configurado. CORS + variáveis + nixpacks.toml substituído por Dockerfile customizado.",
+      "status": "concluida"
     },
     {
       "fase": "FASE-6",
