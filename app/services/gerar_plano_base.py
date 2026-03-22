@@ -15,10 +15,13 @@ Critérios de avanço padrão por perfil:
   - avancado:      fase1=75% / fase2=80%
 """
 import json
+import logging
 
 from sqlalchemy.orm import Session
 
 from app.core.ai_provider import AIProvider
+
+logger = logging.getLogger("skolai.plano_base")
 
 
 _PERFIL_DESC = {
@@ -111,12 +114,20 @@ def _parse_fases(raw: str) -> list:
             text = text[4:]
         text = text.strip()
 
+    # Tenta parse direto; se falhar, busca o array JSON no texto
+    parsed = None
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
-        return []
+        inicio = text.find("[")
+        fim = text.rfind("]") + 1
+        if inicio != -1 and fim > 0:
+            try:
+                parsed = json.loads(text[inicio:fim])
+            except json.JSONDecodeError:
+                pass
 
-    if not isinstance(parsed, list):
+    if parsed is None or not isinstance(parsed, list):
         return []
 
     fases = []
@@ -174,19 +185,26 @@ def gerar_plano_via_ia(area: str, perfil: str, ai: AIProvider, db: Session = Non
     """
     Retorna lista de fases gerada pela IA.
     Tenta usar subtopico_ids se db estiver disponível; caso contrário usa matérias genéricas.
-    Nunca lança exceção — retorna [] em caso de falha.
+    Lança ValueError com mensagem descritiva em caso de falha.
     """
-    try:
-        if db is not None:
-            subtopicos = _carregar_subtopicos_area(area, db)
-            if subtopicos:
-                prompt = _build_prompt_subtopicos(area, perfil, subtopicos)
-            else:
-                prompt = _build_prompt_fallback(area, perfil)
+    if db is not None:
+        subtopicos = _carregar_subtopicos_area(area, db)
+        if subtopicos:
+            prompt = _build_prompt_subtopicos(area, perfil, subtopicos)
         else:
             prompt = _build_prompt_fallback(area, perfil)
+    else:
+        prompt = _build_prompt_fallback(area, perfil)
 
+    try:
         raw = ai.generate(prompt, max_tokens=3000)
-        return _parse_fases(raw)
-    except Exception:
-        return []
+    except Exception as exc:
+        logger.error("Erro ao chamar IA para gerar plano area=%s perfil=%s: %s", area, perfil, exc)
+        raise ValueError(f"Erro ao chamar IA: {exc}") from exc
+
+    logger.debug("Resposta da IA para plano area=%s perfil=%s: %s", area, perfil, raw[:300])
+    fases = _parse_fases(raw)
+    if not fases:
+        logger.error("IA não retornou fases válidas. area=%s perfil=%s raw=%r", area, perfil, raw[:500])
+        raise ValueError(f"IA não retornou fases válidas. Resposta recebida: {raw[:300]!r}")
+    return fases

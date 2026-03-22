@@ -31,7 +31,13 @@
       "Bash(alembic current:*)",
       "Bash(ls -lh /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/app/models/*.py)",
       "Bash(python -m alembic revision --autogenerate -m \"limpar_enum_tipo_task\")",
-      "Bash(pip show:*)"
+      "Bash(pip show:*)",
+      "Bash(python -m py_compile app/main.py)",
+      "Bash(python -m py_compile app/routers/admin_importar_questoes.py)",
+      "Bash(python3 -m py_compile app/routers/*.py)",
+      "Bash(python3 -m py_compile app/services/*.py)",
+      "Bash(venv/Scripts/python.exe -m alembic current)",
+      "Bash(venv/Scripts/python.exe -m alembic upgrade head)"
     ]
   }
 }

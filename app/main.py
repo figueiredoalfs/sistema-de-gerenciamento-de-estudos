@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.database import Base, engine
+from app.core.database import Base  # noqa: F401 — importado para Alembic detectar os models
 from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes, admin_importar_questoes, task_conteudo, admin_plano_base, admin_importar_tec, admin_pendencias, admin_bancas, admin_notificacoes  # noqa: E501
 from app.routers import cronograma_semanal
 from app.routers import metas
@@ -15,8 +15,13 @@ import app.models  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Garante que todas as tabelas existem (fallback quando Alembic não foi rodado)
-    Base.metadata.create_all(bind=engine)
+    # Aplica todas as migrations pendentes (alembic upgrade head)
+    import os
+    from alembic.config import Config as AlembicConfig
+    from alembic import command as alembic_command
+    _ini_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "alembic.ini")
+    alembic_cfg = AlembicConfig(_ini_path)
+    alembic_command.upgrade(alembic_cfg, "head")
 
     # Seed de tópicos padrão (idempotente — pula se já existirem)
     from app.scripts.seed_topicos import seed
@@ -25,6 +30,10 @@ async def lifespan(app: FastAPI):
     # Seed de ciclos de matérias por área (depende dos tópicos já existirem)
     from app.scripts.seed_ciclos import seed_ciclos
     seed_ciclos()
+
+    # Seed de áreas padrão (fiscal, militar, etc.)
+    from app.scripts.seed_areas import seed_areas
+    seed_areas()
 
     # Garante que existe pelo menos 1 usuário admin no banco FastAPI
     from app.scripts.seed_admin import seed_admin

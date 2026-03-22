@@ -67,12 +67,12 @@ function ModalEditarUsuario({ usuario, onClose, onSalvo }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="text-xs text-brand-muted block mb-1">Nome</label>
-              <input required value={form.nome} onChange={(e) => set('nome', e.target.value)}
+              <input required autoCapitalize="words" autoCorrect="off" value={form.nome} onChange={(e) => set('nome', e.target.value)}
                 className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
             </div>
             <div className="col-span-2">
               <label className="text-xs text-brand-muted block mb-1">E-mail</label>
-              <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)}
+              <input required type="email" autoCapitalize="none" autoCorrect="off" value={form.email} onChange={(e) => set('email', e.target.value)}
                 className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
             </div>
             <div>
@@ -225,6 +225,8 @@ function ModalCriarUsuario({ onClose, onCriado }) {
             <label className="text-xs text-brand-muted block mb-1">Nome</label>
             <input
               required
+              autoCapitalize="words"
+              autoCorrect="off"
               value={form.nome}
               onChange={(e) => set('nome', e.target.value)}
               className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -235,6 +237,8 @@ function ModalCriarUsuario({ onClose, onCriado }) {
             <input
               required
               type="email"
+              autoCapitalize="none"
+              autoCorrect="off"
               value={form.email}
               onChange={(e) => set('email', e.target.value)}
               className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"

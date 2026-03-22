@@ -1,8 +1,11 @@
+import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException
+
+logger = logging.getLogger("skolai.usuarios")
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -109,7 +112,8 @@ def reset_senha_usuario(
 
     aluno = db.query(Aluno).filter(Aluno.id == usuario_id).first()
     if not aluno:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        logger.warning("reset-senha: usuário não encontrado. usuario_id=%r", usuario_id)
+        raise HTTPException(status_code=404, detail=f"Usuário não encontrado (id={usuario_id})")
 
     alphabet = string.ascii_letters + string.digits
     senha_temp = "".join(secrets.choice(alphabet) for _ in range(8))

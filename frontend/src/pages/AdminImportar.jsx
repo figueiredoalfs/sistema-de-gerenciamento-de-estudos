@@ -201,6 +201,7 @@ export default function AdminImportar() {
   const [pdfFile, setPdfFile]       = useState(null)
   const [extraindo, setExtraindo]   = useState(false)
   const [erroPdf, setErroPdf]       = useState('')
+  const [msgPdf, setMsgPdf]         = useState('')
   const [draggingPdf, setDraggingPdf] = useState(false)
   // TEC
   const [tecFile, setTecFile]           = useState(null)
@@ -305,6 +306,7 @@ export default function AdminImportar() {
     if (!pdfFile) return
     setExtraindo(true)
     setErroPdf('')
+    setMsgPdf('')
     setPreview(null)
     setResultado(null)
     try {
@@ -313,6 +315,7 @@ export default function AdminImportar() {
         setErroPdf('Nenhuma questão encontrada no PDF. Verifique se o arquivo contém questões de concurso.')
       } else {
         setPreview(questoes)
+        setMsgPdf(`${questoes.length} questão${questoes.length !== 1 ? 'es' : ''} extraída${questoes.length !== 1 ? 's' : ''} com sucesso. Revise e confirme o import abaixo.`)
       }
     } catch (e) {
       const detail = e.response?.data?.detail
@@ -494,6 +497,7 @@ export default function AdminImportar() {
           </div>
 
           {erroPdf && <p className="text-xs text-red-400">{erroPdf}</p>}
+          {msgPdf && !erroPdf && <p className="text-xs text-green-400">{msgPdf}</p>}
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex gap-2">
@@ -913,15 +917,26 @@ export default function AdminImportar() {
                         )}
                       </td>
                       <td className="py-1.5 pl-1">
-                        <button
-                          onClick={() => setEditando({ index: i, item })}
-                          className="text-brand-muted hover:text-indigo-400 transition-colors"
-                          title="Editar questão"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setEditando({ index: i, item })}
+                            className="text-brand-muted hover:text-indigo-400 transition-colors"
+                            title="Editar questão"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setPreview(prev => prev.filter((_, idx) => idx !== i))}
+                            className="text-brand-muted hover:text-red-400 transition-colors"
+                            title="Remover questão do preview"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )

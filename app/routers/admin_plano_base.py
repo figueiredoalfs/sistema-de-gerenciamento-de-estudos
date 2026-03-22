@@ -63,9 +63,10 @@ def gerar_plano(
 ):
     """Gera um PlanoBase via IA e salva no banco sem revisão."""
     ai = get_ai_provider()
-    fases = gerar_plano_via_ia(body.area, body.perfil, ai, db=db)
-    if not fases:
-        raise HTTPException(status_code=422, detail="A IA não retornou fases válidas. Tente novamente.")
+    try:
+        fases = gerar_plano_via_ia(body.area, body.perfil, ai, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     plano = PlanoBase(
         id=str(uuid.uuid4()),

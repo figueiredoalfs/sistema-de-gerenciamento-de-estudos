@@ -15,15 +15,18 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "notificacoes",
-        sa.Column("id", sa.String(36), primary_key=True),
-        sa.Column("titulo", sa.String(200), nullable=False),
-        sa.Column("mensagem", sa.Text(), nullable=False),
-        sa.Column("tipo", sa.String(30), nullable=False, server_default="info"),
-        sa.Column("lida", sa.Boolean(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "notificacoes" not in inspector.get_table_names():
+        op.create_table(
+            "notificacoes",
+            sa.Column("id", sa.String(36), primary_key=True),
+            sa.Column("titulo", sa.String(200), nullable=False),
+            sa.Column("mensagem", sa.Text(), nullable=False),
+            sa.Column("tipo", sa.String(30), nullable=False, server_default="info"),
+            sa.Column("lida", sa.Boolean(), nullable=False, server_default="0"),
+            sa.Column("created_at", sa.DateTime(), nullable=True),
+        )
 
 
 def downgrade() -> None:

@@ -1,12 +1,12 @@
+import io
 import json
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, List, Optional
 
+import pdfplumber
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from fastapi.responses import JSONResponse
-from google import genai
-from google.genai import types
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -679,18 +679,30 @@ async def extrair_questoes_pdf(
     if len(pdf_bytes) == 0:
         raise HTTPException(status_code=422, detail="Arquivo PDF vazio")
 
+    # Extrai texto do PDF com pdfplumber
     try:
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[
-                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-                types.Part(text=_PROMPT_PDF),
-            ],
-            config=types.GenerateContentConfig(
-                max_output_tokens=65536,
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
-            ),
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            paginas = [page.extract_text() or "" for page in pdf.pages]
+        texto_pdf = "\n\n".join(paginas).strip()
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Erro ao ler PDF: {str(exc)}")
+
+    if not texto_pdf:
+        raise HTTPException(status_code=422, detail="Não foi possível extrair texto do PDF. Verifique se o arquivo não é escaneado.")
+
+    # Limita a 40.000 caracteres para não estourar o contexto
+    if len(texto_pdf) > 40000:
+        texto_pdf = texto_pdf[:40000]
+
+    prompt_com_texto = _PROMPT_PDF + f"\n\nTEXTO DO PDF:\n{texto_pdf}"
+
+    try:
+        import google.generativeai as genai_sdk
+        genai_sdk.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai_sdk.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(
+            prompt_com_texto,
+            generation_config={"max_output_tokens": 8192},
         )
         raw = response.text.strip()
     except Exception as exc:
