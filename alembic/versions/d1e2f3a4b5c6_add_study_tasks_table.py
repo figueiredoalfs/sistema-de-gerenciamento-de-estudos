@@ -16,6 +16,9 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+
     # Cria a nova tabela de tasks de estudo
     op.create_table(
         "study_tasks",
@@ -41,9 +44,16 @@ def upgrade() -> None:
     op.create_index("ix_study_tasks_subtopic_id", "study_tasks", ["subtopic_id"])
 
     # Remove a tabela legada study_sessions (sem dados, FK para topics legados)
-    with op.batch_alter_table("study_sessions") as batch_op:
-        batch_op.drop_constraint("fk_study_sessions_topic_id", type_="foreignkey")
-    op.drop_table("study_sessions")
+    # No PostgreSQL em produção (banco novo), study_sessions pode não existir
+    if dialect == 'postgresql':
+        result = bind.execute(sa.text("SELECT to_regclass('public.study_sessions')"))
+        if result.scalar() is not None:
+            op.execute("ALTER TABLE study_sessions DROP CONSTRAINT IF EXISTS fk_study_sessions_topic_id")
+            op.drop_table("study_sessions")
+    else:
+        with op.batch_alter_table("study_sessions") as batch_op:
+            batch_op.drop_constraint("fk_study_sessions_topic_id", type_="foreignkey")
+        op.drop_table("study_sessions")
 
 
 def downgrade() -> None:

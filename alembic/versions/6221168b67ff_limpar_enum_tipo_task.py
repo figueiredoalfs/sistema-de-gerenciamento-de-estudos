@@ -41,7 +41,10 @@ def upgrade() -> None:
         # --- diagnostico_pendente: tornar nullable ---
         op.alter_column('alunos', 'diagnostico_pendente', nullable=True)
 
-        # --- study_tasks.tipo: VARCHAR → enum ---
+        # --- study_tasks.tipo: recriar enum (em PostgreSQL já existe como enum desde d1e2f3a4b5c6) ---
+        # Liberar a coluna do enum atual, dropar e recriar com novos valores
+        op.execute("ALTER TABLE study_tasks ALTER COLUMN tipo TYPE VARCHAR USING tipo::text")
+        op.execute("DROP TYPE IF EXISTS study_task_tipo_enum")
         op.execute("""
             CREATE TYPE study_task_tipo_enum AS ENUM
             ('diagnostico', 'teoria', 'revisao', 'questionario', 'simulado', 'reforco')
@@ -49,7 +52,12 @@ def upgrade() -> None:
         op.execute("""
             ALTER TABLE study_tasks
             ALTER COLUMN tipo TYPE study_task_tipo_enum
-            USING tipo::text::study_task_tipo_enum
+            USING (CASE tipo
+                   WHEN 'study'     THEN 'teoria'::study_task_tipo_enum
+                   WHEN 'questions' THEN 'questionario'::study_task_tipo_enum
+                   WHEN 'review'    THEN 'revisao'::study_task_tipo_enum
+                   ELSE tipo::study_task_tipo_enum
+                   END)
         """)
         op.drop_index('ix_study_tasks_subtopic_id', table_name='study_tasks')
         op.create_foreign_key(
@@ -57,10 +65,15 @@ def upgrade() -> None:
             ['task_code'], ['task_code']
         )
 
-        # --- subtopico_estados: unique constraint ---
-        op.create_unique_constraint(
-            'uq_subtopico_estado_aluno', 'subtopico_estados', ['aluno_id', 'subtopico_id']
-        )
+        # --- subtopico_estados: unique constraint (pode já existir se criada inline em k1l2m3n4o5p6) ---
+        result = bind.execute(sa.text(
+            "SELECT 1 FROM information_schema.table_constraints "
+            "WHERE constraint_name='uq_subtopico_estado_aluno' AND table_name='subtopico_estados'"
+        ))
+        if not result.scalar():
+            op.create_unique_constraint(
+                'uq_subtopico_estado_aluno', 'subtopico_estados', ['aluno_id', 'subtopico_id']
+            )
 
         # --- task_conteudo: recriar index como unique ---
         op.drop_constraint('uq_task_conteudo_task_code', 'task_conteudo', type_='unique')
