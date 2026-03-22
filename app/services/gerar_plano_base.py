@@ -1,18 +1,13 @@
 """
 app/services/gerar_plano_base.py — Geração de PlanoBase via IA.
 
-Opera sobre subtopico_ids (SubtopicoArea) — não mais nomes de matéria genéricos.
-A IA recebe a lista de subtópicos com peso, complexidade e pré-requisitos e retorna
-a ordem pedagógica respeitando:
-  - Pré-requisitos entre subtópicos
-  - Máx. 15-20 subtópicos na fase 1 (carga cognitiva)
-  - Peso na área (subtópicos mais pesados com mais atenção)
-  - Complexidade (baixa antes de alta)
+A IA analisa as matérias do concurso e decide apenas a sequência pedagógica:
+  - Quais matérias entram em cada fase
+  - A ordem dos subtópicos dentro de cada matéria
+  - Pré-requisitos entre matérias
 
-Critérios de avanço padrão por perfil:
-  - iniciante:     fase1=65% / fase2=70% / fase3=75% / fase4=80%
-  - intermediario: fase1=70% / fase2=75% / fase3=80%
-  - avancado:      fase1=75% / fase2=80%
+Critérios de avanço, limiares de domínio e número de questões são FIXOS no
+sistema e não são gerados pela IA.
 """
 import json
 import logging
@@ -24,6 +19,24 @@ from app.core.ai_provider import AIProvider
 logger = logging.getLogger("skolai.plano_base")
 
 
+# ── Constantes pedagógicas fixas (NÃO vêm da IA) ─────────────────────────────
+CRITERIOS_AVANCO = {
+    "iniciante":     [65, 70, 75, 80],
+    "intermediario": [70, 75, 80],
+    "avancado":      [75, 80],
+}
+
+MAX_MATERIAS_FASE_1 = 4
+MAX_MATERIAS_NOVAS_POR_FASE = 3
+
+LIMIAR_DOMINIO_POR_COMPLEXIDADE = {
+    "baixa": 0.70,
+    "media": 0.75,
+    "alta":  0.80,
+}
+
+
+# ── Descrições de contexto ────────────────────────────────────────────────────
 _PERFIL_DESC = {
     "iniciante":     "nunca estudou para concursos ou tem menos de 3 meses de estudo",
     "intermediario": "tem entre 3 meses e 1 ano de estudo contínuo",
@@ -42,70 +55,110 @@ _AREA_DESC = {
     "outro":     "concursos gerais",
 }
 
-_CRITERIOS_AVANCO = {
-    "iniciante":     [65, 70, 75, 80],
-    "intermediario": [70, 75, 80],
-    "avancado":      [75, 80],
-}
+
+def _carregar_materias_com_subtopicos(area: str, db: Session) -> dict:
+    """
+    Retorna dict {materia_nome: [subtopico_nome, ...]} para a área.
+    Traversa a hierarquia: subtopico (nivel=2) → bloco (nivel=1) → materia (nivel=0).
+    """
+    try:
+        from app.models.subtopico_area import SubtopicoArea
+        from app.models.topico import Topico
+
+        configs = db.query(SubtopicoArea).filter(SubtopicoArea.area == area).all()
+        if not configs:
+            return {}
+
+        result: dict[str, list[str]] = {}
+
+        for cfg in configs:
+            sub = db.query(Topico).filter(
+                Topico.id == cfg.subtopico_id,
+                Topico.nivel == 2,
+                Topico.ativo == True,  # noqa: E712
+            ).first()
+            if not sub:
+                continue
+
+            # Sobe na hierarquia: sub → bloco (nivel=1) → materia (nivel=0)
+            materia_nome = "Outros"
+            if sub.parent_id:
+                pai = db.query(Topico).filter(Topico.id == sub.parent_id).first()
+                if pai:
+                    if pai.nivel == 0:
+                        materia_nome = pai.nome
+                    elif pai.parent_id:
+                        avo = db.query(Topico).filter(Topico.id == pai.parent_id).first()
+                        if avo and avo.nivel == 0:
+                            materia_nome = avo.nome
+
+            result.setdefault(materia_nome, [])
+            if sub.nome not in result[materia_nome]:
+                result[materia_nome].append(sub.nome)
+
+        return result
+    except Exception:
+        return {}
 
 
-def _build_prompt_subtopicos(area: str, perfil: str, subtopicos: list) -> str:
-    """Constrói prompt com lista real de subtópicos para a área."""
-    area_desc  = _AREA_DESC.get(area, area)
-    perfil_desc = _PERFIL_DESC.get(perfil, perfil)
-    criterios   = _CRITERIOS_AVANCO.get(perfil, [70, 75, 80])
-    num_fases   = len(criterios)
-
-    subs_desc = json.dumps(subtopicos, ensure_ascii=False, indent=2)
-
-    return (
-        "Você é um especialista em preparação para concursos públicos brasileiros.\n"
-        f"Crie um plano de estudos estruturado em {num_fases} fases para a área: {area_desc}.\n"
-        f"Perfil do candidato: {perfil_desc}.\n\n"
-        "Abaixo está a lista de subtópicos disponíveis para esta área, com seus IDs, "
-        "pesos no edital, complexidade (baixa/media/alta) e pré-requisitos:\n\n"
-        f"{subs_desc}\n\n"
-        "Regras obrigatórias:\n"
-        "  1. Cada subtópico deve aparecer em EXATAMENTE UMA fase\n"
-        "  2. Um subtópico só pode estar em uma fase posterior à de todos os seus pré-requisitos\n"
-        f"  3. A fase 1 deve ter no máximo 20 subtópicos (carga cognitiva — Sweller)\n"
-        "  4. Ordene dentro de cada fase: complexidade baixa antes de alta\n"
-        "  5. Subtópicos com maior peso devem aparecer antes nas fases\n"
-        f"  6. Critérios de avanço: fase 1={criterios[0]}%, fase 2={criterios[1] if len(criterios)>1 else criterios[0]}%"
-        + (f", fase 3={criterios[2]}%" if len(criterios) > 2 else "")
-        + (f", fase 4={criterios[3]}%" if len(criterios) > 3 else "") + "\n\n"
-        "Formato de resposta — SOMENTE um array JSON válido, sem markdown, sem texto adicional:\n"
-        '[{"numero":1,"nome":"Fundamentos","criterio_avanco":"65% de acertos","subtopicos":["id1","id2"],'
-        '"subtopicos_novos":["id1","id2"]}]\n\n'
-        "Resposta:"
-    )
-
-
-def _build_prompt_fallback(area: str, perfil: str) -> str:
-    """Prompt fallback quando não há subtópicos cadastrados — usa matérias genéricas."""
+def _build_prompt(area: str, perfil: str, materias_subtopicos: dict) -> str:
     area_desc   = _AREA_DESC.get(area, area)
     perfil_desc = _PERFIL_DESC.get(perfil, perfil)
 
+    if materias_subtopicos:
+        materias_json = json.dumps(materias_subtopicos, ensure_ascii=False, indent=2)
+        materias_section = (
+            "MATÉRIAS DISPONÍVEIS (com seus subtópicos cadastrados):\n"
+            f"{materias_json}\n\n"
+        )
+    else:
+        materias_section = (
+            "MATÉRIAS DISPONÍVEIS: liste as matérias típicas deste tipo de concurso "
+            "e seus subtópicos habituais.\n\n"
+        )
+
+    exemplo = json.dumps({
+        "fases": [
+            {"numero": 1, "nome": "Fundação", "materias": ["Língua Portuguesa", "Raciocínio Lógico", "Matemática"]},
+            {"numero": 2, "nome": "Base Jurídica", "materias_novas": ["Direito Constitucional", "Direito Administrativo"]},
+            {"numero": 3, "nome": "Núcleo Fiscal", "materias_novas": ["Direito Tributário", "Contabilidade Geral"]},
+        ],
+        "ordem_subtopicos": {
+            "Língua Portuguesa": ["Interpretação de Texto", "Ortografia", "Sintaxe", "Semântica"],
+            "Direito Tributário": ["Conceito de Tributo", "Espécies Tributárias", "Obrigação Tributária", "Crédito Tributário"],
+        },
+        "prerequisitos": {
+            "Contabilidade de Custos": ["Contabilidade Geral"],
+            "Legislação Tributária": ["Direito Tributário"],
+        },
+    }, ensure_ascii=False, indent=2)
+
     return (
-        "Você é um especialista em preparação para concursos públicos brasileiros.\n"
-        f"Crie um plano de estudos estruturado em fases para a área: {area_desc}.\n"
-        f"Perfil do candidato: {perfil_desc}.\n\n"
-        "O plano deve ter entre 3 e 5 fases progressivas.\n"
-        "Cada fase deve ter:\n"
-        "  - numero (int, começando em 1)\n"
-        "  - nome (string curto)\n"
-        "  - criterio_avanco (string com % de acertos)\n"
-        "  - materias (array de strings com nomes das disciplinas)\n"
-        "  - subtopicos (array vazio [])\n"
-        "  - subtopicos_novos (array vazio [])\n\n"
-        "Retorne SOMENTE um array JSON válido, sem markdown:\n"
-        '[{"numero":1,"nome":"Fundamentos","criterio_avanco":"65% de acertos",'
-        '"materias":["Português","Matemática"],"subtopicos":[],"subtopicos_novos":[]}]\n\n'
+        "Você é um especialista em pedagogia de concursos públicos brasileiros.\n\n"
+        "Analise as matérias do concurso abaixo e organize um plano de estudo progressivo.\n\n"
+        f"ÁREA: {area_desc}\n"
+        f"PERFIL DO ALUNO: {perfil} — {perfil_desc}\n\n"
+        f"{materias_section}"
+        "Retorne SOMENTE um JSON válido com esta estrutura exata, sem texto adicional:\n"
+        f"{exemplo}\n\n"
+        "REGRAS obrigatórias:\n"
+        f"1. Fase 1: máximo {MAX_MATERIAS_FASE_1} matérias — as mais independentes e fundamentais\n"
+        f"2. Fases seguintes: máximo {MAX_MATERIAS_NOVAS_POR_FASE} matérias novas por fase\n"
+        "3. Respeitar dependências pedagógicas (ex: Contabilidade Geral antes de Auditoria, "
+        "Direito Tributário antes de Legislação Tributária Específica)\n"
+        "4. Matérias de baixa interdependência (Português, Inglês, Matemática, Informática) "
+        "podem entrar cedo como 'respiro cognitivo'\n"
+        "5. ordem_subtopicos: do mais básico/conceitual para o mais complexo/aplicado\n"
+        "6. Listar TODOS os subtópicos de TODAS as matérias em ordem_subtopicos\n"
+        "7. prerequisitos: apenas dependências diretas e necessárias\n"
+        "8. NÃO inclua critérios de avanço, percentuais de acerto ou configurações "
+        "pedagógicas — esses são fixos no sistema\n\n"
         "Resposta:"
     )
 
 
-def _parse_fases(raw: str) -> list:
+def _parse_resultado(raw: str) -> dict:
+    """Parseia a resposta da IA e retorna {fases, ordem_subtopicos, prerequisitos}."""
     text = raw.strip()
     if text.startswith("```"):
         parts = text.split("```")
@@ -114,97 +167,72 @@ def _parse_fases(raw: str) -> list:
             text = text[4:]
         text = text.strip()
 
-    # Tenta parse direto; se falhar, busca o array JSON no texto
     parsed = None
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
-        inicio = text.find("[")
-        fim = text.rfind("]") + 1
+        inicio = text.find("{")
+        fim = text.rfind("}") + 1
         if inicio != -1 and fim > 0:
             try:
                 parsed = json.loads(text[inicio:fim])
             except json.JSONDecodeError:
                 pass
 
-    if parsed is None or not isinstance(parsed, list):
-        return []
+    if parsed is None or not isinstance(parsed, dict):
+        return {}
+
+    fases_raw = parsed.get("fases", [])
+    if not isinstance(fases_raw, list):
+        return {}
 
     fases = []
-    for item in parsed:
+    for item in fases_raw:
         if not isinstance(item, dict):
             continue
         if "numero" not in item or "nome" not in item:
             continue
         fases.append({
-            "numero":          int(item["numero"]),
-            "nome":            str(item["nome"]),
-            "criterio_avanco": str(item.get("criterio_avanco", "")),
-            "materias":        [str(m) for m in item.get("materias", [])],
-            "subtopicos":      [str(s) for s in item.get("subtopicos", [])],
-            "subtopicos_novos":[str(s) for s in item.get("subtopicos_novos", [])],
+            "numero":        int(item["numero"]),
+            "nome":          str(item["nome"]),
+            "materias":      [str(m) for m in item.get("materias", [])],
+            "materias_novas": [str(m) for m in item.get("materias_novas", [])],
         })
 
-    return sorted(fases, key=lambda f: f["numero"])
+    if not fases:
+        return {}
+
+    return {
+        "fases":             sorted(fases, key=lambda f: f["numero"]),
+        "ordem_subtopicos":  parsed.get("ordem_subtopicos") or {},
+        "prerequisitos":     parsed.get("prerequisitos") or {},
+    }
 
 
-def _carregar_subtopicos_area(area: str, db: Session) -> list:
-    """Busca SubtopicoArea para a área e monta lista para o prompt."""
-    try:
-        from app.models.subtopico_area import SubtopicoArea
-        from app.models.topico import Topico
-
-        configs = db.query(SubtopicoArea).filter(SubtopicoArea.area == area).all()
-        if not configs:
-            return []
-
-        result = []
-        for cfg in configs:
-            sub = db.query(Topico).filter(Topico.id == cfg.subtopico_id, Topico.nivel == 2, Topico.ativo == True).first()
-            if not sub:
-                continue
-            import json as _json
-            prereqs = []
-            try:
-                prereqs = _json.loads(sub.prerequisitos_json or "[]")
-            except Exception:
-                pass
-            result.append({
-                "id":            sub.id,
-                "nome":          sub.nome,
-                "peso":          cfg.peso,
-                "complexidade":  cfg.complexidade,
-                "prerequisitos": prereqs,
-            })
-        return sorted(result, key=lambda s: -s["peso"])
-    except Exception:
-        return []
-
-
-def gerar_plano_via_ia(area: str, perfil: str, ai: AIProvider, db: Session = None) -> list:
+def gerar_plano_via_ia(area: str, perfil: str, ai: AIProvider, db: Session = None) -> dict:
     """
-    Retorna lista de fases gerada pela IA.
-    Tenta usar subtopico_ids se db estiver disponível; caso contrário usa matérias genéricas.
+    Retorna dict {fases, ordem_subtopicos, prerequisitos} gerado pela IA.
+    Critérios de avanço são fixos no sistema (CRITERIOS_AVANCO) — não vêm da IA.
     Lança ValueError com mensagem descritiva em caso de falha.
     """
+    materias_subtopicos: dict = {}
     if db is not None:
-        subtopicos = _carregar_subtopicos_area(area, db)
-        if subtopicos:
-            prompt = _build_prompt_subtopicos(area, perfil, subtopicos)
-        else:
-            prompt = _build_prompt_fallback(area, perfil)
-    else:
-        prompt = _build_prompt_fallback(area, perfil)
+        materias_subtopicos = _carregar_materias_com_subtopicos(area, db)
+
+    prompt = _build_prompt(area, perfil, materias_subtopicos)
 
     try:
-        raw = ai.generate(prompt, max_tokens=3000)
+        raw = ai.generate(prompt, max_tokens=4000)
     except Exception as exc:
         logger.error("Erro ao chamar IA para gerar plano area=%s perfil=%s: %s", area, perfil, exc)
         raise ValueError(f"Erro ao chamar IA: {exc}") from exc
 
     logger.debug("Resposta da IA para plano area=%s perfil=%s: %s", area, perfil, raw[:300])
-    fases = _parse_fases(raw)
-    if not fases:
-        logger.error("IA não retornou fases válidas. area=%s perfil=%s raw=%r", area, perfil, raw[:500])
+    resultado = _parse_resultado(raw)
+    if not resultado or not resultado.get("fases"):
+        logger.error(
+            "IA não retornou fases válidas. area=%s perfil=%s raw=%r",
+            area, perfil, raw[:500],
+        )
         raise ValueError(f"IA não retornou fases válidas. Resposta recebida: {raw[:300]!r}")
-    return fases
+    return resultado

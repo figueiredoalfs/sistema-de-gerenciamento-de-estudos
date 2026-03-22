@@ -1,54 +1,226 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { listarPlanos, gerarPlano, atualizarPlano, aplicarPlano, deletarPlano } from '../api/adminPlanoBase'
 
 const PERFIL_OPTIONS = ['iniciante', 'intermediario', 'avancado']
 const AREA_OPTIONS = ['fiscal', 'eaof_com', 'eaof_svm', 'cfoe_com', 'juridica', 'policial', 'ti', 'saude', 'outro']
 
-// ── Editor visual de fases ───────────────────────────────────────────────────
-function FasesEditorModal({ plano, onClose, onSaved }) {
-  const [fases, setFases] = useState(() => {
-    try { return JSON.parse(plano.fases_json) } catch { return [] }
-  })
-  const [salvando, setSalvando] = useState(false)
-  const [erro, setErro] = useState('')
-  const [mostrarAplicar, setMostrarAplicar] = useState(false)
-  const [aplicando, setAplicando] = useState(false)
-  const [modoAplicar, setModoAplicar] = useState('novos')
-  const [resultadoAplicar, setResultadoAplicar] = useState(null)
+// Critérios de avanço fixos — espelho das constantes em gerar_plano_base.py
+const CRITERIOS_AVANCO = {
+  iniciante:     [65, 70, 75, 80],
+  intermediario: [70, 75, 80],
+  avancado:      [75, 80],
+}
 
-  function atualizarFase(idx, campo, valor) {
-    setFases((prev) => prev.map((f, i) => i === idx ? { ...f, [campo]: valor } : f))
+// Parseia fases_json: aceita array legado OU novo objeto {fases, ordem_subtopicos, prerequisitos}
+function parseFasesJson(raw) {
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      return { fases: parsed, ordem_subtopicos: {}, prerequisitos: {} }
+    }
+    return {
+      fases:             parsed.fases             || [],
+      ordem_subtopicos:  parsed.ordem_subtopicos  || {},
+      prerequisitos:     parsed.prerequisitos     || {},
+    }
+  } catch {
+    return { fases: [], ordem_subtopicos: {}, prerequisitos: {} }
+  }
+}
+
+// Retorna lista de matérias de uma fase (materias + materias_novas)
+function getFaseMaterias(fase) {
+  return [...(fase.materias || []), ...(fase.materias_novas || [])]
+}
+
+// ── Componente de subtópicos com drag-and-drop ────────────────────────────────
+function SubtopicosList({ materiaKey, subtopicos, onChange }) {
+  const dragIdx = useRef(null)
+  const [dragOver, setDragOver] = useState(null)
+
+  function handleDragStart(idx) {
+    dragIdx.current = idx
   }
 
-  function adicionarFase() {
-    const proximo = fases.length + 1
-    setFases((prev) => [...prev, {
-      numero: proximo,
-      nome: `Fase ${proximo}`,
-      criterio_avanco: `${65 + proximo * 5}% de acertos`,
-      materias: [],
-      subtopicos: [],
-      subtopicos_novos: [],
-    }])
+  function handleDragOver(e, idx) {
+    e.preventDefault()
+    setDragOver(idx)
+  }
+
+  function handleDrop(e, targetIdx) {
+    e.preventDefault()
+    setDragOver(null)
+    const src = dragIdx.current
+    if (src === null || src === targetIdx) return
+    const arr = [...subtopicos]
+    const [item] = arr.splice(src, 1)
+    arr.splice(targetIdx, 0, item)
+    dragIdx.current = null
+    onChange(materiaKey, arr)
+  }
+
+  function handleDragEnd() {
+    setDragOver(null)
+    dragIdx.current = null
+  }
+
+  function remover(idx) {
+    onChange(materiaKey, subtopicos.filter((_, i) => i !== idx))
+  }
+
+  function adicionar() {
+    const nome = prompt('Nome do subtópico:')
+    if (nome?.trim()) onChange(materiaKey, [...subtopicos, nome.trim()])
+  }
+
+  return (
+    <div className="mt-2 space-y-1">
+      {subtopicos.length === 0 && (
+        <p className="text-xs text-brand-muted italic pl-1">Nenhum subtópico cadastrado para esta matéria.</p>
+      )}
+      {subtopicos.map((s, idx) => (
+        <div
+          key={idx}
+          draggable
+          onDragStart={() => handleDragStart(idx)}
+          onDragOver={(e) => handleDragOver(e, idx)}
+          onDrop={(e) => handleDrop(e, idx)}
+          onDragEnd={handleDragEnd}
+          className={`flex items-center gap-2 px-2 py-1 rounded text-xs cursor-grab active:cursor-grabbing transition-colors ${
+            dragOver === idx
+              ? 'bg-indigo-500/20 border border-indigo-500/40'
+              : 'bg-brand-bg border border-transparent hover:border-brand-border'
+          }`}
+        >
+          {/* grip */}
+          <svg className="w-3 h-3 text-brand-muted shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+          </svg>
+          <span className="flex-1 text-brand-text">{s}</span>
+          <button
+            onClick={() => remover(idx)}
+            className="text-brand-muted hover:text-red-400 transition-colors"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={adicionar}
+        className="w-full text-left text-xs text-brand-muted hover:text-indigo-400 transition-colors px-2 py-0.5"
+      >
+        + subtópico
+      </button>
+    </div>
+  )
+}
+
+// ── Editor visual de fases ────────────────────────────────────────────────────
+function FasesEditorModal({ plano, onClose, onSaved }) {
+  const [conteudo, setConteudo] = useState(() => parseFasesJson(plano.fases_json))
+  const [expandedFase, setExpandedFase]     = useState(null)
+  const [expandedMateria, setExpandedMateria] = useState(null)
+  const [salvando, setSalvando]   = useState(false)
+  const [regenerando, setRegenerando] = useState(false)
+  const [erro, setErro]           = useState('')
+  const [mostrarAplicar, setMostrarAplicar] = useState(false)
+  const [aplicando, setAplicando] = useState(false)
+  const [modoAplicar, setModoAplicar]       = useState('novos')
+  const [resultadoAplicar, setResultadoAplicar] = useState(null)
+
+  const criteriosPerfil = CRITERIOS_AVANCO[plano.perfil] || [70, 75, 80]
+
+  // ── mutações de conteúdo ──────────────────────────────────────────────────
+  function atualizarFaseNome(idx, nome) {
+    setConteudo((prev) => ({
+      ...prev,
+      fases: prev.fases.map((f, i) => i === idx ? { ...f, nome } : f),
+    }))
   }
 
   function removerFase(idx) {
-    setFases((prev) => prev.filter((_, i) => i !== idx).map((f, i) => ({ ...f, numero: i + 1 })))
+    setConteudo((prev) => ({
+      ...prev,
+      fases: prev.fases
+        .filter((_, i) => i !== idx)
+        .map((f, i) => ({ ...f, numero: i + 1 })),
+    }))
   }
 
+  function adicionarFase() {
+    setConteudo((prev) => {
+      const proximo = prev.fases.length + 1
+      return {
+        ...prev,
+        fases: [...prev.fases, {
+          numero: proximo,
+          nome: `Fase ${proximo}`,
+          materias: proximo === 1 ? [] : undefined,
+          materias_novas: proximo > 1 ? [] : undefined,
+        }],
+      }
+    })
+  }
+
+  function adicionarMateria(faseIdx) {
+    const nome = prompt('Nome da matéria:')
+    if (!nome?.trim()) return
+    setConteudo((prev) => {
+      const fases = prev.fases.map((f, i) => {
+        if (i !== faseIdx) return f
+        if (f.numero === 1) {
+          return { ...f, materias: [...(f.materias || []), nome.trim()] }
+        }
+        return { ...f, materias_novas: [...(f.materias_novas || []), nome.trim()] }
+      })
+      return { ...prev, fases }
+    })
+  }
+
+  function removerMateria(faseIdx, materiaIdx) {
+    setConteudo((prev) => {
+      const fases = prev.fases.map((f, i) => {
+        if (i !== faseIdx) return f
+        const all = getFaseMaterias(f)
+        all.splice(materiaIdx, 1)
+        if (f.numero === 1) return { ...f, materias: all, materias_novas: [] }
+        return { ...f, materias: [], materias_novas: all }
+      })
+      return { ...prev, fases }
+    })
+  }
+
+  function atualizarOrdemSubtopicos(materiaKey, novaOrdem) {
+    setConteudo((prev) => ({
+      ...prev,
+      ordem_subtopicos: { ...prev.ordem_subtopicos, [materiaKey]: novaOrdem },
+    }))
+  }
+
+  // ── Regenerar ─────────────────────────────────────────────────────────────
+  async function handleRegerar() {
+    if (!confirm('Isso substituirá o conteúdo atual pelo novo resultado da IA. Continuar?')) return
+    setRegenerando(true)
+    setErro('')
+    try {
+      const novo = await gerarPlano({ area: plano.area, perfil: plano.perfil })
+      const parsed = parseFasesJson(novo.fases_json)
+      setConteudo(parsed)
+      setExpandedFase(null)
+      setExpandedMateria(null)
+    } catch (e) {
+      setErro(e.response?.data?.detail || 'Erro ao regenerar via IA.')
+    } finally {
+      setRegenerando(false)
+    }
+  }
+
+  // ── Salvar ────────────────────────────────────────────────────────────────
   async function handleSalvar() {
     setSalvando(true)
     setErro('')
     try {
-      const fasesSchema = fases.map((f) => ({
-        numero: f.numero,
-        nome: f.nome,
-        criterio_avanco: f.criterio_avanco,
-        materias: f.materias || [],
-        subtopicos: f.subtopicos || [],
-        subtopicos_novos: f.subtopicos_novos || [],
-      }))
-      const atualizado = await atualizarPlano(plano.id, { fases: fasesSchema })
+      const atualizado = await atualizarPlano(plano.id, { conteudo })
       onSaved(atualizado)
     } catch (e) {
       setErro(e.response?.data?.detail || 'Erro ao salvar.')
@@ -57,6 +229,7 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
     }
   }
 
+  // ── Aplicar ───────────────────────────────────────────────────────────────
   async function handleAplicar() {
     setAplicando(true)
     setErro('')
@@ -74,62 +247,145 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-brand-card border border-brand-border rounded-xl p-6 w-full max-w-2xl mx-4 shadow-xl max-h-[90vh] overflow-y-auto space-y-5">
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-brand-text">Editor de Fases</h2>
             <p className="text-brand-muted text-sm capitalize">{plano.area} · {plano.perfil}</p>
           </div>
-          <button onClick={onClose} className="text-brand-muted hover:text-brand-text">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRegerar}
+              disabled={regenerando}
+              title="Regenerar tudo via IA"
+              className="px-3 py-1.5 text-xs border border-purple-500/40 text-purple-400 rounded-lg hover:bg-purple-500/10 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {regenerando
+                ? <><div className="w-3 h-3 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" /> Regenerando…</>
+                : <>↺ Regenerar IA</>
+              }
+            </button>
+            <button onClick={onClose} className="text-brand-muted hover:text-brand-text ml-1">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Critérios do sistema (read-only) */}
+        <div className="bg-brand-surface border border-brand-border rounded-lg px-4 py-3">
+          <p className="text-xs font-medium text-brand-muted mb-2">Critérios de avanço do sistema (fixos)</p>
+          <div className="flex flex-wrap gap-2">
+            {criteriosPerfil.map((pct, i) => (
+              <span key={i} className="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                Fase {i + 1}: {pct}% de acertos
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Lista de fases */}
         <div className="space-y-3">
-          {fases.length === 0 && (
+          {conteudo.fases.length === 0 && (
             <p className="text-brand-muted text-sm italic">Nenhuma fase definida.</p>
           )}
-          {fases.map((f, idx) => (
-            <div key={idx} className="bg-brand-surface border border-brand-border rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0">
-                  {f.numero}
-                </span>
-                <input
-                  value={f.nome}
-                  onChange={(e) => atualizarFase(idx, 'nome', e.target.value)}
-                  placeholder="Nome da fase"
-                  className="flex-1 bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-                <button
-                  onClick={() => removerFase(idx)}
-                  className="text-brand-muted hover:text-red-400 transition-colors"
-                  title="Remover fase"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+          {conteudo.fases.map((f, faseIdx) => {
+            const materias = getFaseMaterias(f)
+            const isExpanded = expandedFase === faseIdx
+
+            return (
+              <div key={faseIdx} className="bg-brand-surface border border-brand-border rounded-lg overflow-hidden">
+                {/* Cabeçalho da fase */}
+                <div className="flex items-center gap-2 p-3">
+                  <span className="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0">
+                    {f.numero}
+                  </span>
+                  <input
+                    value={f.nome}
+                    onChange={(e) => atualizarFaseNome(faseIdx, e.target.value)}
+                    placeholder="Nome da fase"
+                    className="flex-1 bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <span className="text-xs text-brand-muted shrink-0">{materias.length} matéria{materias.length !== 1 ? 's' : ''}</span>
+                  <button
+                    onClick={() => setExpandedFase(isExpanded ? null : faseIdx)}
+                    className="text-brand-muted hover:text-indigo-400 transition-colors"
+                    title={isExpanded ? 'Recolher' : 'Expandir matérias'}
+                  >
+                    <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => removerFase(faseIdx)}
+                    className="text-brand-muted hover:text-red-400 transition-colors"
+                    title="Remover fase"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Matérias expandidas */}
+                {isExpanded && (
+                  <div className="border-t border-brand-border px-3 pb-3 pt-2 space-y-1">
+                    {materias.length === 0 && (
+                      <p className="text-xs text-brand-muted italic">Nenhuma matéria nesta fase.</p>
+                    )}
+                    {materias.map((mat, matIdx) => {
+                      const subKey = mat
+                      const subs = conteudo.ordem_subtopicos[subKey] || []
+                      const matExpanded = expandedMateria === `${faseIdx}-${matIdx}`
+
+                      return (
+                        <div key={matIdx} className="rounded border border-brand-border bg-brand-bg">
+                          <div className="flex items-center gap-2 px-3 py-1.5">
+                            <span className="flex-1 text-sm text-brand-text">{mat}</span>
+                            <span className="text-xs text-brand-muted">{subs.length} subtóp.</span>
+                            <button
+                              onClick={() => setExpandedMateria(matExpanded ? null : `${faseIdx}-${matIdx}`)}
+                              className="text-brand-muted hover:text-indigo-400 transition-colors"
+                              title={matExpanded ? 'Recolher subtópicos' : 'Ver/editar subtópicos'}
+                            >
+                              <svg className={`w-3.5 h-3.5 transition-transform ${matExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => removerMateria(faseIdx, matIdx)}
+                              className="text-brand-muted hover:text-red-400 transition-colors"
+                              title="Remover matéria"
+                            >
+                              ×
+                            </button>
+                          </div>
+
+                          {matExpanded && (
+                            <div className="border-t border-brand-border px-3 pb-2">
+                              <SubtopicosList
+                                materiaKey={subKey}
+                                subtopicos={subs}
+                                onChange={atualizarOrdemSubtopicos}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    <button
+                      onClick={() => adicionarMateria(faseIdx)}
+                      className="w-full text-left text-xs text-brand-muted hover:text-indigo-400 transition-colors px-1 py-1"
+                    >
+                      + matéria
+                    </button>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-xs text-brand-muted block mb-1">Critério de avanço</label>
-                <input
-                  value={f.criterio_avanco}
-                  onChange={(e) => atualizarFase(idx, 'criterio_avanco', e.target.value)}
-                  placeholder="Ex: 70% de acertos"
-                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 text-brand-text text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-              {f.subtopicos && f.subtopicos.length > 0 && (
-                <p className="text-xs text-brand-muted pl-0.5">
-                  {f.subtopicos.length} subtópico{f.subtopicos.length !== 1 ? 's' : ''} vinculados (via IA)
-                </p>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <button
@@ -212,14 +468,15 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
   )
 }
 
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function AdminPlanoBase() {
-  const [planos, setPlanos] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [erro, setErro] = useState('')
-  const [gerando, setGerando] = useState(false)
-  const [genArea, setGenArea] = useState('fiscal')
+  const [planos, setPlanos]     = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [erro, setErro]         = useState('')
+  const [gerando, setGerando]   = useState(false)
+  const [genArea, setGenArea]   = useState('fiscal')
   const [genPerfil, setGenPerfil] = useState('iniciante')
-  const [editarPlano, setEditarPlano] = useState(null)
+  const [editarPlano, setEditarPlano]   = useState(null)
   const [filtroPendente, setFiltroPendente] = useState(false)
 
   function carregar() {
@@ -337,13 +594,14 @@ export default function AdminPlanoBase() {
             </thead>
             <tbody className="divide-y divide-brand-border">
               {planos.map((p) => {
-                let fases = []
-                try { fases = JSON.parse(p.fases_json) } catch { /* noop */ }
+                const conteudo = parseFasesJson(p.fases_json)
                 return (
                   <tr key={p.id} className="hover:bg-brand-surface/50 transition-colors">
                     <td className="px-4 py-3 text-brand-text font-medium capitalize">{p.area}</td>
                     <td className="px-4 py-3 text-brand-muted capitalize">{p.perfil}</td>
-                    <td className="px-4 py-3 text-brand-muted">{fases.length} fase{fases.length !== 1 ? 's' : ''}</td>
+                    <td className="px-4 py-3 text-brand-muted">
+                      {conteudo.fases.length} fase{conteudo.fases.length !== 1 ? 's' : ''}
+                    </td>
                     <td className="px-4 py-3">
                       {p.gerado_por_ia
                         ? <span className="text-xs px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">IA</span>

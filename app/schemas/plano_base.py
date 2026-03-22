@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -7,8 +7,10 @@ from pydantic import BaseModel
 class FasePlano(BaseModel):
     numero: int
     nome: str
-    criterio_avanco: str
     materias: List[str] = []
+    materias_novas: List[str] = []
+    # campos legados — aceitos mas ignorados na geração nova
+    criterio_avanco: Optional[str] = None
     subtopicos: List[str] = []
     subtopicos_novos: List[str] = []
 
@@ -20,6 +22,9 @@ class PlanoBaseCreate(BaseModel):
 
 
 class PlanoBaseUpdate(BaseModel):
+    # conteudo = estrutura completa {fases, ordem_subtopicos, prerequisitos}
+    conteudo: Optional[Dict[str, Any]] = None
+    # fases = legado, aceito para compatibilidade
     fases: Optional[List[FasePlano]] = None
     revisado_admin: Optional[bool] = None
     ativo: Optional[bool] = None
