@@ -24,10 +24,14 @@ ADMIN_NOME  = settings.ADMIN_NOME
 def seed_admin() -> None:
     db = SessionLocal()
     try:
-        # Migra roles antigas (idempotente)
-        db.query(Aluno).filter(Aluno.role == "admin").update({"role": "administrador"})
-        db.query(Aluno).filter(Aluno.role == "student").update({"role": "estudante"})
-        db.commit()
+        # Migra roles antigas (idempotente) — usa cast para evitar erro de enum no PostgreSQL
+        from sqlalchemy import text
+        try:
+            db.execute(text("UPDATE alunos SET role = 'administrador' WHERE role::text = 'admin'"))
+            db.execute(text("UPDATE alunos SET role = 'estudante' WHERE role::text = 'student'"))
+            db.commit()
+        except Exception:
+            db.rollback()
 
         # Remove emails admin legados
         for old_email in ("admin@concursoai.com", "admin@aprovai.com", "admin@skolai.com"):
