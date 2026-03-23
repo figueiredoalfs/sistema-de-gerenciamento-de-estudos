@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getTodayTasks, updateTaskStatus } from '../api/tasks'
-import { getActiveMeta, gerarMeta, resetAluno } from '../api/metas'
+import { getActiveMeta, gerarMeta, iniciarDiagnostico, resetAluno } from '../api/metas'
 import { useAuth } from '../context/AuthContext'
 
 export function useTasks() {
@@ -23,12 +23,26 @@ export function useTasks() {
       const lista = tasksData?.tasks ?? (Array.isArray(tasksData) ? tasksData : [])
       setTasks(lista)
       setMeta(metaData)
+
+      // Auto-iniciar diagnóstico se pendente e sem meta ativa
+      if (user?.diagnostico_pendente && !metaData) {
+        try {
+          const novaMeta = await iniciarDiagnostico()
+          setMeta(novaMeta)
+          // Buscar tasks da meta diagnóstica
+          const novasTasks = await getTodayTasks()
+          const novaLista = novasTasks?.tasks ?? (Array.isArray(novasTasks) ? novasTasks : [])
+          setTasks(novaLista)
+        } catch {
+          // Falha silenciosa — admin precisa configurar ciclos/subtópicos
+        }
+      }
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao carregar tarefas')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     if (user) fetchData()

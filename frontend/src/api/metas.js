@@ -18,6 +18,11 @@ export async function getMetas() {
   return data
 }
 
+export async function iniciarDiagnostico() {
+  const { data } = await client.post('/metas/iniciar-diagnostico', {})
+  return data
+}
+
 export async function resetAluno() {
   const { data } = await client.post('/dev/reset-aluno')
   return data

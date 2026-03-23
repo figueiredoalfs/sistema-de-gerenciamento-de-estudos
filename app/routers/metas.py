@@ -20,7 +20,7 @@ from app.models.meta import Meta
 from app.models.study_task import StudyTask
 from app.schemas.meta import GoalActiveResponse, MetaGerarRequest, MetaListResponse, MetaResponse
 from app.schemas.study_task import StudyTaskResponse
-from app.services.engine_pedagogica import gerar_meta
+from app.services.engine_pedagogica import gerar_meta, gerar_meta_00
 
 router = APIRouter(prefix="/metas", tags=["metas"])
 
@@ -66,6 +66,29 @@ def _meta_to_response(meta: Meta) -> MetaResponse:
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+@router.post("/iniciar-diagnostico", response_model=MetaResponse, status_code=201)
+def iniciar_diagnostico(
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """
+    Gera a Meta diagnóstica (numero_semana=0) para o aluno.
+    Pode ser chamado do dashboard quando diagnostico_pendente=True e sem meta ativa.
+    Retorna 409 se já existe meta aberta (inclusive a diagnóstica).
+    """
+    # Verifica se já existe Meta 00 (encerrada ou aberta)
+    meta_diag = (
+        db.query(Meta)
+        .filter(Meta.aluno_id == usuario.id, Meta.numero_semana == 0)
+        .first()
+    )
+    if meta_diag and meta_diag.status == "aberta":
+        return _meta_to_response(meta_diag)
+
+    meta = gerar_meta_00(db=db, aluno_id=usuario.id)
+    return _meta_to_response(meta)
+
 
 @router.post("/gerar", response_model=MetaResponse, status_code=201)
 def gerar(

@@ -5,9 +5,13 @@ export async function getHierarquia() {
   return data
 }
 
-export async function postBateria(materia, subtopico, acertos, total, fonte) {
-  const { data } = await client.post('/bateria', {
-    questoes: [{ materia, subtopico, acertos, total, fonte }],
-  })
+export async function getBancas() {
+  const { data } = await client.get('/bancas')
+  return data // [{ nome: "CESPE/CEBRASPE" }, ...]
+}
+
+export async function postBateria(questoes) {
+  // questoes: [{ materia, subtopico, acertos, total, fonte, banca_nome? }]
+  const { data } = await client.post('/bateria', { questoes })
   return data
 }

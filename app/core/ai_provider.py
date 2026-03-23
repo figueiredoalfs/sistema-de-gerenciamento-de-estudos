@@ -5,6 +5,8 @@ from google.genai import types
 
 from app.core.config import settings
 
+DEFAULT_MODEL = "gemini-1.5-flash"  # modelo padrão (mais barato)
+
 
 class AIProvider(ABC):
     @abstractmethod
@@ -13,12 +15,13 @@ class AIProvider(ABC):
 
 
 class GeminiProvider(AIProvider):
-    def __init__(self):
+    def __init__(self, model: str = DEFAULT_MODEL):
         self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        self._model = model
 
     def generate(self, prompt: str, max_tokens: int = 512) -> str:
         response = self._client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=self._model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 max_output_tokens=max_tokens,
@@ -33,7 +36,22 @@ class _StubProvider(AIProvider):
         return "[IA não configurada — adicione GEMINI_API_KEY ao .env]"
 
 
-def get_ai_provider() -> AIProvider:
+def _get_modelo_from_db(db=None) -> str:
+    """Lê o modelo de IA da tabela config_sistema. Retorna DEFAULT_MODEL se não configurado."""
+    if db is None:
+        return DEFAULT_MODEL
+    try:
+        from app.models.config_sistema import ConfigSistema
+        cfg = db.query(ConfigSistema).filter(ConfigSistema.chave == "modelo_ia").first()
+        if cfg and cfg.valor:
+            return cfg.valor
+    except Exception:
+        pass
+    return DEFAULT_MODEL
+
+
+def get_ai_provider(db=None) -> AIProvider:
     if not settings.GEMINI_API_KEY:
         return _StubProvider()
-    return GeminiProvider()
+    model = _get_modelo_from_db(db)
+    return GeminiProvider(model=model)

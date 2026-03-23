@@ -23,6 +23,28 @@ router = APIRouter(tags=["bateria"])
 # Fontes válidas aceitas pelo endpoint
 FONTES_VALIDAS = set(PESO_POR_FONTE.keys())
 
+# Bancas fixas de fallback (caso tabela esteja vazia)
+_BANCAS_FALLBACK = [
+    "CESPE/CEBRASPE", "FCC", "FGV", "VUNESP", "AOCP",
+    "IDECAN", "IBFC", "QUADRIX", "IADES", "UPENET",
+]
+
+
+@router.get("/bancas", tags=["bateria"])
+def listar_bancas_publico(
+    db: Session = Depends(get_db),
+    _: Aluno = Depends(get_current_user),
+):
+    """
+    Retorna as bancas cadastradas (para alunos usarem no lançamento de bateria).
+    Adiciona 'Outra banca' e 'Simulado próprio' ao final.
+    """
+    from app.models.banca import Banca
+    bancas = db.query(Banca).filter(Banca.ativo == True).order_by(Banca.nome).all()
+    nomes = [b.nome for b in bancas] if bancas else _BANCAS_FALLBACK
+    nomes += ["Outra banca", "Simulado próprio"]
+    return [{"nome": n} for n in nomes]
+
 
 # ── Hierarquia de tópicos (uso público — para popular selects) ──────────────
 
@@ -35,13 +57,23 @@ def get_hierarquia(
     Retorna as materias do plano do aluno (filtradas pela area dele)
     com seus subtopicos (nivel=1) para popular os selects de lançamento de bateria.
     """
+    from sqlalchemy import func
     from app.models.topico import Topico
 
-    area_key = (usuario.area or "").lower()
+    area_key = (usuario.area or "").lower().strip()
     q = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True)
     if area_key:
-        q = q.filter(Topico.area == area_key)
+        q = q.filter(func.lower(Topico.area) == area_key)
     materias = q.order_by(Topico.nome).all()
+
+    # Fallback: se não encontrou com filtro de área, retorna todas as matérias ativas
+    if not materias and area_key:
+        materias = (
+            db.query(Topico)
+            .filter(Topico.nivel == 0, Topico.ativo == True)
+            .order_by(Topico.nome)
+            .all()
+        )
 
     resultado = []
     for mat in materias:

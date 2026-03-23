@@ -1,8 +1,8 @@
 {
-  "concluidas": 22,
+  "concluidas": 23,
   "em_andamento": 0,
   "total": 46,
-  "proxima": 22,
+  "proxima": 23,
   "tarefas": [
     {
       "fase": "FASE-0",
@@ -140,7 +140,7 @@
       "fase": "FASE-6",
       "tarefa": "B-00: Migrar dados do dev.db para o PostgreSQL do Railway",
       "nota": "Matérias, subtópicos, questões, ciclos. Script migrar_dev_para_railway.py com upsert. Verificar /admin/topicos e /admin/questoes após rodar.",
-      "status": "pendente"
+      "status": "concluida"
     },
     {
       "fase": "FASE-6",

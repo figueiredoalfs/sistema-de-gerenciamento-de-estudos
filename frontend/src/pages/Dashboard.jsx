@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../hooks/useTasks'
 import WeeklyProgressBar from '../components/dashboard/WeeklyProgressBar'
-import DiagnosticBanner from '../components/dashboard/DiagnosticBanner'
 import TaskHero from '../components/dashboard/TaskHero'
 import VerticalTimeline from '../components/dashboard/VerticalTimeline'
 
@@ -101,6 +100,59 @@ export default function Dashboard() {
 
   if (loading) return <Spinner />
 
+  // ── Modo diagnóstico: bloqueia o dashboard até a Meta 00 ser concluída ──────
+  if (user?.diagnostico_pendente) {
+    const tasksDiag = tasks.filter(t => t.tipo === 'diagnostico' || meta?.numero_semana === 0)
+    const todasConcluidas = tasksDiag.length > 0 && tasksDiag.every(t => t.status === 'completed')
+
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-text">
+            Diagnóstico inicial
+          </h1>
+          <p className="text-brand-muted text-sm mt-1">
+            Conclua as baterias abaixo para calibrar seu plano de estudos. Sua meta semanal será gerada automaticamente após o diagnóstico.
+          </p>
+        </div>
+
+        {meta && <WeeklyProgressBar meta={meta} />}
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
+        )}
+
+        {metaError && (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-amber-400 text-sm">{metaError}</div>
+        )}
+
+        {!meta && !error && (
+          <div className="bg-brand-card border border-brand-border rounded-2xl p-8 text-center">
+            <p className="text-brand-muted text-sm">Gerando seu diagnóstico...</p>
+          </div>
+        )}
+
+        {heroTask && (
+          <TaskHero task={heroTask} onStart={iniciarTask} onComplete={concluirTask} />
+        )}
+
+        {tasks.length > 0 && (
+          <VerticalTimeline tasks={tasks} heroTask={heroTask} onStart={iniciarTask} onComplete={concluirTask} />
+        )}
+
+        {todasConcluidas && (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center">
+            <p className="text-2xl mb-2">🎉</p>
+            <p className="text-emerald-400 font-semibold">Diagnóstico concluído!</p>
+            <p className="text-brand-muted text-sm mt-1">Sua meta inicial está sendo gerada com base nos seus resultados.</p>
+          </div>
+        )}
+
+        <DevSection onReset={handleReset} resetting={resetting} resetError={resetError} />
+      </div>
+    )
+  }
+
   const semMeta = !meta || meta.status === 'encerrada'
 
   return (
@@ -113,14 +165,11 @@ export default function Dashboard() {
         <p className="text-brand-muted text-sm mt-1">Veja o que você tem para hoje</p>
       </div>
 
-      {/* Banner de diagnóstico */}
-      {user?.diagnostico_pendente && <DiagnosticBanner />}
-
       {/* Progresso semanal */}
       {meta && <WeeklyProgressBar meta={meta} />}
 
       {/* Estado: sem meta */}
-      {semMeta && !user?.diagnostico_pendente && (
+      {semMeta && (
         <div className="bg-brand-card border border-brand-border rounded-2xl p-8 text-center">
           <div className="w-14 h-14 rounded-2xl bg-brand-gradient/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
             <svg className="w-7 h-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
