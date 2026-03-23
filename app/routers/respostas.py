@@ -8,6 +8,7 @@ GET  /desempenho/subtopicos            — desempenho do usuário por subtópico
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -77,12 +78,11 @@ def get_desempenho_subtopicos(
     Retorna o desempenho do usuário agrupado por subtópico.
     Subtópicos com menor taxa de acerto aparecem primeiro.
     """
-    # SQLite armazena Boolean como 0/1 — func.sum funciona diretamente
     q = (
         db.query(
             RespostaQuestao.subtopico_id,
             func.count(RespostaQuestao.id).label("respondidas"),
-            func.sum(RespostaQuestao.correta).label("acertos"),
+            func.sum(sa.cast(RespostaQuestao.correta, sa.Integer)).label("acertos"),
         )
         .filter(RespostaQuestao.aluno_id == usuario.id)
     )

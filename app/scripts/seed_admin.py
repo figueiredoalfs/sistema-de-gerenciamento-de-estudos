@@ -34,7 +34,7 @@ def seed_admin() -> None:
             db.rollback()
 
         # Remove emails admin legados
-        for old_email in ("admin@concursoai.com", "admin@aprovai.com", "admin@skolai.com"):
+        for old_email in ("admin@concursoai.com", "admin@aprovai.com"):
             legado = db.query(Aluno).filter(Aluno.email == old_email).first()
             if legado:
                 db.delete(legado)

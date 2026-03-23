@@ -9,6 +9,23 @@ Backend: FastAPI + SQLAlchemy + SQLite(dev)/PostgreSQL(prod) + Gemini Flash.
 Frontend: React 18 + Vite + Tailwind + React Router v6.
 **Streamlit: abandonado. Tudo em React.**
 
+## Antes de implementar: consulte o módulo afetado
+
+| Área | Arquivo de referência |
+|------|----------------------|
+| Auth / login / senha / roles | [docs/modulos/auth.md](docs/modulos/auth.md) |
+| Banco, models, migrations, Alembic | [docs/modulos/database.md](docs/modulos/database.md) |
+| Onboarding, PerfilEstudo | [docs/modulos/onboarding.md](docs/modulos/onboarding.md) |
+| Tasks, dashboard, TaskView | [docs/modulos/tasks.md](docs/modulos/tasks.md) |
+| Bateria de questões, QuestãoBanco | [docs/modulos/bateria.md](docs/modulos/bateria.md) |
+| Metas, cronograma, PlanoBase | [docs/modulos/metas.md](docs/modulos/metas.md) |
+| Desempenho, respostas, acertos | [docs/modulos/desempenho.md](docs/modulos/desempenho.md) |
+| Admin panel (todos sub-routers) | [docs/modulos/admin.md](docs/modulos/admin.md) |
+| IA (Gemini/Anthropic, prompts) | [docs/modulos/ia.md](docs/modulos/ia.md) |
+| Frontend (React/Vite/Caddy) | [docs/modulos/frontend.md](docs/modulos/frontend.md) |
+
+> **Regra**: qualquer alteração em código de um módulo → ler o MD do módulo primeiro para entender dependências e regras de negócio. Evita mudar o que não devia ser mudado.
+
 ## Arquivos de referência (ler só quando a task exigir)
 ```
 AGORA.md         ← planejamento completo + task list
