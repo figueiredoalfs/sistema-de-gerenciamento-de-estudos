@@ -1,6 +1,10 @@
 :{$PORT:80}
 
-root * /srv
 encode gzip
+
+@api path /auth/* /tasks/* /metas/* /onboarding/* /desempenho/* /bateria/* /baterias/* /topicos/* /questoes/* /admin/* /task-conteudo/* /task-videos/* /dev/*
+reverse_proxy @api {$BACKEND_URL}
+
+root * /srv
 try_files {path} /index.html
 file_server
