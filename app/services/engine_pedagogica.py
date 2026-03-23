@@ -33,12 +33,37 @@ from app.models.questao import Questao
 from app.models.resposta_questao import RespostaQuestao
 from app.models.study_task import StudyTask
 from app.models.subtopico_estado import SubtopicoEstado
+from app.models.task_conteudo import TaskConteudo, gerar_task_code
 from app.models.topico import Topico
 from app.services.gerador_cronograma import (
     _subjects_do_ciclo,
     _subjects_fallback,
     _subtopicos_da_materia,
 )
+
+# Tipos que têm conteúdo compartilhado (vídeos, PDF) — precisam de task_code
+_TIPOS_COM_CONTEUDO = {"teoria", "revisao", "reforco"}
+
+
+def _get_or_create_task_code(db: Session, subtopico_id: str, tipo: str) -> str:
+    """Retorna task_code existente para (subtopico, tipo) ou cria um novo TaskConteudo."""
+    existing = (
+        db.query(TaskConteudo)
+        .filter(TaskConteudo.subtopico_id == subtopico_id, TaskConteudo.tipo == tipo)
+        .first()
+    )
+    if existing:
+        return existing.task_code
+    code = gerar_task_code(tipo)
+    tc = TaskConteudo(
+        id=str(uuid.uuid4()),
+        task_code=code,
+        subtopico_id=subtopico_id,
+        tipo=tipo,
+    )
+    db.add(tc)
+    db.flush()
+    return code
 
 # ---------------------------------------------------------------------------
 # Constantes de limiares de acerto
@@ -356,6 +381,11 @@ def _build_tasks(
 
             questoes_ids = _selecionar_questoes(db, subtopic.id, aluno.id, n_questoes)
 
+            # Obtém ou cria TaskConteudo para tipos com material compartilhado
+            tc_code = None
+            if tipo in _TIPOS_COM_CONTEUDO and subtopic is not None:
+                tc_code = _get_or_create_task_code(db, subtopic.id, tipo)
+
             task = StudyTask(
                 id=str(uuid.uuid4()),
                 aluno_id=aluno.id,
@@ -368,6 +398,7 @@ def _build_tasks(
                 week_number=meta.numero_semana,
                 order_in_week=order,
                 questoes_json=json.dumps(questoes_ids) if questoes_ids else None,
+                task_code=tc_code,
                 created_at=agora,
             )
             tasks_criadas.append(task)

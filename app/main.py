@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import Base  # noqa: F401 — importado para Alembic detectar os models
-from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes, admin_importar_questoes, task_conteudo, admin_plano_base, admin_importar_tec, admin_pendencias, admin_bancas, admin_notificacoes  # noqa: E501
+from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, conhecimento, questoes, respostas, study_tasks, explicacoes, admin_importar_questoes, task_conteudo, admin_plano_base, admin_importar_tec, admin_pendencias, admin_bancas, admin_notificacoes, admin_config, plano_base_aluno, dev  # noqa: E501
 from app.routers import cronograma_semanal
 from app.routers import metas
 from app.modules.conteudo.router import router as conteudo_router
@@ -103,6 +103,9 @@ app.include_router(admin_importar_tec.router)
 app.include_router(admin_pendencias.router)
 app.include_router(admin_bancas.router)
 app.include_router(admin_notificacoes.router)
+app.include_router(admin_config.router)
+app.include_router(plano_base_aluno.router)
+app.include_router(dev.router)
 
 
 @app.get("/", tags=["health"])

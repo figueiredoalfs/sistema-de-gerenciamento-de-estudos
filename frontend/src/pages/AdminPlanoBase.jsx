@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { listarPlanos, gerarPlano, atualizarPlano, aplicarPlano, deletarPlano } from '../api/adminPlanoBase'
+import { getHierarquia } from '../api/bateria'
 
 const PERFIL_OPTIONS = ['iniciante', 'intermediario', 'avancado']
 const AREA_OPTIONS = ['fiscal', 'eaof_com', 'eaof_svm', 'cfoe_com', 'juridica', 'policial', 'ti', 'saude', 'outro']
@@ -34,9 +35,11 @@ function getFaseMaterias(fase) {
 }
 
 // ── Componente de subtópicos com drag-and-drop ────────────────────────────────
-function SubtopicosList({ materiaKey, subtopicos, onChange }) {
+function SubtopicosList({ materiaKey, subtopicos, onChange, subtopicosDisponiveis = [] }) {
   const dragIdx = useRef(null)
   const [dragOver, setDragOver] = useState(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerVal, setPickerVal] = useState('')
 
   function handleDragStart(idx) {
     dragIdx.current = idx
@@ -69,8 +72,13 @@ function SubtopicosList({ materiaKey, subtopicos, onChange }) {
   }
 
   function adicionar() {
-    const nome = prompt('Nome do subtópico:')
-    if (nome?.trim()) onChange(materiaKey, [...subtopicos, nome.trim()])
+    setPickerVal('')
+    setPickerOpen(true)
+  }
+
+  function confirmarPicker() {
+    if (pickerVal.trim()) onChange(materiaKey, [...subtopicos, pickerVal.trim()])
+    setPickerOpen(false)
   }
 
   return (
@@ -105,12 +113,37 @@ function SubtopicosList({ materiaKey, subtopicos, onChange }) {
           </button>
         </div>
       ))}
-      <button
-        onClick={adicionar}
-        className="w-full text-left text-xs text-brand-muted hover:text-indigo-400 transition-colors px-2 py-0.5"
-      >
-        + subtópico
-      </button>
+      {pickerOpen ? (
+        <div className="flex gap-1 mt-1">
+          <select
+            autoFocus
+            value={pickerVal}
+            onChange={e => setPickerVal(e.target.value)}
+            className="flex-1 bg-brand-surface border border-brand-border rounded px-2 py-1 text-xs text-brand-text focus:outline-none focus:border-indigo-500"
+          >
+            <option value="">Selecione o subtópico…</option>
+            {subtopicosDisponiveis
+              .filter(s => !subtopicos.includes(s.nome))
+              .map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+          </select>
+          <button
+            onClick={confirmarPicker}
+            disabled={!pickerVal}
+            className="px-2 py-1 text-xs bg-indigo-500 text-white rounded disabled:opacity-40"
+          >+</button>
+          <button
+            onClick={() => setPickerOpen(false)}
+            className="px-2 py-1 text-xs text-brand-muted hover:text-brand-text"
+          >×</button>
+        </div>
+      ) : (
+        <button
+          onClick={adicionar}
+          className="w-full text-left text-xs text-brand-muted hover:text-indigo-400 transition-colors px-2 py-0.5"
+        >
+          + subtópico
+        </button>
+      )}
     </div>
   )
 }
@@ -127,6 +160,13 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
   const [aplicando, setAplicando] = useState(false)
   const [modoAplicar, setModoAplicar]       = useState('novos')
   const [resultadoAplicar, setResultadoAplicar] = useState(null)
+  const [hierarquia, setHierarquia] = useState([])
+  const [pickerFase, setPickerFase] = useState(null)  // faseIdx ou null
+  const [pickerMateria, setPickerMateria] = useState('')
+
+  useEffect(() => {
+    getHierarquia().then(h => setHierarquia(Array.isArray(h) ? h : [])).catch(() => {})
+  }, [])
 
   const criteriosPerfil = CRITERIOS_AVANCO[plano.perfil] || [70, 75, 80]
 
@@ -163,18 +203,24 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
   }
 
   function adicionarMateria(faseIdx) {
-    const nome = prompt('Nome da matéria:')
-    if (!nome?.trim()) return
+    setPickerMateria('')
+    setPickerFase(faseIdx)
+  }
+
+  function confirmarPickerMateria() {
+    const nome = pickerMateria.trim()
+    if (!nome) return
     setConteudo((prev) => {
       const fases = prev.fases.map((f, i) => {
-        if (i !== faseIdx) return f
+        if (i !== pickerFase) return f
         if (f.numero === 1) {
-          return { ...f, materias: [...(f.materias || []), nome.trim()] }
+          return { ...f, materias: [...(f.materias || []), nome] }
         }
-        return { ...f, materias_novas: [...(f.materias_novas || []), nome.trim()] }
+        return { ...f, materias_novas: [...(f.materias_novas || []), nome] }
       })
       return { ...prev, fases }
     })
+    setPickerFase(null)
   }
 
   function removerMateria(faseIdx, materiaIdx) {
@@ -369,18 +415,44 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
                                 materiaKey={subKey}
                                 subtopicos={subs}
                                 onChange={atualizarOrdemSubtopicos}
+                                subtopicosDisponiveis={hierarquia.find(m => m.nome === subKey)?.subtopicos ?? []}
                               />
                             </div>
                           )}
                         </div>
                       )
                     })}
-                    <button
-                      onClick={() => adicionarMateria(faseIdx)}
-                      className="w-full text-left text-xs text-brand-muted hover:text-indigo-400 transition-colors px-1 py-1"
-                    >
-                      + matéria
-                    </button>
+                    {pickerFase === faseIdx ? (
+                      <div className="flex gap-1 mt-1">
+                        <select
+                          autoFocus
+                          value={pickerMateria}
+                          onChange={e => setPickerMateria(e.target.value)}
+                          className="flex-1 bg-brand-surface border border-brand-border rounded px-2 py-1 text-xs text-brand-text focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="">Selecione a matéria…</option>
+                          {hierarquia
+                            .filter(m => !getFaseMaterias(f).includes(m.nome))
+                            .map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+                        </select>
+                        <button
+                          onClick={confirmarPickerMateria}
+                          disabled={!pickerMateria}
+                          className="px-2 py-1 text-xs bg-indigo-500 text-white rounded disabled:opacity-40"
+                        >+</button>
+                        <button
+                          onClick={() => setPickerFase(null)}
+                          className="px-2 py-1 text-xs text-brand-muted hover:text-brand-text"
+                        >×</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => adicionarMateria(faseIdx)}
+                        className="w-full text-left text-xs text-brand-muted hover:text-indigo-400 transition-colors px-1 py-1"
+                      >
+                        + matéria
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
