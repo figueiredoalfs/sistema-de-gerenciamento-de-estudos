@@ -3,7 +3,7 @@
 encode gzip
 
 @api path /auth/* /tasks/* /metas/* /onboarding/* /desempenho/* /bateria/* /baterias/* /topicos/* /questoes/* /admin/* /task-conteudo/* /task-videos/* /dev/*
-reverse_proxy @api {$BACKEND_URL}
+reverse_proxy @api https://web-production-4ac23.up.railway.app
 
 root * /srv
 try_files {path} /index.html
