@@ -40,6 +40,10 @@ async def lifespan(app: FastAPI):
     from app.scripts.seed_admin import seed_admin
     seed_admin()
 
+    # Seed de bancas examinadoras padrão (idempotente)
+    from app.scripts.seed_bancas import seed_bancas
+    seed_bancas()
+
     # Reclassifica questões com matéria/banca não reconhecida
     try:
         from app.scripts.reclassificar_pendencias import reclassificar
