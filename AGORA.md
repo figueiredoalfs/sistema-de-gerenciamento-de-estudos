@@ -1,31 +1,35 @@
 # AGORA.md — Skolai
-> Cada task = backend + frontend + testável no navegador.
-> Só marcar como concluída quando funcionar de ponta a ponta.
-> Atualizado: 22/03/2026 | 22/46 concluídas | www.skolai.com.br no ar
+> Modelo: Desenvolvimento Espiral/Incremental
+> Visão: Gestor inteligente de estudos para concursos públicos
+> O Skolai diz o que estudar, você estuda onde quiser, o Skolai analisa seu desempenho.
+> Atualizado: 23/03/2026 | 22 concluídas | www.skolai.com.br no ar
+
+---
+
+## Visão do produto por volta
+
+```
+Volta 1 — Gestor de estudos funcional (beta fiscal)
+Volta 2 — Análise e adaptação (lacunas e desempenho)
+Volta 3 — Conteúdo de apoio (IA enriquece o estudo)
+Volta 4 — Questões próprias (se validado pelo beta)
+Volta 5 — Expansão (áreas militares, monetização)
+```
 
 ---
 
 ## Stack
-- Backend: FastAPI + SQLAlchemy + SQLite(dev)/PostgreSQL(prod) + Gemini 1.5 Flash
+- Backend: FastAPI + SQLAlchemy + SQLite(dev) / PostgreSQL(prod)
 - Frontend: React 18 + Vite + Tailwind + React Router v6 + Caddy
-- Roles: administrador / mentor / estudante
+- IA: Gemini 1.5 Flash (tier gratuito para o beta)
 - Deploy: Railway — Frontend (Dockerfile+Caddy) + Backend + PostgreSQL
-
-## Progresso
-- ✅ FASE-0: Banco de questões (2/2)
-- ✅ FASE-1: Fluxo do aluno (5/5)
-- ✅ FASE-2: Desempenho (3/3)
-- ✅ FASE-3: Painel admin base (4/4)
-- ✅ FASE-3.5: PlanoBase + progressão pedagógica (4/4)
-- ✅ FASE-4: Painel mentor (1/1)
-- ✅ FASE-5: Segurança + deploy (3/3)
-- ⬜ FASE-6: Backlog priorizado (0/24) ← atual
+- Roles: administrador / mentor / estudante
 
 ---
 
 ## Infraestrutura Railway — NÃO alterar sem necessidade
 
-### Serviços
+### Serviços ativos
 | Serviço | URL | Status |
 |---|---|---|
 | Frontend | www.skolai.com.br | Online |
@@ -33,9 +37,9 @@
 | PostgreSQL | gerado pelo Railway | Online |
 
 ### Variáveis de ambiente — Backend
-- DATABASE_URL — PostgreSQL Railway (automático)
+- DATABASE_URL — PostgreSQL Railway (automático, não alterar)
 - SECRET_KEY — chave JWT
-- GEMINI_API_KEY — API Gemini
+- GEMINI_API_KEY — API Gemini (tier gratuito: 15 req/min, 1M tokens/dia)
 - ALLOWED_ORIGINS — https://www.skolai.com.br
 - ADMIN_EMAIL, ADMIN_NOME, ADMIN_SENHA
 
@@ -43,27 +47,25 @@
 - VITE_API_URL — URL pública do backend
 - PORT = 80
 
-### Arquivos críticos — não modificar
+### Arquivos críticos — nunca modificar sem necessidade
 - `frontend/Dockerfile` — build 2 estágios: node:18-alpine + caddy:2-alpine
 - `frontend/.dockerignore` — sem isso node_modules Windows quebra o build
 - `frontend/Caddyfile` — try_files obrigatório para React Router funcionar
 - `frontend/railway.toml` — builder = "dockerfile" (não nixpacks)
-- Ferramentas de build em `dependencies` (não devDependencies)
+- Ferramentas de build (vite, tailwind) em `dependencies`, não devDependencies
 
-### O que NÃO fazer
-- Não voltar para nixpacks — quebra build por NODE_ENV=production
-- Não deletar .dockerignore do frontend
-- Não remover PORT=80 das variáveis do frontend
-- Não mover vite/tailwind para devDependencies sem testar em Docker limpo
-- Não remover try_files do Caddyfile
-- Não alterar DATABASE_URL manualmente — Railway gerencia automaticamente
-- Não commitar .env, dev.db ou sisfig.db — estão no .gitignore, manter assim
-- Não remover o fix postgres:// → postgresql:// em config.py (database_url_compat)
-- Não alterar ALLOWED_ORIGINS para "*" em produção — manter restrito
-- Não usar gemini-2.5-flash — caro demais, usar gemini-1.5-flash-8b ou gemini-1.5-flash
+### Proibições absolutas
+- NÃO voltar para nixpacks — quebra build por NODE_ENV=production
+- NÃO deletar .dockerignore do frontend
+- NÃO remover PORT=80 das variáveis do frontend
+- NÃO alterar DATABASE_URL manualmente
+- NÃO commitar .env, dev.db ou sisfig.db
+- NÃO remover fix postgres:// → postgresql:// em config.py
+- NÃO alterar ALLOWED_ORIGINS para "*" em produção
+- NÃO usar gemini-2.5-flash — usar gemini-1.5-flash ou gemini-1.5-flash-8b
+- NÃO remover try_files do Caddyfile
 
-### Fluxo obrigatório ao mudar o schema do banco
-Qualquer nova tabela ou coluna criada localmente exige:
+### Fluxo obrigatório ao mudar schema do banco
 ```bash
 alembic revision --autogenerate -m "descricao"
 alembic upgrade head                          # testa local
@@ -71,480 +73,19 @@ git add alembic/versions/
 git commit && git push                        # Railway faz deploy
 railway run alembic upgrade head              # aplica no PostgreSQL
 ```
-Sem esse último passo o backend sobe mas quebra ao acessar a nova tabela.
+**O último passo é obrigatório — sem ele o backend quebra em produção.**
 
 ---
 
 ## Regras de implementação
-1. Backend primeiro — testar no /docs antes de tocar no frontend
-2. Frontend consome o endpoint confirmado
-3. Só concluir quando funcionar no navegador de ponta a ponta
-4. Contrato quebrado → corrigir backend, nunca adaptar frontend
-5. IA só chamada por ação explícita — nunca em loop automático
-6. Todo conteúdo IA exibido ao aluno deve ter opção de reporte
-7. PlanoBase opera sobre subtópicos por área, não matérias
-8. Modelo de IA padrão: gemini-1.5-flash-8b (tarefas simples)
-   gemini-1.5-flash (tarefas complexas como PlanoBase e PDF)
-9. Áreas ativas: Fiscal, EAOF-COM, EAOF-SVM, CFOE-COM. Outras bloqueadas.
-
----
-
-## FASE-6 — Backlog priorizado
-
-> Ordenado por impacto no beta test.
-> B-00 é o primeiro passo — banco de produção está vazio.
-
----
-
-### B-00 — Migrar dados do dev.db para o PostgreSQL do Railway
-⬜ PENDING — FAZER ANTES DE QUALQUER OUTRA COISA
-
-**Por que primeiro:** o banco de produção está vazio. Matérias, subtópicos,
-questões importadas e dados de teste estão só no dev.db local.
-Sem isso o site não tem conteúdo nenhum.
-
-**O que precisa migrar:**
-- 57 matérias e subtópicos (hierarquia completa)
-- Questões importadas
-- Ciclos configurados por área
-- SubtopicoArea (peso e complexidade por área)
-- Alunos de teste (opcional — podem se cadastrar pelo site)
-
-**Como fazer:**
-Pedir ao Claude Code para criar `scripts/migrar_dev_para_railway.py`:
-- Lê todos os dados do dev.db via SQLAlchemy
-- Insere no PostgreSQL do Railway respeitando ordem de dependências
-  (matérias antes de tópicos, tópicos antes de subtópicos, etc.)
-- Ignora duplicatas (upsert) para poder rodar mais de uma vez com segurança
-
-```bash
-railway run python scripts/migrar_dev_para_railway.py
-```
-
-**Verificar depois:**
-- Acessar /admin/topicos no site → matérias aparecem
-- Acessar /admin/questoes → questões aparecem
-
----
-
-### B-01 — Correções de bugs imediatos
-⬜ PENDING
-
-**Testa assim:** aluno consegue usar o sistema de ponta a ponta sem
-erros visíveis no fluxo principal.
-
-- Bug: task não gera conteúdo via IA (botões PDF e vídeo não funcionam)
-- Bug: lançamento de bateria não carrega lista de matérias
-- Bug: geração do PlanoBase retorna "A IA não retornou fases válidas"
-  → corrigir prompt para retornar apenas fases[], ordem_subtopicos{},
-    prerequisitos{} — critérios de avanço são fixos no código
-- Bug: botão de reset do painel DEV não aparece/funciona
-- Bug: Meta 00 não aparece para alunos não-iniciantes
-- Bug: banner de diagnóstico continua aparecendo após concluído
-- Fontes do lançamento de bateria → trocar para bancas reais:
-  CESPE/CEBRASPE, FCC, FGV, VUNESP, AOCP, IDECAN, IBFC,
-  QUADRIX, IADES, UPENET, Outra banca, Simulado próprio
-- Modelo de IA: trocar gemini-2.5-flash → gemini-1.5-flash-8b
-  em ai_provider.py e verificar se está hardcoded em outros arquivos
-
----
-
-### B-02 — Telas do aluno funcionando de fato
-⬜ PENDING
-
-**Testa assim:** aluno loga → tem perfil editável → consegue registrar
-sessão no caderno de questões → task gera conteúdo real.
-
-**Perfil do usuário (não existe ainda):**
-- Nova rota /perfil
-- Editar: nome, email, senha (atual + nova + confirmação)
-- Editar disponibilidade: horas/dia, dias/semana
-- Ver área e experiência cadastradas
-- Opção de refazer o onboarding
-
-**Caderno de Questões (lançamento de bateria renomeado):**
-- Renomear rota /lancar-bateria → /caderno-questoes
-- Corrigir carregamento da lista de matérias e subtópicos
-- Campos: matéria, subtópico, acertos, total, banca (lista de bancas reais)
-- Feedback de sucesso + opção de registrar outra sessão
-- Histórico de sessões registradas
-
-**Tasks com conteúdo:**
-- Botão PDF: chamar POST /task-conteudo/{task_code}/gerar-pdf
-  com loading "Gerando conteúdo..." (~15s)
-- Botão Vídeo: GET /task-conteudo/{task_code}/videos
-- Aviso discreto de origem em todo conteúdo gerado por IA:
-  "Conteúdo gerado por IA — pode conter imprecisões"
-- Botão de reporte junto ao aviso
-
----
-
-### B-03 — Personalização por funcionalidades do onboarding
-⬜ PENDING
-
-**Testa assim:** aluno que selecionou só cronograma_estudo → sidebar
-mostra só Painel e Agenda. Aluno sem cronograma → Caderno de Questões
-vira tela principal.
-
-**Backend:**
-- GET /auth/me retornar funcionalidades (join com PerfilEstudo)
-- Salvar tem_plano_externo (bool) em PerfilEstudo
-
-**Frontend:**
-- Hook useFuncionalidades() lendo user.funcionalidades
-- Sidebar condicional por funcionalidade ativa
-- Dashboard reorganiza conforme combinação selecionada:
-  - com cronograma → tasks do dia em destaque
-  - sem cronograma + plano externo → Caderno de Questões em destaque
-- Botões PDF/Vídeo só se geracao_conteudo ativo
-- QuestionFlow só se geracao_questoes ativo
-- Painel (/) aparece sempre
-
----
-
-### B-04 — Índice de Prontidão (IP)
-⬜ PENDING
-
-```
-IP = Σ(accuracy_rate × peso_area × fator_decay × fator_cobertura)
-     / Σ(peso_area) × 100
-
-fator_decay = exp(-decay_rate × dias_sem_revisar)
-fator_cobertura: nunca=0 / só teoria=0.5 / teoria+exercicios=1.0
-```
-
-Novo service `indice_prontidao.py`.
-Alimenta: B-05 (Mapa de Calor), B-06 (gráficos desempenho),
-painel mentor e dashboard admin.
-
----
-
-### B-05 — Dashboard desempenho — novos gráficos
-⬜ PENDING
-
-Adicionar em ordem de prioridade:
-- Radar de matérias (teia com % acerto por matéria)
-- Velocidade de domínio (barras: dominado/revisão/estudo/não iniciado)
-- Volume semanal de questões (barras últimas 8 semanas)
-- Heatmap de consistência (calendário estilo GitHub)
-- Projeção de prontidão (semanas para atingir limiar — depende B-04)
-- Taxa de acerto por tipo de questão (depende B-07)
-
----
-
-### B-06 — Mapa de Calor do Edital
-⬜ PENDING
-
-Grade visual cruzando peso_area × accuracy_rate por subtópico.
-Cores: vermelho (peso alto + domínio baixo) → verde (dominado).
-Responde: "onde devo estudar agora?"
-Para pré-edital sem PDF: usa pesos do PlanoBase.
-Depende do IP (B-04).
-
----
-
-### B-07 — Mapa de Lacunas
-⬜ PENDING
-
-Diagnóstico contínuo de padrões de erro por subtópico.
-
-Salvar alternativa escolhida em RespostaQuestao (hoje só acertou/errou).
-Com isso detectar: confusão de conceito, erro em exceções vs regra,
-erro em aplicação vs conceito puro.
-
-Visibilidade para o aluno:
-- Lista de subtópicos por resistência ao aprendizado
-- Status: travado / melhorando / resolvido
-- Padrão detectado após 5+ erros no mesmo subtópico
-- Ciclo: lacuna → reforço direcionado → resolvida
-
-Caderno de Questões alimenta o mapa como dado de menor granularidade.
-
----
-
-### B-08 — Base de conhecimento por upload de fontes
-⬜ PENDING
-
-Admin upa PDFs brutos (leis, manuais, doutrinas, legislações FAB).
-Sistema processa automaticamente:
-- Extrai texto via pdfplumber
-- Divide em chunks por seção
-- IA mapeia cada chunk para subtópicos relevantes
-- Indexa para busca semântica (RAG)
-
-Para vídeos do YouTube:
-- Transcrição automática via API YouTube se disponível
-- Fallback: metadados (título, canal, URL) para recomendação
-
-Prioridade ao gerar conteúdo:
-```
-1. Chunks de fontes upadas para aquele subtópico
-2. Legislação oficial upada
-3. Conhecimento geral da IA (fallback)
-```
-
-Nova rota: /admin/fontes
-Nova sidebar admin: Questões | Importar | Fontes | Tópicos | Usuários |
-                    Reportes | Financeiro | Configurações
-
----
-
-### B-09 — Questões geradas por IA (fallback + pool)
-⬜ PENDING
-
-Quando não há questões suficientes no banco para um subtópico:
-```
-1. Questões do banco não vistas pelo aluno (origem banca real)
-2. Questões do banco já vistas (repetição controlada)
-3. IA gera em background (Celery) → salva com board="IA"
-```
-
-Pool por subtópico:
-- < 10 questões → IA gera lote de 10 em background
-- ≥ 10 questões → sorteia sem chamar IA
-- ≥ 30 questões → pool maduro, IA nunca mais chamada
-
-Aviso obrigatório nas questões geradas por IA:
-"Questão gerada por IA — gabarito pode conter imprecisões"
-Botão de reporte junto ao aviso.
-
-Registrar questões respondidas por aluno para evitar repetição.
-
----
-
-### B-10 — Progressão de dificuldade dentro das tasks
-⬜ PENDING
-
-Usar campo nivel (básico/médio/difícil) nas questões para selecionar
-dificuldade conforme exposure_count do subtópico:
-- exposure_count = 1 → básico/médio
-- exposure_count = 2 → médio/difícil
-- exposure_count >= 3 → difícil, estilo prova real da área
-
-Ajuste no quiz_generator. Cronograma não cresce.
-
----
-
-### B-11 — Sistema de reporte de conteúdo IA
-⬜ PENDING
-
-Botão discreto em todo conteúdo gerado por IA.
-Tipos: conteúdo incorreto, gabarito errado, vídeo fora do tema, outro.
-Reporte vinculado ao task_code ou questao_id.
-
-Painel admin → Reportes:
-- Conteúdo + motivo + quantos alunos reportaram
-- Ações: corrigir, regenerar via IA, ignorar
-- Itens com 3+ reportes sobem automaticamente
-
----
-
-### B-12 — Painel financeiro
-⬜ PENDING
-
-**B-12a — Controle de custos pré-beta (implementar agora):**
-- Interceptar todas as chamadas em ai_provider.py
-- Registrar em log_ia: tipo, tokens_input, tokens_output,
-  custo_estimado, aluno_id, created_at
-- Dashboard admin: custo total mês, por tipo, por aluno,
-  projeção, custos fixos manuais (Railway, domínio)
-
-**B-12b — Seleção de modelo por tipo de operação (implementar agora):**
-- Tabela configuracoes_sistema no banco
-- Admin configura modelo por tipo de operação:
-  geração questões, PDF, sugestão subtópico, PlanoBase, chat, extração PDF
-- Modelos disponíveis: gemini-1.5-flash-8b | gemini-1.5-flash | gemini-1.5-pro
-- ai_provider.py consulta a configuração antes de cada chamada
-
-**B-12c — Monetização pós-beta:**
-- Definir planos baseado nos dados do B-12a
-- Model Plano com limites configuráveis
-- Gateway de pagamento (Pagar.me ou Stripe)
-- Tela de upgrade para o aluno
-- MRR, churn, margem por aluno
-
----
-
-### B-13 — Fluxo pós-edital via upload de PDF
-⬜ PENDING
-
-Upload do PDF do edital no onboarding (fase_estudo = pos_edital).
-Gemini extrai: órgão, cargo, banca, data prova, subtópicos, pesos.
-NLP Mapper faz correspondência com subtópicos do banco.
-Aluno confirma. Admin valida mapeamento antes de ativar.
-PlanoBase pós-edital: todos os subtópicos do edital ativos,
-priorizados por peso × urgência (dias restantes).
-Remover opção pós-edital do onboarding enquanto não implementado.
-
----
-
-### B-14 — Chat com IA contextualizado
-⬜ PENDING
-
-Contexto automático injetado (invisível ao aluno):
-subtópico atual, matéria, fase, erros recentes do Mapa de Lacunas.
-
-Dois pontos de acesso:
-- Dentro da task expandida: "Tirar dúvida sobre este tema"
-- Ícone flutuante global em qualquer tela
-
-Limite por plano (número de mensagens por período).
-Aviso de uso: "X de Y perguntas usadas esta semana".
-Registrar consumo de tokens em log_ia.
-
----
-
-### B-15 — Mapa de Concursos
-⬜ PENDING
-
-Calendário visual com datas de provas na área do aluno.
-Mapa geográfico do Brasil com marcadores por estado/status.
-Filtros: área, banca, faixa salarial.
-Botão "Me avise" por concurso.
-Fonte: scraping Celery (PCI Concursos) + alimentação manual admin.
-
----
-
-### B-16 — Horas líquidas de estudo
-⬜ PENDING
-
-duracao_real_min já existe em StudyTask.
-Ao finalizar task: campo "Quanto tempo você estudou?" (slider ou número).
-Dashboard: horas reais vs planejadas na semana, média diária,
-evolução semanal.
-
----
-
-### B-17 — Ordem de aparição dos subtópicos
-⬜ PENDING
-
-Campo ordem (inteiro) em cada subtópico dentro da matéria.
-Engine usa esse campo para sequenciar as tasks do aluno.
-
-Admin configura via /admin/topicos:
-- Drag-and-drop para reordenar subtópicos dentro de cada tópico
-- Botão "Sugerir ordem pedagógica" por matéria — IA ordena todos
-  os subtópicos de uma vez, admin confirma ou ajusta
-- Para pós-edital: ordem importada do edital automaticamente
-
-prerequisitos_json complementa a ordem — sistema não libera subtópico
-sem os pré-requisitos concluídos.
-
----
-
-### B-18 — Áreas militares — subtópicos e banco
-⬜ PENDING
-
-Criar no banco os subtópicos para COM e SVM:
-
-COM (serve EAOF e CFOE):
-  Eletricidade Básica → Lei de Ohm, Circuitos CC, CA, Transformadores
-  Eletrônica Digital → Portas Lógicas, Circuitos, Flip-Flop, Conversores
-  Princípios de Telecomunicações → Ondas, Transmissão, Antenas, Sistemas Digitais
-  Regulamentos Militares → Estatuto, CPM, CPPM, RDAER, RISAER (só EAOF)
-  Telecomunicações COMAER → MCA 102-7 (só EAOF)
-
-SVM (EAOF):
-  Suprimento e Logística → Armazenagem, Material SSS, Gestão de Estoques
-  Transporte de Superfície → Viaturas, Combustíveis, Gerenciamento
-  Legislação de Trânsito → CTB capítulos do edital
-  Meio Ambiente → CONAMA 273/00, CONAMA 362/05
-  Contratações Públicas → Lei 14.133, Manual COMAER
-  Corrosão → Eletroquímica, Formas de Corrosão, Revestimentos
-
-Upar legislações FAB como fontes (B-08) vinculadas a esses subtópicos.
-GIT, MAT e Inglês já existem no banco — servem para todas as especialidades.
-
----
-
-### B-19 — Arquitetura pedagógica por subtópico e área
-⬜ PENDING
-
-Corrigir campo area em Topico — hoje armazena nome da matéria
-em vez de "fiscal", "eaof", "cfoe".
-SubtopicoArea (já existe) com peso e complexidade por área.
-plano_inicial.py e engine_pedagogica.py operar sobre subtópicos
-tagueados pela área, não sobre matérias.
-
-Complexidade por área define:
-- Nível das questões selecionadas
-- Profundidade do conteúdo gerado
-- Limiar de domínio: baixa=70% / média=75% / alta=80%
-
----
-
-### B-20 — Aviso de origem nas questões
-⬜ PENDING
-
-Indicação discreta de origem em toda questão exibida:
-- Banca real (CESPE, FGV, etc): mostrar banca + ano
-- Gerada por IA: "Questão gerada por IA — gabarito pode conter imprecisões"
-- Contribuição de aluno (quando implementado): "Enviada por usuário"
-
-Aparece no enunciado e no feedback pós-resposta.
-Conecta com sistema de reporte (B-11).
-
----
-
-### B-21 — Upload de PDF de prova pelo aluno
-⬜ PENDING (meio do beta)
-
-Aluno upa PDF de prova antiga, apostila ou caderno escaneado.
-IA extrai questões — mesmo pipeline do admin.
-Questões entram na fila de revisão do admin com identificação do aluno.
-Enquanto pendente: disponíveis só para o aluno que enviou.
-Após aprovação admin: entram no banco compartilhado.
-
----
-
-
-### B-22 — Segurança avançada pós-deploy
-⬜ PENDING
-
-- Monitoramento com Sentry (erros em produção)
-- Backup automático do PostgreSQL Railway → Google Drive via GitHub Actions
-  (você tem Google One — espaço não é problema)
-  Workflow: todo dia às 3h → pg_dump → upload para pasta "Backups Skolai" no Drive
-  Retenção: 30 dias (deleta backups antigos automaticamente)
-  Secrets necessários: RAILWAY_DATABASE_URL, GDRIVE_CREDENTIALS, GDRIVE_FOLDER_ID
-- Alertas de custo de IA por email quando ultrapassar threshold configurável
-- Auditoria de acessos admin (log de quem alterou o quê e quando)
-
----
-
-### B-23 — Confirmação de email e recuperação de senha
-⬜ PENDING
-
-Ficou pendente da FASE-5 (foi marcado como concluído parcialmente).
-- Confirmação de email no cadastro (Resend ou SendGrid)
-- Recuperação de senha com token temporário de uso único (1h)
-- Email de boas-vindas após confirmação
-
----
-
-## Rotas React completas
-
-| Rota | Página | Role |
-|---|---|---|
-| /login | Login | público |
-| /onboarding | Onboarding | autenticado sem area |
-| / | Dashboard | estudante |
-| /desempenho | Desempenho | estudante |
-| /caderno-questoes | CadernoQuestoes | estudante |
-| /mapa-lacunas | MapaLacunas | estudante |
-| /mapa-concursos | MapaConcursos | estudante |
-| /perfil | Perfil | estudante |
-| /admin | AdminDashboard | administrador |
-| /admin/questoes | AdminQuestoes | administrador |
-| /admin/importar | AdminImportar | administrador |
-| /admin/fontes | AdminFontes | administrador |
-| /admin/topicos | AdminTopicos | administrador |
-| /admin/usuarios | AdminUsuarios | administrador |
-| /admin/reportes | AdminReportes | administrador |
-| /admin/financeiro | AdminFinanceiro | administrador |
-| /admin/configuracoes | AdminConfiguracoes | administrador |
-| /mentor | MentorDashboard | mentor |
-| /mentor/aluno/:id | MentorAlunoDetalhe | mentor |
+1. Leia o módulo correspondente em `docs/modulos/` antes de implementar
+2. Backend primeiro — testar no /docs antes de tocar no frontend
+3. Frontend consome o endpoint confirmado
+4. Só concluir quando funcionar no navegador de ponta a ponta
+5. Contrato quebrado → corrigir backend, nunca adaptar frontend
+6. IA só chamada por ação explícita — nunca em loop automático
+7. Cache agressivo em todo conteúdo gerado por IA — gera uma vez, serve para todos
+8. Modelo IA: gemini-1.5-flash-8b (tarefas simples) / gemini-1.5-flash (PDF e PlanoBase)
 
 ---
 
@@ -558,9 +99,580 @@ LIMIAR_DOMINIO = {"baixa": 0.70, "media": 0.75, "alta": 0.80}
 ```
 
 A IA do PlanoBase retorna APENAS:
-- fases[]: quais matérias entram em cada fase e em que ordem
-- ordem_subtopicos{}: sequência pedagógica dos subtópicos por matéria
-- prerequisitos{}: dependências diretas entre subtópicos
+- `fases[]` — quais matérias entram em cada fase e em que ordem
+- `ordem_subtopicos{}` — sequência pedagógica dos subtópicos por matéria
+- `prerequisitos{}` — dependências diretas entre subtópicos
+Nunca gera critérios de avanço, limiares ou configurações pedagógicas.
 
-NUNCA gera critérios de avanço, limiares ou configurações pedagógicas.
+---
+
+# VOLTA 1 — Gestor de estudos funcional
+
+> Meta: um aluno fiscal consegue se cadastrar, receber um plano de estudo,
+> acompanhar seu progresso e registrar seu desempenho sem encontrar erros.
+> IA presente em 3 pontos específicos: PlanoBase, PDF explicativo, sugestão de vídeos.
+> Tudo dentro do tier gratuito do Gemini para o beta.
+
+## O que o aluno consegue fazer na Volta 1
+1. Criar conta e fazer onboarding
+2. Receber um plano de estudo adaptativo (gerado por IA uma vez, cacheado)
+3. Ver no dashboard o que estudar hoje
+4. Pedir um resumo do subtópico (PDF gerado por IA, cacheado)
+5. Ver sugestões de onde estudar (vídeos YouTube por subtópico)
+6. Registrar o que estudou e quantas questões fez (Caderno de Questões)
+7. Ver seu desempenho evoluir semana a semana
+8. Editar seu perfil e disponibilidade
+
+## O que o admin consegue fazer na Volta 1
+1. Gerenciar matérias e subtópicos
+2. Gerenciar usuários
+3. Ver quanto o sistema está gastando com IA
+
+---
+
+### V1-T01 — Migrar banco de dados local para o Railway
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/database.md`
+
+**Contexto:** O PostgreSQL de produção está vazio. Matérias, subtópicos
+e ciclos estão só no dev.db local. Sem isso o site não tem estrutura nenhuma.
+
+**O que implementar:**
+Criar `scripts/migrar_dev_para_railway.py`:
+
+```python
+# Conecta ao dev.db local E ao PostgreSQL do Railway
+# Migra nesta ordem (respeitar FKs):
+# 1. topicos (nivel=0 matérias, nivel=1 tópicos, nivel=2 subtópicos)
+# 2. ciclo_materias
+# 3. subtopico_area (se existir)
+# NÃO migrar: alunos, tasks, metas, sessões, questões
+
+# Usar upsert para rodar mais de uma vez com segurança:
+# PostgreSQL: INSERT ... ON CONFLICT (id) DO NOTHING
+# Conectar ao Railway via variável DATABASE_URL do ambiente
+```
+
+**Como executar:**
+```bash
+railway run python scripts/migrar_dev_para_railway.py
+```
+
+**Como verificar:**
+- https://www.skolai.com.br/admin/topicos → matérias aparecem
+- https://www.skolai.com.br/admin/usuarios → página carrega sem erro
+
+**Arquivos:**
+- CRIAR: `scripts/migrar_dev_para_railway.py`
+
+---
+
+### V1-T02 — Corrigir modelo de IA e acesso admin
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/ia.md`
+
+**Contexto:** Dois problemas críticos.
+1. O modelo gemini-2.5-flash causou R$47 de custo em um dia de testes
+2. A senha admin com @ não funciona no Railway
+
+**O que implementar:**
+
+**Parte 1 — Trocar modelo:**
+Em `app/core/ai_provider.py` e em qualquer arquivo que tenha
+"gemini-2.5-flash" hardcoded (buscar com `grep -r "gemini-2.5" app/`):
+```python
+# DE: model="gemini-2.5-flash"
+# PARA: model="gemini-1.5-flash-8b"  (tarefas simples)
+# OU:   model="gemini-1.5-flash"     (PDF e PlanoBase)
+```
+
+Adicionar log de consumo após cada chamada:
+```python
+usage = response.usage_metadata
+print(f"[AI] modelo={model} tipo={tipo} input={usage.prompt_token_count} output={usage.candidates_token_count}")
+```
+
+**Parte 2 — Reset de senha admin:**
+Criar `scripts/reset_admin.py`:
+```python
+from app.core.database import SessionLocal
+from app.models.aluno import Aluno
+from app.core.security import hash_password
+db = SessionLocal()
+admin = db.query(Aluno).filter(Aluno.role == 'administrador').first()
+if admin:
+    admin.senha_hash = hash_password('SkolaiAdmin2026')
+    db.commit()
+    print(f'Senha resetada: {admin.email} / SkolaiAdmin2026')
+db.close()
+```
+Executar: `railway run python scripts/reset_admin.py`
+
+**Como verificar:**
+- Logar em www.skolai.com.br com admin@skolai.com / SkolaiAdmin2026
+- Verificar no console que logs mostram gemini-1.5-flash
+
+**Arquivos:**
+- MODIFICAR: `app/core/ai_provider.py`
+- BUSCAR E MODIFICAR: qualquer arquivo com "gemini-2.5"
+- CRIAR: `scripts/reset_admin.py`
+
+---
+
+### V1-T03 — Corrigir PlanoBase: prompt e parser
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/ia.md`
+
+**Contexto:** A geração do PlanoBase retorna "A IA não retornou fases válidas".
+O prompt atual pede critérios de avanço que são fixos no código.
+
+**O que implementar:**
+Localizar o service de geração do PlanoBase com:
+```bash
+grep -r "plano_base\|PlanoBase\|gerar_plano" app/services/ app/routers/
+```
+
+Substituir o prompt por:
+```python
+PROMPT_PLANO_BASE = """
+Você é especialista em pedagogia de concursos públicos brasileiros.
+Analise as matérias e subtópicos e organize um plano progressivo.
+
+ÁREA: {area}
+PERFIL: {perfil}
+MATÉRIAS DISPONÍVEIS: {lista_materias_subtopicos}
+
+Retorne SOMENTE JSON válido, sem texto adicional, sem markdown:
+{{
+  "fases": [
+    {{"numero": 1, "nome": "Fundação", "materias": ["Materia1", "Materia2"]}},
+    {{"numero": 2, "nome": "Aprofundamento", "materias_novas": ["Materia3"]}}
+  ],
+  "ordem_subtopicos": {{
+    "Nome da Materia": ["subtopico1", "subtopico2"]
+  }},
+  "prerequisitos": {{
+    "subtopico_avancado": ["subtopico_base"]
+  }}
+}}
+
+REGRAS:
+- Fase 1: máximo 4 matérias independentes e fundamentais
+- Fases seguintes: máximo 3 matérias novas
+- ordem_subtopicos: do mais básico ao mais complexo
+- Listar TODOS os subtópicos de TODAS as matérias
+- NÃO incluir critérios de avanço, percentuais ou limiares
+"""
+```
+
+Corrigir o parser do retorno:
+```python
+# 1. Remover markdown: raw = raw.replace("```json","").replace("```","").strip()
+# 2. Encontrar JSON: inicio = raw.find("{"), fim = raw.rfind("}") + 1
+# 3. Parsear: dados = json.loads(raw[inicio:fim])
+# 4. Validar: assert "fases" in dados and "ordem_subtopicos" in dados
+```
+
+**Como verificar:**
+- Admin → Configurações → gerar PlanoBase fiscal/iniciante
+- Deve gerar sem erro e mostrar fases no editor visual
+
+**Arquivos:**
+- MODIFICAR: service de geração do PlanoBase (localizar com grep)
+
+---
+
+### V1-T04 — Corrigir dashboard: Meta 00 e bloqueio de diagnóstico
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/tasks.md`
+
+**Contexto:** Dois bugs relacionados ao diagnóstico inicial.
+1. Banner "diagnóstico pendente" aparece mesmo após concluído
+2. Alunos não-iniciantes não veem a Meta 00
+
+**O que implementar:**
+
+**Parte 1 — Remover banner, implementar bloqueio:**
+Em `frontend/src/pages/Dashboard.jsx`:
+- Remover completamente o banner/aviso de diagnóstico pendente
+- Se `user.diagnostico_pendente === true`, renderizar tela de bloqueio:
+```jsx
+// Em vez do dashboard normal, mostrar:
+<div>
+  <h2>Complete seu diagnóstico inicial</h2>
+  <p>Isso nos ajuda a montar seu plano personalizado</p>
+  <button onClick={() => navigate('/tasks/diagnostico')}>
+    Iniciar Diagnóstico
+  </button>
+</div>
+```
+
+**Parte 2 — Meta 00 visível:**
+Em `app/routers/study_tasks.py`, endpoint `GET /tasks/today`:
+- Se `aluno.diagnostico_pendente == True` E `aluno.experiencia != "iniciante"`:
+  retornar APENAS tasks do tipo `diagnostico` da Meta 00
+- Verificar em `app/services/engine_pedagogica.py` se a Meta 00
+  está sendo gerada corretamente para não-iniciantes
+
+**Como verificar:**
+- Criar aluno com experiencia="tempo_de_estudo" → ver Meta 00 no dashboard
+- Concluir diagnóstico → dashboard normal aparece sem banner
+- Criar aluno iniciante → não ver diagnóstico, ver dashboard direto
+
+**Arquivos:**
+- MODIFICAR: `frontend/src/pages/Dashboard.jsx`
+- VERIFICAR/MODIFICAR: `app/routers/study_tasks.py`
+- VERIFICAR: `app/services/engine_pedagogica.py`
+
+---
+
+### V1-T05 — Corrigir geração de PDF e sugestão de vídeos
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/tasks.md` e `docs/modulos/ia.md`
+
+**Contexto:** Botões "Gerar PDF" e "Vídeo Aula" nas tasks não funcionam.
+O PDF é o principal recurso de apoio ao estudo da Volta 1.
+Com cache, é gerado uma vez por subtópico e serve para todos os alunos.
+
+**O que implementar:**
+
+**Parte 1 — Verificar backend:**
+Testar no /docs os endpoints:
+- `POST /task-conteudo/{task_code}/gerar-pdf`
+- `GET /task-conteudo/{task_code}/videos`
+- `POST /task-conteudo/{task_code}/videos/buscar`
+
+Se retornarem erro 500, corrigir o service.
+O PDF deve ser gerado com prompt contextualizado para concursos:
+```python
+prompt = f"""
+Crie um resumo didático sobre '{subtopico}' ({materia})
+para candidatos a concursos públicos fiscais brasileiros.
+Foque no que é cobrado em prova. Máximo 800 palavras.
+Organize em: Conceito, Pontos principais, O que cai em prova, Dicas.
+"""
+```
+
+**Parte 2 — Corrigir frontend:**
+No componente TaskCard expandido
+(localizar em `frontend/src/components/`):
+
+Botão PDF:
+```jsx
+// 1. Mostrar loading "Gerando resumo..." (pode levar ~15s)
+// 2. POST /task-conteudo/{task_code}/gerar-pdf
+// 3. Exibir conteúdo em área expandida ou modal
+// 4. Adicionar abaixo: "⚠️ Gerado por IA — pode conter imprecisões"
+```
+
+Botão Vídeo:
+```jsx
+// 1. GET /task-conteudo/{task_code}/videos
+// 2. Se lista vazia: POST .../videos/buscar (IA busca no YouTube)
+// 3. Exibir cards: thumbnail + título + link para YouTube
+// 4. Não executar o vídeo dentro do Skolai — abrir no YouTube
+```
+
+**Como verificar:**
+- Expandir task de teoria → clicar "Gerar PDF" → resumo aparece em ~15s
+- Clicar "Ver Vídeos" → lista de vídeos do YouTube aparece
+
+**Arquivos:**
+- VERIFICAR/MODIFICAR: `app/routers/task_conteudo.py`
+- MODIFICAR: componente TaskCard (localizar com `find frontend/src -name "TaskCard*"`)
+
+---
+
+### V1-T06 — Caderno de Questões funcionando
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/bateria.md`
+
+**Contexto:** O aluno estuda no TEC Concursos ou Qconcursos e registra
+os resultados aqui. O sistema analisa e adapta o plano.
+A tela existe mas a lista de matérias não carrega.
+
+**O que implementar:**
+
+**Parte 1 — Verificar backend:**
+Confirmar que existe endpoint para listar matérias:
+```bash
+# Testar no /docs:
+GET /topicos?nivel=0  # ou GET /topicos/hierarquia
+```
+Se não existir ou retornar vazio, criar/corrigir.
+
+**Parte 2 — Corrigir e renomear frontend:**
+Renomear `LancarBateria.jsx` → `CadernoQuestoes.jsx`
+Atualizar rota de `/lancar-bateria` → `/caderno-questoes`
+Atualizar link na Sidebar e no App.jsx/router.
+
+Na página CadernoQuestoes.jsx:
+```jsx
+// Ao montar: buscar matérias da API e popular select
+useEffect(() => {
+  api.get('/topicos?nivel=0').then(res => setMaterias(res.data))
+}, [])
+
+// Ao selecionar matéria: buscar subtópicos
+const onMateriaSelecionada = (materiaId) => {
+  api.get(`/topicos?parent_id=${materiaId}&nivel=2`)
+    .then(res => setSubtopicos(res.data))
+}
+
+// Bancas disponíveis (hardcoded):
+const BANCAS = [
+  'CESPE/CEBRASPE', 'FCC', 'FGV', 'VUNESP', 'AOCP',
+  'IDECAN', 'IBFC', 'QUADRIX', 'IADES', 'UPENET',
+  'Outra banca', 'Simulado próprio'
+]
+
+// Campos do formulário:
+// - Select matéria (obrigatório)
+// - Select subtópico (obrigatório)
+// - Input acertos (número, obrigatório)
+// - Input total questões (número, obrigatório)
+// - Select banca (obrigatório)
+// - Input data (opcional, default hoje)
+
+// Após salvar com sucesso:
+// - Mostrar "Sessão registrada com sucesso!"
+// - Limpar formulário para registrar outra
+// - Atualizar histórico abaixo
+```
+
+Adicionar seção de histórico:
+```jsx
+// GET /baterias?aluno_id=me&limit=10
+// Mostrar tabela: data | matéria | subtópico | acertos/total | % | banca
+```
+
+**Como verificar:**
+- Acessar /caderno-questoes → matérias carregam no select
+- Selecionar matéria → subtópicos carregam
+- Preencher e salvar → feedback de sucesso
+- Histórico mostra a sessão
+
+**Arquivos:**
+- RENOMEAR: `frontend/src/pages/LancarBateria.jsx` → `CadernoQuestoes.jsx`
+- MODIFICAR: `frontend/src/App.jsx` (rota)
+- MODIFICAR: `frontend/src/components/layout/Sidebar.jsx` (link)
+- VERIFICAR/CRIAR: endpoint de listagem de matérias no backend
+
+---
+
+### V1-T07 — Página de perfil do usuário
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/auth.md`
+
+**Contexto:** Não existe página de perfil. O aluno não consegue
+trocar senha ou atualizar disponibilidade de estudo.
+
+**O que implementar:**
+
+**Parte 1 — Backend:**
+Verificar se existem os endpoints. Se não existirem, criar:
+
+`PATCH /auth/me` — atualizar dados:
+```python
+# Body: { nome, email, horas_por_dia, dias_por_semana }
+# Retorna: AlunoResponse atualizado
+```
+
+`POST /auth/alterar-senha`:
+```python
+# Body: { senha_atual, nova_senha, confirmar_senha }
+# Validar senha_atual com verify_password()
+# Se válida: hash(nova_senha) e salvar
+# Se inválida: retornar 400 "Senha atual incorreta"
+```
+
+**Parte 2 — Frontend:**
+Criar `frontend/src/pages/Perfil.jsx` com 4 seções:
+
+```jsx
+// Seção 1 — Dados pessoais
+// Campos: nome, email
+// Botão Salvar → PATCH /auth/me
+
+// Seção 2 — Disponibilidade de estudo
+// Campos: horas por dia (1-12), dias por semana (1-7)
+// Botão Salvar → PATCH /auth/me
+
+// Seção 3 — Alterar senha
+// Campos: senha atual, nova senha, confirmar nova senha
+// Validar: nova === confirmar antes de enviar
+// Botão Salvar → POST /auth/alterar-senha
+
+// Seção 4 — Minha conta (somente leitura)
+// Mostrar: área, experiência, data de cadastro
+// Botão "Refazer onboarding" → navigate('/onboarding')
+```
+
+Adicionar link para /perfil na Sidebar (ícone de usuário, abaixo do logout).
+
+**Como verificar:**
+- Acessar /perfil → dados atuais preenchidos
+- Editar nome → atualiza na sidebar
+- Trocar senha → consegue logar com nova senha
+
+**Arquivos:**
+- CRIAR: `frontend/src/pages/Perfil.jsx`
+- CRIAR/MODIFICAR: endpoints em `app/routers/auth.py`
+- MODIFICAR: `frontend/src/components/layout/Sidebar.jsx`
+- MODIFICAR: `frontend/src/App.jsx` (adicionar rota /perfil)
+
+---
+
+### V1-T08 — Monitoramento de custos de IA
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/ia.md`
+
+**Contexto:** Após o episódio dos R$47, precisamos monitorar
+custos antes de abrir para usuários beta.
+Gemini 1.5 Flash tem tier gratuito de 1M tokens/dia.
+Com cache, o beta com 20 usuários provavelmente não paga nada.
+Mas precisamos saber quando cruzar o limite.
+
+**O que implementar:**
+
+**Parte 1 — Model LogIA:**
+Verificar se já existe. Se não existir, criar `app/models/log_ia.py`:
+```python
+class LogIA(Base):
+    __tablename__ = "log_ia"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tipo = Column(String(50))       # "pdf", "plano_base", "video", "questao"
+    modelo = Column(String(100))    # "gemini-1.5-flash-8b"
+    tokens_input = Column(Integer, default=0)
+    tokens_output = Column(Integer, default=0)
+    custo_usd = Column(Float, default=0.0)
+    aluno_id = Column(String(36), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.utcnow())
+```
+Criar migration Alembic para essa tabela.
+
+**Parte 2 — Registrar em ai_provider.py:**
+Após cada `generate()`, salvar no banco:
+```python
+# gemini-1.5-flash-8b: $0.075/1M input, $0.30/1M output
+custo = (tokens_input * 0.000000075) + (tokens_output * 0.0000003)
+# salvar LogIA no banco
+```
+
+**Parte 3 — Endpoint e página admin:**
+`GET /admin/financeiro/custos-ia` retorna:
+```json
+{
+  "total_mes_usd": 0.00,
+  "total_mes_brl": 0.00,
+  "limite_gratuito_tokens_dia": 1000000,
+  "consumido_hoje_tokens": 15000,
+  "por_tipo": {"pdf": 0.00, "plano_base": 0.00, "video": 0.00}
+}
+```
+
+Criar `frontend/src/pages/admin/AdminFinanceiro.jsx`:
+- Card "Custo total do mês" (USD e BRL a R$5,70)
+- Card "Tokens consumidos hoje / 1M (gratuito)"
+- Tabela: custo por tipo de operação
+- Aviso em vermelho se consumo > 80% do limite gratuito
+
+**Como verificar:**
+- Gerar PDF de uma task
+- Acessar /admin/financeiro → custo aparece (provavelmente $0.00)
+- Tokens consumidos aparecem
+
+**Arquivos:**
+- CRIAR: `app/models/log_ia.py`
+- MODIFICAR: `app/core/ai_provider.py`
+- CRIAR: endpoint em novo `app/routers/admin_financeiro.py`
+- CRIAR: `frontend/src/pages/admin/AdminFinanceiro.jsx`
+- Criar migration Alembic
+
+---
+
+# VOLTA 2 — Análise e adaptação
+> Só iniciar após Volta 1 validada com usuários beta reais.
+> Foco: o sistema aprende com o que o aluno registra no Caderno.
+
+- V2-T01: Mapa de Lacunas (baseado no Caderno de Questões)
+- V2-T02: Desempenho detalhado (radar, heatmap, velocidade de domínio)
+- V2-T03: Índice de Prontidão
+- V2-T04: Personalização por funcionalidades do onboarding
+- V2-T05: Perfil de uso (com plano externo / sem plano externo)
+- V2-T06: Confirmação de email e recuperação de senha
+- V2-T07: Horas líquidas de estudo
+- V2-T08: Ordem de aparição dos subtópicos
+
+---
+
+# VOLTA 3 — Conteúdo de apoio
+> Foco: IA enriquece o estudo com fontes confiáveis.
+
+- V3-T01: Base de conhecimento com PDFs do admin (RAG)
+- V3-T02: PDF explicativo usando fontes upadas (mais preciso)
+- V3-T03: Chat com IA contextualizado por subtópico
+- V3-T04: Fluxo pós-edital via upload de PDF
+- V3-T05: Sistema de reporte de conteúdo incorreto
+- V3-T06: Seleção de modelo IA por tipo de operação (admin)
+
+---
+
+# VOLTA 4 — Questões próprias (se validado)
+> Só implementar se o modelo pedagógico estiver validado pelo beta.
+> O Caderno de Questões pode ser suficiente — validar antes de construir.
+
+- V4-T01: Banco de questões básico (importação por PDF TEC)
+- V4-T02: QuestionFlow dentro do Skolai
+- V4-T03: Progressão de dificuldade por exposure_count
+- V4-T04: Questões geradas por IA como fallback
+- V4-T05: Aviso de origem nas questões
+
+---
+
+# VOLTA 5 — Expansão
+> Produto validado, crescimento planejado.
+
+- V5-T01: Áreas militares (COM e SVM)
+- V5-T02: Mapa de Concursos
+- V5-T03: Monetização (planos e gateway)
+- V5-T04: Backup PostgreSQL → Google Drive
+- V5-T05: Sentry + auditoria admin
+- V5-T06: Upload de PDF de prova pelo aluno
+
+---
+
+## Rotas React — Volta 1
+
+| Rota | Página | Role |
+|---|---|---|
+| /login | Login | público |
+| /onboarding | Onboarding | autenticado sem area |
+| / | Dashboard | estudante |
+| /desempenho | Desempenho | estudante |
+| /caderno-questoes | CadernoQuestoes | estudante |
+| /perfil | Perfil | estudante |
+| /admin | AdminDashboard | administrador |
+| /admin/topicos | AdminTopicos | administrador |
+| /admin/usuarios | AdminUsuarios | administrador |
+| /admin/financeiro | AdminFinanceiro | administrador |
+| /mentor | MentorDashboard | mentor |
+| /mentor/aluno/:id | MentorAlunoDetalhe | mentor |
+
+## Rotas a adicionar nas próximas voltas
+- /mapa-lacunas (Volta 2)
+- /admin/fontes (Volta 3)
+- /admin/questoes (Volta 4)
+- /admin/importar (Volta 4)
+- /admin/reportes (Volta 3)
+- /admin/configuracoes (Volta 3)
+- /mapa-concursos (Volta 5)
 

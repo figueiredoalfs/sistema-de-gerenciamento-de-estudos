@@ -20,10 +20,11 @@ from app.models.config_sistema import ConfigSistema
 router = APIRouter(prefix="/admin/config", tags=["admin — configurações"])
 
 MODELOS_IA_DISPONIVEIS = [
-    {"value": "gemini-1.5-flash",   "label": "Gemini 1.5 Flash (rápido, barato)"},
-    {"value": "gemini-1.5-pro",     "label": "Gemini 1.5 Pro (melhor qualidade)"},
-    {"value": "gemini-2.0-flash",   "label": "Gemini 2.0 Flash (mais recente, barato)"},
-    {"value": "gemini-2.5-flash",   "label": "Gemini 2.5 Flash (mais caro, thinking)"},
+    {"value": "gemini-2.0-flash",      "label": "Gemini 2.0 Flash (rápido, barato) — padrão"},
+    {"value": "gemini-2.0-flash-lite", "label": "Gemini 2.0 Flash Lite (mais econômico)"},
+    {"value": "gemini-2.5-flash",      "label": "Gemini 2.5 Flash (thinking, mais caro)"},
+    {"value": "gemini-1.5-flash",      "label": "Gemini 1.5 Flash (legado)"},
+    {"value": "gemini-1.5-pro",        "label": "Gemini 1.5 Pro (legado)"},
 ]
 
 

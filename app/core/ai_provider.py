@@ -5,12 +5,12 @@ from google.genai import types
 
 from app.core.config import settings
 
-DEFAULT_MODEL = "gemini-1.5-flash"  # modelo padrão (mais barato)
+DEFAULT_MODEL = "gemini-2.0-flash"  # modelo padrão
 
 
 class AIProvider(ABC):
     @abstractmethod
-    def generate(self, prompt: str, max_tokens: int = 512) -> str:
+    def generate(self, prompt: str, max_tokens: int = 512, tipo: str = "geral") -> str:
         raise NotImplementedError
 
 
@@ -19,20 +19,25 @@ class GeminiProvider(AIProvider):
         self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
         self._model = model
 
-    def generate(self, prompt: str, max_tokens: int = 512) -> str:
+    def generate(self, prompt: str, max_tokens: int = 512, tipo: str = "geral") -> str:
+        config_params: dict = {"max_output_tokens": max_tokens}
+        if "2.5" in self._model:
+            config_params["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+
         response = self._client.models.generate_content(
             model=self._model,
             contents=prompt,
-            config=types.GenerateContentConfig(
-                max_output_tokens=max_tokens,
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
-            ),
+            config=types.GenerateContentConfig(**config_params),
         )
+
+        usage = response.usage_metadata
+        print(f"[AI] modelo={self._model} tipo={tipo} input={usage.prompt_token_count} output={usage.candidates_token_count}")
+
         return response.text.strip()
 
 
 class _StubProvider(AIProvider):
-    def generate(self, prompt: str, max_tokens: int = 512) -> str:
+    def generate(self, prompt: str, max_tokens: int = 512, tipo: str = "geral") -> str:
         return "[IA não configurada — adicione GEMINI_API_KEY ao .env]"
 
 
