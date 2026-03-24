@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import api from '../../api/axios'
+import api from '../../api/client'
 
 function formatDate(iso) {
   if (!iso) return '—'
