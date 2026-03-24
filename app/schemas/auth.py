@@ -31,7 +31,7 @@ class AlunoResponse(BaseModel):
     email: str
     role: str
     nivel_desafio: str
-    horas_por_dia: float
+    horas_por_dia: float = 3.0
     dias_por_semana: float = 5.0
     area: Optional[str] = None
     ativo: bool

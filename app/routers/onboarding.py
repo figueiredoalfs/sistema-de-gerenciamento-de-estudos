@@ -103,6 +103,11 @@ def onboarding(
         logger.exception("Erro ao salvar onboarding")
         raise HTTPException(status_code=500, detail=f"Erro ao salvar perfil: {str(e)}")
 
+    # Salva os IDs antes de chamar o engine (que pode fazer commit/rollback próprio,
+    # expirando os objetos SQLAlchemy e causando lazy-load em estado inválido).
+    aluno_id = str(aluno.id)
+    perfil_id = str(perfil.id)
+
     # ── 3. Gerar meta via engine pedagógica ──────────────────────────────
     # Não-iniciantes recebem Meta 00 (diagnóstico) antes da Meta 01.
     # Iniciantes recebem Meta 01 diretamente.
@@ -110,19 +115,20 @@ def onboarding(
     try:
         from app.services.engine_pedagogica import gerar_meta, gerar_meta_00
         if body.experiencia and body.experiencia != "iniciante":
-            meta = gerar_meta_00(db=db, aluno_id=aluno.id)
+            meta = gerar_meta_00(db=db, aluno_id=aluno_id)
         else:
-            meta = gerar_meta(db=db, aluno_id=aluno.id)
+            meta = gerar_meta(db=db, aluno_id=aluno_id)
         tasks_geradas = meta.tasks_meta
     except HTTPException:
         # Engine sem ciclo configurado ainda — aluno poderá gerar do Dashboard
         pass
     except Exception:
-        pass
+        logger.exception("Erro ao gerar meta no onboarding (não-bloqueante)")
+        db.rollback()
 
     return OnboardingResponse(
-        aluno_id=aluno.id,
-        perfil_estudo_id=perfil.id,
+        aluno_id=aluno_id,
+        perfil_estudo_id=perfil_id,
         funcionalidades=body.funcionalidades,
         mensagem="Perfil de estudo configurado com sucesso.",
         tasks_geradas=tasks_geradas,
