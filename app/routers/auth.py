@@ -105,6 +105,7 @@ def register(body: AlunoCreate, db: Session = Depends(get_db)):
         email=body.email,
         senha_hash=hash_password(body.password),
         role=body.role,
+        ativo=True,
     )
     db.add(aluno)
     convite.usos_atuais += 1
