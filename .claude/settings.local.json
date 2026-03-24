@@ -49,7 +49,8 @@
       "Bash(railway logs:*)",
       "Bash(railway service:*)",
       "Bash(DATABASE_URL=\"postgresql://postgres:TuqjxzDgXFeaFeWcWKQwhICLTdCYHbmV@trolley.proxy.rlwy.net:22130/railway?sslmode=require\" SECRET_KEY=\"35b01ac8f7fed9a348a6f45ba79f1fc3e24984df11779f1e54632fbfccabdaf4\" python3 check_senha.py)",
-      "Bash(DATABASE_URL=\"postgresql://postgres:TuqjxzDgXFeaFeWcWKQwhICLTdCYHbmV@trolley.proxy.rlwy.net:22130/railway?sslmode=require\" SECRET_KEY=\"35b01ac8f7fed9a348a6f45ba79f1fc3e24984df11779f1e54632fbfccabdaf4\" python3 -c \":*)"
+      "Bash(DATABASE_URL=\"postgresql://postgres:TuqjxzDgXFeaFeWcWKQwhICLTdCYHbmV@trolley.proxy.rlwy.net:22130/railway?sslmode=require\" SECRET_KEY=\"35b01ac8f7fed9a348a6f45ba79f1fc3e24984df11779f1e54632fbfccabdaf4\" python3 -c \":*)",
+      "Bash(ls Dockerfile* docker-compose*)"
     ]
   }
 }
