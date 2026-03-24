@@ -19,6 +19,7 @@ export function AuthProvider({ children }) {
       setLoading(false)
       return
     }
+    setLoading(true)
     getMe()
       .then(setUser)
       .catch(() => {

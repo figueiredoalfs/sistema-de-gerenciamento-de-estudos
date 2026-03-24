@@ -13,6 +13,7 @@ import AdminUsuarios from './pages/AdminUsuarios'
 import AdminPlanoBase from './pages/AdminPlanoBase'
 import AdminPendencias from './pages/AdminPendencias'
 import AdminConfig from './pages/AdminConfig'
+import AdminConvites from './pages/admin/AdminConvites'
 import MentorAlunos from './pages/MentorAlunos'
 import TaskView from './pages/TaskView'
 import Desempenho from './pages/Desempenho'
@@ -145,6 +146,17 @@ export default function App() {
           <ProtectedRoute requireAdmin>
             <AppLayout>
               <AdminConfig />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/convites"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AppLayout>
+              <AdminConvites />
             </AppLayout>
           </ProtectedRoute>
         }

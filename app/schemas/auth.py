@@ -21,7 +21,8 @@ class AlunoCreate(BaseModel):
     nome: str
     email: EmailStr
     password: str
-    role: str = "student"
+    codigo_convite: str
+    role: str = "estudante"
 
 
 class AlunoResponse(BaseModel):

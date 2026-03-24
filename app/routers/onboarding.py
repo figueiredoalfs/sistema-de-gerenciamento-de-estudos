@@ -14,11 +14,14 @@ Fluxo:
 """
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("skolai.onboarding")
 
 from app.core.database import get_db
 from app.core.security import get_optional_current_user, hash_password
@@ -92,8 +95,13 @@ def onboarding(
         )
         db.add(perfil)
 
-    db.commit()
-    db.refresh(perfil)
+    try:
+        db.commit()
+        db.refresh(perfil)
+    except Exception as e:
+        db.rollback()
+        logger.exception("Erro ao salvar onboarding")
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar perfil: {str(e)}")
 
     # ── 3. Gerar meta via engine pedagógica ──────────────────────────────
     # Não-iniciantes recebem Meta 00 (diagnóstico) antes da Meta 01.

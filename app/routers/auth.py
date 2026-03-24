@@ -16,6 +16,7 @@ from app.core.security import (
     verify_refresh_token,
 )
 from app.models.aluno import Aluno
+from app.models.codigo_convite import CodigoConvite
 from app.schemas.auth import AlunoCreate, AlunoResponse, AlunoUpdate, AlterarSenhaRequest, TokenResponse
 
 logger = logging.getLogger("skolai.auth")
@@ -82,8 +83,23 @@ def refresh(
 
 @router.post("/register", response_model=AlunoResponse, status_code=201)
 def register(body: AlunoCreate, db: Session = Depends(get_db)):
+    from datetime import datetime, timezone
+
+    # Validar código de convite
+    convite = db.query(CodigoConvite).filter(
+        CodigoConvite.codigo == body.codigo_convite,
+        CodigoConvite.ativo == True,
+    ).first()
+    if not convite:
+        raise HTTPException(status_code=400, detail="Código de convite inválido")
+    if convite.expires_at and convite.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Código de convite expirado")
+    if convite.usos_maximos is not None and convite.usos_atuais >= convite.usos_maximos:
+        raise HTTPException(status_code=400, detail="Código de convite esgotado")
+
     if db.query(Aluno).filter(Aluno.email == body.email).first():
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
+
     aluno = Aluno(
         nome=body.nome,
         email=body.email,
@@ -91,6 +107,7 @@ def register(body: AlunoCreate, db: Session = Depends(get_db)):
         role=body.role,
     )
     db.add(aluno)
+    convite.usos_atuais += 1
     db.commit()
     db.refresh(aluno)
     return aluno
