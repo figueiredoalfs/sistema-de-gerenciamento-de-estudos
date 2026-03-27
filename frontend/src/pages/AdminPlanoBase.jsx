@@ -164,7 +164,10 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
   const [pickerMateria, setPickerMateria] = useState('')
 
   useEffect(() => {
-    getHierarquiaAdmin().then(h => setHierarquia(Array.isArray(h) ? h : [])).catch(() => {})
+    getHierarquiaAdmin().then(h => {
+      const arr = Array.isArray(h) ? h : []
+      setHierarquia(arr.filter((m, i, a) => a.findIndex(x => x.nome === m.nome) === i))
+    }).catch(() => {})
   }, [])
 
   const criteriosPerfil = CRITERIOS_AVANCO[plano.perfil] || [70, 75, 80]
@@ -559,7 +562,7 @@ export default function AdminPlanoBase() {
   function carregar() {
     setLoading(true)
     listarPlanos({ pendente_revisao: filtroPendente || undefined })
-      .then(setPlanos)
+      .then(data => setPlanos(data.filter((p, i, a) => a.findIndex(x => x.id === p.id) === i)))
       .catch(() => setErro('Erro ao carregar planos.'))
       .finally(() => setLoading(false))
   }
