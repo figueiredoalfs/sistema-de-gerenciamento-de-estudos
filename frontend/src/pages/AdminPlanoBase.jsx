@@ -210,6 +210,7 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
   function confirmarPickerMateria() {
     const nome = pickerMateria.trim()
     if (!nome) return
+    const subtopicosInicial = hierarquia.find(m => m.nome === nome)?.subtopicos?.map(s => s.nome) ?? []
     setConteudo((prev) => {
       const fases = prev.fases.map((f, i) => {
         if (i !== pickerFase) return f
@@ -218,7 +219,11 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
         }
         return { ...f, materias_novas: [...(f.materias_novas || []), nome] }
       })
-      return { ...prev, fases }
+      return {
+        ...prev,
+        fases,
+        ordem_subtopicos: { ...prev.ordem_subtopicos, [nome]: subtopicosInicial },
+      }
     })
     setPickerFase(null)
   }
@@ -432,7 +437,7 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
                         >
                           <option value="">Selecione a matéria…</option>
                           {hierarquia
-                            .filter(m => !getFaseMaterias(f).includes(m.nome))
+                            .filter(m => !conteudo.fases.flatMap(getFaseMaterias).includes(m.nome))
                             .map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
                         </select>
                         <button
