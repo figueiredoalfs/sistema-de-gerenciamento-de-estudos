@@ -63,13 +63,23 @@ export default function Onboarding() {
         funcionalidades: form.funcionalidades,
         tem_plano_externo: temCronograma ? null : form.temPlanoExterno,
       })
-      await refreshUser()
-      navigate('/')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao salvar suas preferências')
-    } finally {
+      console.error('[onboarding] POST /onboarding failed:', err.response?.status, err.response?.data, err.message)
+      const detail = err.response?.data?.detail
+      const msg = typeof detail === 'string'
+        ? detail
+        : err.message || 'Erro ao salvar suas preferências'
+      setError(msg)
       setLoading(false)
+      return
     }
+    try {
+      await refreshUser()
+    } catch {
+      // Onboarding foi salvo com sucesso; falha no refreshUser não deve bloquear
+    }
+    navigate('/')
+    setLoading(false)
   }
 
   return (
