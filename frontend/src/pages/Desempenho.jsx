@@ -136,6 +136,8 @@ export default function Desempenho() {
       </div>
     )
 
+  if (!data) return <Spinner />
+
   const { total_questoes, perc_geral, por_materia } = data
   const maisForte = por_materia[0] ?? null
   const maisFraca = por_materia[por_materia.length - 1] ?? null

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { listarPlanos, gerarPlano, atualizarPlano, aplicarPlano, deletarPlano } from '../api/adminPlanoBase'
+import { listarPlanos, gerarPlano, criarPlano, atualizarPlano, aplicarPlano, deletarPlano } from '../api/adminPlanoBase'
 import { getHierarquia } from '../api/bateria'
 
 const PERFIL_OPTIONS = ['iniciante', 'intermediario', 'avancado']
@@ -546,6 +546,7 @@ export default function AdminPlanoBase() {
   const [loading, setLoading]   = useState(true)
   const [erro, setErro]         = useState('')
   const [gerando, setGerando]   = useState(false)
+  const [criando, setCriando]   = useState(false)
   const [genArea, setGenArea]   = useState('fiscal')
   const [genPerfil, setGenPerfil] = useState('iniciante')
   const [editarPlano, setEditarPlano]   = useState(null)
@@ -560,6 +561,20 @@ export default function AdminPlanoBase() {
   }
 
   useEffect(() => { carregar() }, [filtroPendente]) // eslint-disable-line
+
+  async function handleCriar() {
+    setCriando(true)
+    setErro('')
+    try {
+      const novo = await criarPlano({ area: genArea, perfil: genPerfil })
+      setPlanos((prev) => [novo, ...prev])
+      setEditarPlano(novo)
+    } catch (e) {
+      setErro(e.response?.data?.detail || 'Erro ao criar plano.')
+    } finally {
+      setCriando(false)
+    }
+  }
 
   async function handleGerar() {
     setGerando(true)
@@ -628,12 +643,20 @@ export default function AdminPlanoBase() {
               {PERFIL_OPTIONS.map((p) => <option key={p}>{p}</option>)}
             </select>
           </div>
-          <button onClick={handleGerar} disabled={gerando}
+          <button onClick={handleGerar} disabled={gerando || criando}
             className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2">
             {gerando ? (
               <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Gerando…</>
             ) : (
               'Gerar via IA'
+            )}
+          </button>
+          <button onClick={handleCriar} disabled={criando || gerando}
+            className="px-4 py-2 text-sm bg-brand-surface border border-brand-border hover:border-indigo-500 text-brand-text rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2">
+            {criando ? (
+              <><div className="w-4 h-4 border-2 border-brand-border border-t-indigo-400 rounded-full animate-spin" /> Criando…</>
+            ) : (
+              'Criar manualmente'
             )}
           </button>
         </div>

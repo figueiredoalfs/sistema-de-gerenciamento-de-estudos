@@ -28,6 +28,11 @@ export async function deletarPlano(id) {
   await client.delete(`/admin/planos-base/${id}`)
 }
 
+export async function criarPlano({ area, perfil, fases = [] }) {
+  const { data } = await client.post('/admin/planos-base', { area, perfil, fases })
+  return data
+}
+
 export async function aplicarPlano(id, modo = 'novos') {
   const { data } = await client.post(`/admin/planos-base/${id}/aplicar`, null, { params: { modo } })
   return data
