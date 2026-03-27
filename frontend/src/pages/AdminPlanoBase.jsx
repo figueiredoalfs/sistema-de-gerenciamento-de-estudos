@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { listarPlanos, gerarPlano, criarPlano, atualizarPlano, aplicarPlano, deletarPlano } from '../api/adminPlanoBase'
-import { getHierarquia } from '../api/bateria'
+import { listarPlanos, gerarPlano, criarPlano, atualizarPlano, aplicarPlano, deletarPlano, getHierarquiaAdmin } from '../api/adminPlanoBase'
 
 const PERFIL_OPTIONS = ['iniciante', 'intermediario', 'avancado']
 const AREA_OPTIONS = ['fiscal', 'eaof_com', 'eaof_svm', 'cfoe_com', 'juridica', 'policial', 'ti', 'saude', 'outro']
@@ -165,7 +164,7 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
   const [pickerMateria, setPickerMateria] = useState('')
 
   useEffect(() => {
-    getHierarquia().then(h => setHierarquia(Array.isArray(h) ? h : [])).catch(() => {})
+    getHierarquiaAdmin().then(h => setHierarquia(Array.isArray(h) ? h : [])).catch(() => {})
   }, [])
 
   const criteriosPerfil = CRITERIOS_AVANCO[plano.perfil] || [70, 75, 80]
@@ -210,7 +209,7 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
   function confirmarPickerMateria() {
     const nome = pickerMateria.trim()
     if (!nome) return
-    const subtopicosInicial = hierarquia.find(m => m.nome === nome)?.subtopicos?.map(s => s.nome) ?? []
+    const subtopicosInicial = hierarquia.find(m => m.nome === nome)?.blocos?.flatMap(b => b.subtopicos.map(s => s.nome)) ?? []
     setConteudo((prev) => {
       const fases = prev.fases.map((f, i) => {
         if (i !== pickerFase) return f
@@ -420,7 +419,7 @@ function FasesEditorModal({ plano, onClose, onSaved }) {
                                 materiaKey={subKey}
                                 subtopicos={subs}
                                 onChange={atualizarOrdemSubtopicos}
-                                subtopicosDisponiveis={hierarquia.find(m => m.nome === subKey)?.subtopicos ?? []}
+                                subtopicosDisponiveis={hierarquia.find(m => m.nome === subKey)?.blocos?.flatMap(b => b.subtopicos) ?? []}
                               />
                             </div>
                           )}

@@ -37,3 +37,8 @@ export async function aplicarPlano(id, modo = 'novos') {
   const { data } = await client.post(`/admin/planos-base/${id}/aplicar`, null, { params: { modo } })
   return data
 }
+
+export async function getHierarquiaAdmin() {
+  const { data } = await client.get('/admin/topicos/hierarquia')
+  return data
+}
