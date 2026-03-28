@@ -65,14 +65,15 @@ def upgrade() -> None:
         batch_op.drop_index(batch_op.f('ix_explicacoes_subtopico_topico_id'))
 
     op.drop_table('explicacoes_subtopico')
-    op.drop_table('planos_base')
     with op.batch_alter_table('subtopico_estados', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_subtopico_estados_aluno_id'))
         batch_op.drop_index(batch_op.f('ix_subtopico_estados_subtopico_id'))
 
     op.drop_table('subtopico_estados')
+    # Remove FK de perfil_estudo antes de dropar planos_base
     with op.batch_alter_table('perfil_estudo', schema=None) as batch_op:
         batch_op.drop_column('plano_base_id')
+    op.drop_table('planos_base')
 
     # ### end Alembic commands ###
 
