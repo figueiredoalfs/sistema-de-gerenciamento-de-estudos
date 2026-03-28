@@ -155,6 +155,7 @@ def registrar_bateria(
             peso_fonte=peso,
             banca=q.banca,
             data=agora,
+            duracao_min=body.duracao_min,
         )
         db.add(prof)
         registros.append(prof)

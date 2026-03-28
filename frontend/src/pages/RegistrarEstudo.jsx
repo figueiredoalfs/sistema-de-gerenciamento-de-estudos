@@ -19,14 +19,15 @@ function hoje() {
 }
 
 let _nextId = 1
-function newRow() { return { id: _nextId++, materia: '', modulo: '', subtopico: '' } }
+function newSubRow() { return { id: _nextId++, subtopico: '' } }
+function newGroup() { return { id: _nextId++, materia: '', modulo: '', subtopicos: [newSubRow()] } }
 
 export default function RegistrarEstudo() {
   const [hierarquia, setHierarquia] = useState([])
   const [loadingHier, setLoadingHier] = useState(true)
   const [errHier, setErrHier] = useState(null)
 
-  const [rows, setRows] = useState([newRow()])
+  const [groups, setGroups] = useState([newGroup()])
   const [tipo, setTipo] = useState('teoria')
   const [data, setData] = useState(hoje())
   const [duracao, setDuracao] = useState('')
@@ -42,18 +43,36 @@ export default function RegistrarEstudo() {
       .finally(() => setLoadingHier(false))
   }, [])
 
-  function updateRow(id, field, value) {
-    setRows(prev => prev.map(r => {
-      if (r.id !== id) return r
-      const updated = { ...r, [field]: value }
-      if (field === 'materia') { updated.modulo = ''; updated.subtopico = '' }
-      if (field === 'modulo') { updated.subtopico = '' }
+  function updateGroup(gid, field, value) {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== gid) return g
+      const updated = { ...g, [field]: value }
+      if (field === 'materia') { updated.modulo = ''; updated.subtopicos = [newSubRow()] }
+      if (field === 'modulo') { updated.subtopicos = updated.subtopicos.map(s => ({ ...s, subtopico: '' })) }
       return updated
     }))
   }
 
-  function addRow() { setRows(prev => [...prev, newRow()]) }
-  function removeRow(id) { setRows(prev => prev.filter(r => r.id !== id)) }
+  function updateSubRow(gid, sid, value) {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== gid) return g
+      return { ...g, subtopicos: g.subtopicos.map(s => s.id === sid ? { ...s, subtopico: value } : s) }
+    }))
+  }
+
+  function addSubRow(gid) {
+    setGroups(prev => prev.map(g => g.id === gid ? { ...g, subtopicos: [...g.subtopicos, newSubRow()] } : g))
+  }
+
+  function removeSubRow(gid, sid) {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== gid) return g
+      return { ...g, subtopicos: g.subtopicos.filter(s => s.id !== sid) }
+    }))
+  }
+
+  function addGroup() { setGroups(prev => [...prev, newGroup()]) }
+  function removeGroup(gid) { setGroups(prev => prev.filter(g => g.id !== gid)) }
 
   async function handleSalvar(e) {
     e.preventDefault()
@@ -61,16 +80,20 @@ export default function RegistrarEstudo() {
     setSucesso(null)
     setEnviando(true)
     try {
-      for (const row of rows) {
-        await postSessaoEstudo({
-          subtopico_id: row.subtopico || row.modulo || null,
-          tipo,
-          data,
-          duracao_min: duracao ? parseInt(duracao, 10) : null,
-        })
+      let count = 0
+      for (const g of groups) {
+        for (const s of g.subtopicos) {
+          await postSessaoEstudo({
+            subtopico_id: s.subtopico || g.modulo || null,
+            tipo,
+            data,
+            duracao_min: duracao ? parseInt(duracao, 10) : null,
+          })
+          count++
+        }
       }
-      setSucesso(`${rows.length} sessão(ões) registrada(s)!`)
-      setRows([newRow()])
+      setSucesso(`${count} sessão(ões) registrada(s)!`)
+      setGroups([newGroup()])
       setDuracao('')
     } catch (err) {
       setErro(err.response?.data?.detail || err.message || 'Erro ao registrar sessão.')
@@ -92,41 +115,66 @@ export default function RegistrarEstudo() {
 
       <form onSubmit={handleSalvar} className="bg-brand-card border border-brand-border rounded-2xl p-6 space-y-5">
         <div className="space-y-3">
-          {rows.map((row, idx) => {
-            const materiaObj = hierarquia.find(m => m.id === row.materia) || null
+          {groups.map((group, gIdx) => {
+            const materiaObj = hierarquia.find(m => m.id === group.materia) || null
             const modulos = materiaObj?.modulos || []
-            const moduloObj = modulos.find(m => m.id === row.modulo) || null
-            const subtopicos = moduloObj?.subtopicos || []
+            const moduloObj = modulos.find(m => m.id === group.modulo) || null
+            const subtopicosDisp = moduloObj?.subtopicos || []
 
             return (
-              <div key={row.id} className="border border-brand-border rounded-xl p-4 space-y-3">
+              <div key={group.id} className="border border-brand-border rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-brand-muted uppercase tracking-wide">Matéria {idx + 1}</span>
-                  {rows.length > 1 && (
-                    <button type="button" onClick={() => removeRow(row.id)} className="text-brand-muted hover:text-red-400 transition-colors text-sm px-1">×</button>
+                  <span className="text-xs font-semibold text-brand-muted uppercase tracking-wide">Matéria {gIdx + 1}</span>
+                  {groups.length > 1 && (
+                    <button type="button" onClick={() => removeGroup(group.id)} className="text-brand-muted hover:text-red-400 transition-colors text-sm px-1">×</button>
                   )}
                 </div>
 
                 <Campo label="Matéria">
-                  <select className={selectCls} value={row.materia} onChange={e => updateRow(row.id, 'materia', e.target.value)} disabled={loadingHier}>
+                  <select className={selectCls} value={group.materia} onChange={e => updateGroup(group.id, 'materia', e.target.value)} disabled={loadingHier}>
                     <option value="">Selecione a matéria</option>
                     {hierarquia.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                   </select>
                 </Campo>
 
                 <Campo label="Módulo (opcional)">
-                  <select className={selectCls} value={row.modulo} onChange={e => updateRow(row.id, 'modulo', e.target.value)} disabled={!row.materia || modulos.length === 0}>
+                  <select className={selectCls} value={group.modulo} onChange={e => updateGroup(group.id, 'modulo', e.target.value)} disabled={!group.materia || modulos.length === 0}>
                     <option value="">Selecione o módulo</option>
                     {modulos.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                   </select>
                 </Campo>
 
-                <Campo label="Subtópico (opcional)">
-                  <select className={selectCls} value={row.subtopico} onChange={e => updateRow(row.id, 'subtopico', e.target.value)} disabled={!row.modulo || subtopicos.length === 0}>
-                    <option value="">Selecione o subtópico</option>
-                    {subtopicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
-                  </select>
-                </Campo>
+                <div className="space-y-2">
+                  {group.subtopicos.map((sub, sIdx) => (
+                    <div key={sub.id} className="bg-brand-surface rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <select
+                            className={selectCls}
+                            value={sub.subtopico}
+                            onChange={e => updateSubRow(group.id, sub.id, e.target.value)}
+                            disabled={!group.modulo || subtopicosDisp.length === 0}
+                          >
+                            <option value="">{sIdx === 0 ? 'Subtópico (opcional)' : `Subtópico ${sIdx + 1}`}</option>
+                            {subtopicosDisp.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                          </select>
+                        </div>
+                        {group.subtopicos.length > 1 && (
+                          <button type="button" onClick={() => removeSubRow(group.id, sub.id)} className="text-brand-muted hover:text-red-400 transition-colors text-sm px-1 flex-shrink-0">×</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => addSubRow(group.id)}
+                  disabled={!group.modulo}
+                  className="w-full py-1.5 border border-dashed border-brand-border rounded-lg text-brand-muted text-xs hover:text-brand-text hover:border-indigo-400 transition-colors disabled:opacity-40"
+                >
+                  ＋ Subtópico
+                </button>
               </div>
             )
           })}
@@ -134,7 +182,7 @@ export default function RegistrarEstudo() {
 
         <button
           type="button"
-          onClick={addRow}
+          onClick={addGroup}
           className="w-full py-2 border border-dashed border-brand-border rounded-xl text-brand-muted text-sm hover:text-brand-text hover:border-indigo-500 transition-colors"
         >
           ＋ Adicionar matéria

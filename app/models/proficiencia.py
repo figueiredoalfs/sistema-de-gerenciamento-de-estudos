@@ -55,6 +55,7 @@ class Proficiencia(Base):
     )
     peso_fonte = Column(Float, default=1.0)
     banca = Column(String(100), nullable=True)
+    duracao_min = Column(Integer, nullable=True)
 
     data = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -15,9 +15,9 @@ export async function getBancas() {
   return data // [{ nome: "CESPE/CEBRASPE" }, ...]
 }
 
-export async function postBateria(questoes) {
+export async function postBateria(questoes, duracao_min = null) {
   // questoes: [{ materia, subtopico, acertos, total, fonte, banca? }]
-  const { data } = await client.post('/bateria', { questoes })
+  const { data } = await client.post('/bateria', { questoes, duracao_min })
   return data
 }
 

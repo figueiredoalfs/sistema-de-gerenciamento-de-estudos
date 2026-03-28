@@ -59,7 +59,8 @@
       "Bash(alembic revision:*)",
       "Bash(python -c \"import app.main; print\\(''OK''\\)\")",
       "Bash(grep -r figueiredoalfs c:/Users/Figueiredo/sistema-de-gerenciamento-de-estudos --include=*.py --include=*.js --include=*.jsx)",
-      "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos -name *.py -path */routers/* -type f)"
+      "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos -name *.py -path */routers/* -type f)",
+      "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos -type f -name *esempento* -o -name *performance*)"
     ]
   }
 }

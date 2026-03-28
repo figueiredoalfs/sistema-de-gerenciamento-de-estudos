@@ -16,6 +16,7 @@ class QuestaoInput(BaseModel):
 
 class BateriaRequest(BaseModel):
     questoes: List[QuestaoInput]
+    duracao_min: Optional[int] = None
 
 
 class ProficienciaOut(BaseModel):

@@ -88,14 +88,15 @@ function HeatmapSubtopicos({ dados }) {
             {subs.map((s) => {
               const cor = COR_STATUS[s.status] || COR_STATUS.sem_dados
               const pct = s.taxa_acerto != null ? `${s.taxa_acerto.toFixed(0)}%` : '–'
+              const nome = s.subtopico || s.nome || '–'
               return (
                 <div
-                  key={s.subtopico_id || s.nome}
-                  title={`${s.nome}: ${pct} (${s.total_questoes ?? 0} questões)`}
+                  key={s.topico_id || s.subtopico_id || nome}
+                  title={`${nome}: ${pct} (${s.total_questoes ?? 0} questões)`}
                   className="rounded px-2 py-1 text-xs text-white font-medium cursor-default select-none"
                   style={{ backgroundColor: cor + 'cc', border: `1px solid ${cor}` }}
                 >
-                  {s.nome.length > 20 ? s.nome.slice(0, 20) + '…' : s.nome}
+                  {nome.length > 20 ? nome.slice(0, 20) + '…' : nome}
                   <span className="ml-1 opacity-75">{pct}</span>
                 </div>
               )
@@ -126,7 +127,7 @@ function EvolucaoTemporal({ dados, periodo }) {
     const obj = { semana: formatSemana(sem) }
     for (const m of materias) {
       const pt = dados.find(p => p.semana === sem && p.materia === m)
-      obj[m] = pt ? parseFloat(pt.taxa_acerto.toFixed(1)) : null
+      obj[m] = pt ? parseFloat((pt.taxa_acerto ?? 0).toFixed(1)) : null
     }
     return obj
   })
@@ -317,7 +318,7 @@ export default function Desempenho() {
         const pts = []
         for (const m of (pmRes.value || [])) {
           for (const pt of (m.evolucao_semanal || [])) {
-            pts.push({ materia: m.materia, semana: pt.semana, taxa_acerto: pt.taxa_acerto })
+            pts.push({ materia: m.materia, semana: pt.semana, taxa_acerto: pt.taxa ?? pt.taxa_acerto ?? 0 })
           }
         }
         setEvolucao(pts)
