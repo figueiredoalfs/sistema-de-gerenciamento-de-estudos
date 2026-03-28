@@ -25,7 +25,7 @@ export default function Onboarding() {
     tempoEstudo: '',
     horasPorDia: null,
     diasPorSemana: null,
-    funcionalidades: [],
+    funcionalidades: ['analise_desempenho'],
     temPlanoExterno: null,
   })
 
@@ -38,8 +38,6 @@ export default function Onboarding() {
     if (step === 4) return form.horasPorDia !== null && form.diasPorSemana !== null
     if (step === 5) {
       if (form.funcionalidades.length === 0) return false
-      // Se não tem cronograma, a pergunta de plano externo deve ser respondida
-      if (!temCronograma && form.temPlanoExterno === null) return false
       return true
     }
     return false

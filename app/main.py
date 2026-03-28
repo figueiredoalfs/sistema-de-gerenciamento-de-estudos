@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import Base  # noqa: F401 — importado para Alembic detectar os models
-from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, questoes, respostas, admin_importar_questoes, admin_importar_tec, admin_pendencias, admin_bancas, admin_notificacoes, admin_config, admin_convites, dev  # noqa: E501
+from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, questoes, respostas, admin_importar_questoes, admin_importar_tec, admin_pendencias, admin_bancas, admin_notificacoes, admin_config, admin_convites, dev, sessoes_estudo  # noqa: E501
 from app.modules.conteudo.router import router as conteudo_router
 
 # Importar todos os models para o Alembic detectar
@@ -100,6 +100,7 @@ app.include_router(admin_bancas.router)
 app.include_router(admin_notificacoes.router)
 app.include_router(admin_config.router)
 app.include_router(admin_convites.router)
+app.include_router(sessoes_estudo.router)
 app.include_router(dev.router)
 
 

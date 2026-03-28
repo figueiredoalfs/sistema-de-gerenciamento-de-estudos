@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useTasks } from '../hooks/useTasks'
-import WeeklyProgressBar from '../components/dashboard/WeeklyProgressBar'
+import { getResumo, getSugestoesRevisao } from '../api/desempenho'
+import { listarBaterias } from '../api/bateria'
 
 function Spinner() {
   return (
@@ -26,191 +26,184 @@ function AdminHub() {
   )
 }
 
-// ── Seção DEV ── remover antes do deploy ──────────────────────────────────────
-function DevSection({ onReset, resetting, resetError }) {
-  const [open, setOpen] = useState(false)
-
+function KpiCard({ label, value, sub, color = 'indigo' }) {
+  const colors = {
+    indigo: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
+    emerald: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+    amber: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+    red: 'bg-red-500/10 border-red-500/20 text-red-400',
+  }
   return (
-    <div className="fixed bottom-4 left-64 z-50 flex flex-col items-start gap-2">
-      {open && (
-        <div className="bg-brand-surface border border-dashed border-yellow-500/40 rounded-xl p-3 shadow-xl w-56">
-          <p className="text-[10px] font-bold text-yellow-500/70 uppercase tracking-widest mb-2">
-            Dev — remover antes do deploy
-          </p>
-          <button
-            onClick={onReset}
-            disabled={resetting}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/15 transition-all duration-200 disabled:opacity-50"
-          >
-            {resetting ? (
-              <>
-                <span className="w-3 h-3 rounded-full border border-red-400/40 border-t-red-400 animate-spin" />
-                Resetando...
-              </>
-            ) : (
-              <>
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Resetar do zero
-              </>
-            )}
-          </button>
-          {resetError && (
-            <p className="text-[10px] text-red-400 mt-2 break-words">{resetError}</p>
-          )}
-          {!resetError && (
-            <p className="text-[10px] text-brand-muted mt-2">Volta ao onboarding do zero.</p>
-          )}
-        </div>
-      )}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-yellow-500/80 text-[10px] font-bold uppercase tracking-widest hover:bg-yellow-500/20 transition-all"
-      >
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-        </svg>
-        Dev
-      </button>
+    <div className={`rounded-2xl border p-5 ${colors[color]}`}>
+      <p className="text-xs font-medium opacity-70 uppercase tracking-wide mb-1">{label}</p>
+      <p className="text-2xl font-bold">{value}</p>
+      {sub && <p className="text-xs opacity-60 mt-1">{sub}</p>}
     </div>
   )
 }
-// ─────────────────────────────────────────────────────────────────────────────
+
+function PercBar({ perc }) {
+  const color = perc >= 70 ? 'bg-emerald-500' : perc >= 50 ? 'bg-amber-500' : 'bg-red-500'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-brand-border rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(perc, 100)}%` }} />
+      </div>
+      <span className="text-xs text-brand-muted w-10 text-right">{perc.toFixed(1)}%</span>
+    </div>
+  )
+}
+
+function PrioridadeBadge({ p }) {
+  if (p === 'critico') return <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">Crítico</span>
+  if (p === 'urgente') return <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-medium">Urgente</span>
+  return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Revisar</span>
+}
 
 export default function Dashboard() {
-  const navigate = useNavigate()
   const { user } = useAuth()
-  const { tasks, meta, loading, error, metaError, heroTask, iniciarTask, concluirTask, criarMeta, resetarDados, resetting } = useTasks()
-  const [resetError, setResetError] = useState(null)
+  const [resumo, setResumo] = useState(null)
+  const [sugestoes, setSugestoes] = useState([])
+  const [baterias, setBaterias] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  async function handleReset() {
-    setResetError(null)
-    const result = await resetarDados()
-    if (result?.redirectToOnboarding) {
-      navigate('/onboarding')
-    } else if (result?.error) {
-      setResetError(result.error)
-    }
-  }
+  useEffect(() => {
+    Promise.all([getResumo(), getSugestoesRevisao(), listarBaterias({ pagina: 1, por_pagina: 5 })])
+      .then(([r, s, b]) => {
+        setResumo(r)
+        setSugestoes(Array.isArray(s) ? s : [])
+        setBaterias(Array.isArray(b) ? b : [])
+      })
+      .catch(() => setError('Erro ao carregar dados.'))
+      .finally(() => setLoading(false))
+  }, [])
 
   if (user?.role === 'administrador' || user?.role === 'mentor') return <AdminHub />
-
   if (loading) return <Spinner />
 
-  // ── Modo diagnóstico: bloqueia o dashboard até a Meta 00 ser concluída ──────
-  if (user?.diagnostico_pendente) {
-    const tasksDiag = tasks.filter(t => t.tipo === 'diagnostico' || meta?.numero_semana === 0)
-    const todasConcluidas = tasksDiag.length > 0 && tasksDiag.every(t => t.status === 'completed')
-
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-brand-text">
-            Diagnóstico inicial
-          </h1>
-          <p className="text-brand-muted text-sm mt-1">
-            Conclua as baterias abaixo para calibrar seu plano de estudos. Sua meta semanal será gerada automaticamente após o diagnóstico.
-          </p>
-        </div>
-
-        {meta && <WeeklyProgressBar meta={meta} />}
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
-        )}
-
-        {metaError && (
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-amber-400 text-sm">{metaError}</div>
-        )}
-
-        {!meta && !error && (
-          <div className="bg-brand-card border border-brand-border rounded-2xl p-8 text-center">
-            <p className="text-brand-muted text-sm">Gerando seu diagnóstico...</p>
-          </div>
-        )}
-
-        {todasConcluidas && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center">
-            <p className="text-2xl mb-2">🎉</p>
-            <p className="text-emerald-400 font-semibold">Diagnóstico concluído!</p>
-            <p className="text-brand-muted text-sm mt-1">Sua meta inicial está sendo gerada com base nos seus resultados.</p>
-          </div>
-        )}
-
-        <DevSection onReset={handleReset} resetting={resetting} resetError={resetError} />
-      </div>
-    )
-  }
-
-  const semMeta = !meta || meta.status === 'encerrada'
+  const semDados = !resumo || resumo.total_questoes === 0
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       {/* Saudação */}
       <div>
         <h1 className="text-2xl font-bold text-brand-text">
-          Olá, <span className="gradient-text">{user?.nome?.split(' ')[0]}</span> 👋
+          Olá, <span className="gradient-text">{user?.nome?.split(' ')[0]}</span>
         </h1>
-        <p className="text-brand-muted text-sm mt-1">Veja o que você tem para hoje</p>
+        <p className="text-brand-muted text-sm mt-1">Central de análise do seu desempenho</p>
       </div>
 
-      {/* Progresso semanal */}
-      {meta && <WeeklyProgressBar meta={meta} />}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
+      )}
 
-      {/* Estado: sem meta */}
-      {semMeta && (
-        <div className="bg-brand-card border border-brand-border rounded-2xl p-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-brand-gradient/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+      {semDados ? (
+        <div className="bg-brand-card border border-brand-border rounded-2xl p-8 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto">
             <svg className="w-7 h-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
-          <p className="text-brand-text font-semibold">Nenhuma meta ativa</p>
-          <p className="text-brand-muted text-sm mt-1 mb-6">Gere sua meta semanal para começar a estudar.</p>
-          <button
-            onClick={criarMeta}
-            className="px-6 py-2.5 bg-brand-gradient text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all duration-300"
+          <div>
+            <p className="text-brand-text font-semibold">Nenhum dado ainda</p>
+            <p className="text-brand-muted text-sm mt-1">Lance seu primeiro caderno de questões para ver seu desempenho aqui.</p>
+          </div>
+          <Link
+            to="/caderno-questoes"
+            className="inline-block px-6 py-2.5 bg-brand-gradient text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all duration-300"
           >
-            Gerar meta semanal
-          </button>
+            Lançar questões
+          </Link>
         </div>
-      )}
+      ) : (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <KpiCard
+              label="Aproveitamento"
+              value={`${(resumo.taxa_acerto_geral ?? 0).toFixed(1)}%`}
+              color={resumo.taxa_acerto_geral >= 70 ? 'emerald' : resumo.taxa_acerto_geral >= 50 ? 'amber' : 'red'}
+            />
+            <KpiCard label="Questões feitas" value={(resumo.total_questoes ?? 0).toLocaleString()} color="indigo" />
+            <KpiCard label="Streak" value={`${resumo.streak_dias ?? 0}d`} sub="dias consecutivos" color="amber" />
+            <KpiCard label="Dias este mês" value={resumo.dias_estudados_30d ?? 0} sub="últimos 30 dias" color="indigo" />
+          </div>
 
-      {/* Erro de tasks */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* Erro de geração de meta (fora da seção dev, para aparecer perto do botão) */}
-      {metaError && semMeta && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-amber-400 text-sm">
-          {metaError}
-        </div>
-      )}
-
-      {/* Todas concluídas */}
-      {!semMeta && tasks.length > 0 && tasks.every((t) => t.status === 'completed') && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center">
-          <p className="text-2xl mb-2">🎉</p>
-          {meta?.numero_semana === 0 ? (
-            <>
-              <p className="text-emerald-400 font-semibold">Diagnóstico concluído!</p>
-              <p className="text-brand-muted text-sm mt-1">Sua meta inicial será gerada automaticamente com base nos seus resultados.</p>
-            </>
-          ) : (
-            <>
-              <p className="text-emerald-400 font-semibold">Todas as tarefas de hoje concluídas!</p>
-              <p className="text-brand-muted text-sm mt-1">Volte amanhã para continuar sua jornada.</p>
-            </>
+          {/* Matérias */}
+          {resumo.materias?.length > 0 && (
+            <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-brand-border flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-brand-text">Desempenho por matéria</h2>
+                  <p className="text-xs text-brand-muted mt-0.5">Ordenado por aproveitamento</p>
+                </div>
+                <Link to="/desempenho" className="text-xs text-indigo-400 hover:text-indigo-300">Ver detalhes</Link>
+              </div>
+              <div className="divide-y divide-brand-border">
+                {resumo.materias.map((m) => (
+                  <div key={m.nome} className="px-5 py-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm text-brand-text truncate pr-2">{m.nome}</span>
+                      <span className="text-xs text-brand-muted shrink-0">{m.total_questoes} questões</span>
+                    </div>
+                    <PercBar perc={m.taxa_acerto} />
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* ── Seção DEV — remover antes do deploy ── */}
-      <DevSection onReset={handleReset} resetting={resetting} resetError={resetError} />
+          {/* Revisão sugerida */}
+          {sugestoes.length > 0 && (
+            <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-brand-border">
+                <h2 className="text-sm font-semibold text-brand-text">Revisão sugerida</h2>
+                <p className="text-xs text-brand-muted mt-0.5">Subtópicos que precisam de atenção</p>
+              </div>
+              <div className="divide-y divide-brand-border">
+                {sugestoes.slice(0, 5).map((s, i) => (
+                  <div key={i} className="px-5 py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-brand-text truncate">{s.subtopico || s.materia}</p>
+                      <p className="text-xs text-brand-muted">{s.materia} · {s.taxa_acerto.toFixed(1)}% · {s.dias_sem_revisar}d sem revisar</p>
+                    </div>
+                    <PrioridadeBadge p={s.prioridade} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Atividade recente */}
+          {baterias.length > 0 && (
+            <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-brand-border flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-brand-text">Atividade recente</h2>
+                  <p className="text-xs text-brand-muted mt-0.5">Últimas baterias registradas</p>
+                </div>
+                <Link to="/caderno-questoes" className="text-xs text-indigo-400 hover:text-indigo-300">Ver todas</Link>
+              </div>
+              <div className="divide-y divide-brand-border">
+                {baterias.map((b) => (
+                  <div key={b.bateria_id} className="px-5 py-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-brand-text">{b.materias?.join(', ') || '—'}</p>
+                      <p className="text-xs text-brand-muted">
+                        {new Date(b.data).toLocaleDateString('pt-BR')} · {b.total_questoes} questões
+                      </p>
+                    </div>
+                    <span className={`text-sm font-semibold ${b.percentual_geral >= 70 ? 'text-emerald-400' : b.percentual_geral >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                      {b.percentual_geral.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

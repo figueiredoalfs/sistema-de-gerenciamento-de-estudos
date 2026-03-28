@@ -24,6 +24,7 @@ from app.models.area import Area
 from app.models.question_area import QuestionArea
 from app.models.subtopico_area import SubtopicoArea
 from app.models.notificacao import Notificacao
+from app.models.sessao_estudo import SessaoEstudo
 
 __all__ = [
     "Aluno",
@@ -52,4 +53,5 @@ __all__ = [
     "QuestionArea",
     "SubtopicoArea",
     "Notificacao",
+    "SessaoEstudo",
 ]

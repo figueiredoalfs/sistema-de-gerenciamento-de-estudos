@@ -11,6 +11,7 @@ class QuestaoInput(BaseModel):
     acertos: int
     total: int
     fonte: str = "qconcursos"  # qconcursos | tec | prova_anterior_mesma_banca | prova_anterior_outra_banca | simulado | quiz_ia | manual
+    banca: Optional[str] = None  # CESPE, FCC, etc.
 
 
 class BateriaRequest(BaseModel):

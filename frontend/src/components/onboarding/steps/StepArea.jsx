@@ -2,9 +2,9 @@ import SelectionCard from '../SelectionCard'
 
 const AREAS = [
   { value: 'fiscal',   label: 'Fiscal / Tributária', icon: '🏛️', description: 'Receita Federal, SEFAZ, TCE, TCU, Auditor Fiscal', ativo: true },
-  { value: 'eaof_com', label: 'EAOF — Comunicações', icon: '📡', description: 'Escola de Aeronáutica — Área de Comunicações (BET/BEI/BCO)', ativo: true },
-  { value: 'eaof_svm', label: 'EAOF — Serviços de Manutenção', icon: '🔧', description: 'Escola de Aeronáutica — Área SVM', ativo: true },
-  { value: 'cfoe_com', label: 'CFOE — Comunicações (Oficial)', icon: '🎖️', description: 'Curso de Formação de Oficiais Especialistas — COM', ativo: true },
+  { value: 'eaof_com', label: 'EAOF — Comunicações', icon: '📡', description: 'Escola de Aeronáutica — Área de Comunicações (BET/BEI/BCO)', ativo: false },
+  { value: 'eaof_svm', label: 'EAOF — Serviços de Manutenção', icon: '🔧', description: 'Escola de Aeronáutica — Área SVM', ativo: false },
+  { value: 'cfoe_com', label: 'CFOE — Comunicações (Oficial)', icon: '🎖️', description: 'Curso de Formação de Oficiais Especialistas — COM', ativo: false },
   { value: 'juridica',  label: 'Jurídica', icon: '⚖️', description: 'MP, Defensoria, Advocacia, Tribunais', ativo: false },
   { value: 'policial',  label: 'Policial / Segurança', icon: '🛡️', description: 'Polícia Federal, Civil, Militar, PRF', ativo: false },
   { value: 'ti',        label: 'Tecnologia da Informação', icon: '💻', description: 'Analista de TI, ANAC, BACEN, TCU', ativo: false },

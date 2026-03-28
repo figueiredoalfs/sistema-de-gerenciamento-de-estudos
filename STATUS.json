@@ -1,8 +1,8 @@
 {
-  "concluidas": 24,
+  "concluidas": 30,
   "em_andamento": 0,
   "total": 47,
-  "proxima": 23,
+  "proxima": 24,
   "tarefas": [
     {
       "fase": "HISTORICO",
@@ -151,37 +151,37 @@
     {
       "fase": "V1",
       "tarefa": "V1-T02: Limpar e repovoar banco de dados",
-      "status": "pendente",
+      "status": "concluida",
       "nota": "Seed com 11 matérias fiscais na hierarquia TEC Concursos."
     },
     {
       "fase": "V1",
       "tarefa": "V1-T03: Simplificar onboarding",
-      "status": "pendente",
+      "status": "concluida",
       "nota": "Áreas e funcionalidades inativas com tag Em implementação."
     },
     {
       "fase": "V1",
       "tarefa": "V1-T04: Reformular dashboard como central de análise",
-      "status": "pendente",
+      "status": "concluida",
       "nota": "KPIs, ranking de matérias, revisão sugerida, atividade recente."
     },
     {
       "fase": "V1",
       "tarefa": "V1-T05: Implementar registro de sessão de estudo",
-      "status": "pendente",
+      "status": "concluida",
       "nota": "Model SessaoEstudo. Página /registrar-estudo com select hierárquico."
     },
     {
       "fase": "V1",
       "tarefa": "V1-T06: Implementar Caderno de Questões",
-      "status": "pendente",
+      "status": "concluida",
       "nota": "Model BateriaQuestoes. Banco obrigatório, banca opcional. Histórico."
     },
     {
       "fase": "V1",
       "tarefa": "V1-T07: Implementar página de desempenho detalhado",
-      "status": "pendente",
+      "status": "concluida",
       "nota": "Radar, mapa de calor, evolução, volume, heatmap, por banca, por banco."
     },
     {

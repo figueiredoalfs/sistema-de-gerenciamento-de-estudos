@@ -92,6 +92,43 @@ def get_hierarquia(
     return resultado
 
 
+@router.get("/topicos/hierarquia-completa", tags=["bateria"])
+def get_hierarquia_completa(
+    db: Session = Depends(get_db),
+    usuario: Aluno = Depends(get_current_user),
+):
+    """
+    Retorna hierarquia de 3 níveis: matéria → módulo → subtópico.
+    Usado pelo Caderno de Questões e Registrar Estudo.
+    """
+    from sqlalchemy import func
+    from app.models.topico import Topico
+
+    area_key = (usuario.area or "").lower().strip()
+    q = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True)
+    if area_key:
+        q = q.filter(func.lower(Topico.area) == area_key)
+    materias = q.order_by(Topico.nome).all()
+
+    if not materias and area_key:
+        materias = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True).order_by(Topico.nome).all()
+
+    resultado = []
+    for mat in materias:
+        modulos = db.query(Topico).filter(Topico.parent_id == mat.id, Topico.ativo == True).order_by(Topico.nome).all()
+        modulos_list = []
+        for mod in modulos:
+            subs = db.query(Topico).filter(Topico.parent_id == mod.id, Topico.ativo == True).order_by(Topico.nome).all()
+            modulos_list.append({
+                "id": mod.id,
+                "nome": mod.nome,
+                "subtopicos": [{"id": s.id, "nome": s.nome} for s in subs],
+            })
+        resultado.append({"id": mat.id, "nome": mat.nome, "modulos": modulos_list})
+
+    return resultado
+
+
 @router.post("/bateria", response_model=BateriaResponse, status_code=201)
 def registrar_bateria(
     body: BateriaRequest,
@@ -124,6 +161,7 @@ def registrar_bateria(
             percentual=percentual,
             fonte=fonte,
             peso_fonte=peso,
+            banca=q.banca,
             data=agora,
         )
         db.add(prof)

@@ -17,6 +17,8 @@ import AdminConvites from './pages/admin/AdminConvites'
 import MentorAlunos from './pages/MentorAlunos'
 import Desempenho from './pages/Desempenho'
 import LancarBateria from './pages/LancarBateria'
+import RegistrarEstudo from './pages/RegistrarEstudo'
+import CadernoQuestoes from './pages/CadernoQuestoes'
 
 function AppLayout({ children }) {
   return (
@@ -195,6 +197,28 @@ export default function App() {
       />
 
       {/* Redireciona qualquer rota desconhecida */}
+      <Route
+        path="/registrar-estudo"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <RegistrarEstudo />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/caderno-questoes"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <CadernoQuestoes />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
