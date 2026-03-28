@@ -71,7 +71,7 @@ def seed(db=None) -> dict:
                     id=str(uuid.uuid4()),
                     nome=materia,
                     nivel=0,
-                    area=materia,
+                    area="fiscal",
                     decay_rate=decay,
                     peso_edital=peso,
                 )
@@ -127,6 +127,16 @@ def seed(db=None) -> dict:
                         ))
                         existentes.add((sub, 2))
                         subtopicos_criados += 1
+
+        # Corrige registros existentes: garante area="fiscal" em todos os nivel=0
+        db.query(Topico).filter(Topico.nivel == 0).update({"area": "fiscal"})
+
+        # Desativa matérias nivel=0 cujo nome não está na hierarquia atual
+        nomes_ativos = set(HIERARQUIA.keys())
+        db.query(Topico).filter(
+            Topico.nivel == 0,
+            Topico.nome.notin_(nomes_ativos),
+        ).update({"ativo": False}, synchronize_session="fetch")
 
         db.commit()
         resultado = {

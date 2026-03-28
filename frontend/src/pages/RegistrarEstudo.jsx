@@ -18,14 +18,15 @@ function hoje() {
   return new Date().toISOString().split('T')[0]
 }
 
+let _nextId = 1
+function newRow() { return { id: _nextId++, materia: '', modulo: '', subtopico: '' } }
+
 export default function RegistrarEstudo() {
   const [hierarquia, setHierarquia] = useState([])
   const [loadingHier, setLoadingHier] = useState(true)
   const [errHier, setErrHier] = useState(null)
 
-  const [materia, setMateria] = useState('')
-  const [modulo, setModulo] = useState('')
-  const [subtopico, setSubtopico] = useState('')
+  const [rows, setRows] = useState([newRow()])
   const [tipo, setTipo] = useState('teoria')
   const [data, setData] = useState(hoje())
   const [duracao, setDuracao] = useState('')
@@ -36,15 +37,23 @@ export default function RegistrarEstudo() {
 
   useEffect(() => {
     getHierarquiaCompleta()
-      .then(setHierarquia)
+      .then(data => setHierarquia(Array.isArray(data) ? data : []))
       .catch(() => setErrHier('Não foi possível carregar as matérias.'))
       .finally(() => setLoadingHier(false))
   }, [])
 
-  const materiaObj = hierarquia.find((m) => m.id === materia) || null
-  const modulos = materiaObj?.modulos || []
-  const moduloObj = modulos.find((m) => m.id === modulo) || null
-  const subtopicos = moduloObj?.subtopicos || []
+  function updateRow(id, field, value) {
+    setRows(prev => prev.map(r => {
+      if (r.id !== id) return r
+      const updated = { ...r, [field]: value }
+      if (field === 'materia') { updated.modulo = ''; updated.subtopico = '' }
+      if (field === 'modulo') { updated.subtopico = '' }
+      return updated
+    }))
+  }
+
+  function addRow() { setRows(prev => [...prev, newRow()]) }
+  function removeRow(id) { setRows(prev => prev.filter(r => r.id !== id)) }
 
   async function handleSalvar(e) {
     e.preventDefault()
@@ -52,18 +61,19 @@ export default function RegistrarEstudo() {
     setSucesso(null)
     setEnviando(true)
     try {
-      await postSessaoEstudo({
-        subtopico_id: subtopico || modulo || null,
-        tipo,
-        data,
-        duracao_min: duracao ? parseInt(duracao, 10) : null,
-      })
-      setSucesso(`Sessão de ${tipo === 'teoria' ? 'teoria' : 'questões'} registrada!`)
-      setSubtopico('')
-      setModulo('')
+      for (const row of rows) {
+        await postSessaoEstudo({
+          subtopico_id: row.subtopico || row.modulo || null,
+          tipo,
+          data,
+          duracao_min: duracao ? parseInt(duracao, 10) : null,
+        })
+      }
+      setSucesso(`${rows.length} sessão(ões) registrada(s)!`)
+      setRows([newRow()])
       setDuracao('')
-    } catch {
-      setErro('Erro ao registrar sessão. Tente novamente.')
+    } catch (err) {
+      setErro(err.response?.data?.detail || err.message || 'Erro ao registrar sessão.')
     } finally {
       setEnviando(false)
     }
@@ -81,29 +91,57 @@ export default function RegistrarEstudo() {
       )}
 
       <form onSubmit={handleSalvar} className="bg-brand-card border border-brand-border rounded-2xl p-6 space-y-5">
-        <Campo label="Matéria">
-          <select className={selectCls} value={materia} onChange={(e) => { setMateria(e.target.value); setModulo(''); setSubtopico('') }} disabled={loadingHier}>
-            <option value="">Selecione a matéria</option>
-            {hierarquia.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-          </select>
-        </Campo>
+        <div className="space-y-3">
+          {rows.map((row, idx) => {
+            const materiaObj = hierarquia.find(m => m.id === row.materia) || null
+            const modulos = materiaObj?.modulos || []
+            const moduloObj = modulos.find(m => m.id === row.modulo) || null
+            const subtopicos = moduloObj?.subtopicos || []
 
-        <Campo label="Módulo (opcional)">
-          <select className={selectCls} value={modulo} onChange={(e) => { setModulo(e.target.value); setSubtopico('') }} disabled={!materia || modulos.length === 0}>
-            <option value="">Selecione o módulo</option>
-            {modulos.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-          </select>
-        </Campo>
+            return (
+              <div key={row.id} className="border border-brand-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-brand-muted uppercase tracking-wide">Matéria {idx + 1}</span>
+                  {rows.length > 1 && (
+                    <button type="button" onClick={() => removeRow(row.id)} className="text-brand-muted hover:text-red-400 transition-colors text-sm px-1">×</button>
+                  )}
+                </div>
 
-        <Campo label="Subtópico (opcional)">
-          <select className={selectCls} value={subtopico} onChange={(e) => setSubtopico(e.target.value)} disabled={!modulo || subtopicos.length === 0}>
-            <option value="">Selecione o subtópico</option>
-            {subtopicos.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-          </select>
-        </Campo>
+                <Campo label="Matéria">
+                  <select className={selectCls} value={row.materia} onChange={e => updateRow(row.id, 'materia', e.target.value)} disabled={loadingHier}>
+                    <option value="">Selecione a matéria</option>
+                    {hierarquia.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                  </select>
+                </Campo>
+
+                <Campo label="Módulo (opcional)">
+                  <select className={selectCls} value={row.modulo} onChange={e => updateRow(row.id, 'modulo', e.target.value)} disabled={!row.materia || modulos.length === 0}>
+                    <option value="">Selecione o módulo</option>
+                    {modulos.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                  </select>
+                </Campo>
+
+                <Campo label="Subtópico (opcional)">
+                  <select className={selectCls} value={row.subtopico} onChange={e => updateRow(row.id, 'subtopico', e.target.value)} disabled={!row.modulo || subtopicos.length === 0}>
+                    <option value="">Selecione o subtópico</option>
+                    {subtopicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                  </select>
+                </Campo>
+              </div>
+            )
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={addRow}
+          className="w-full py-2 border border-dashed border-brand-border rounded-xl text-brand-muted text-sm hover:text-brand-text hover:border-indigo-500 transition-colors"
+        >
+          ＋ Adicionar matéria
+        </button>
 
         <Campo label="Tipo de estudo">
-          <select className={selectCls} value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <select className={selectCls} value={tipo} onChange={e => setTipo(e.target.value)}>
             <option value="teoria">Teoria / Leitura</option>
             <option value="questoes">Resolução de questões</option>
           </select>
@@ -114,7 +152,7 @@ export default function RegistrarEstudo() {
             type="date"
             className={inputCls}
             value={data}
-            onChange={(e) => setData(e.target.value)}
+            onChange={e => setData(e.target.value)}
             max={hoje()}
             required
           />
@@ -126,7 +164,7 @@ export default function RegistrarEstudo() {
             className={inputCls}
             placeholder="Ex: 45"
             value={duracao}
-            onChange={(e) => setDuracao(e.target.value)}
+            onChange={e => setDuracao(e.target.value)}
             min="1"
             max="480"
           />

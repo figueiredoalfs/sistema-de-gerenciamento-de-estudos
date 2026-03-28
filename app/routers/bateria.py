@@ -60,20 +60,13 @@ def get_hierarquia(
     from sqlalchemy import func
     from app.models.topico import Topico
 
-    area_key = (usuario.area or "").lower().strip()
-    q = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True)
-    if area_key:
-        q = q.filter(func.lower(Topico.area) == area_key)
-    materias = q.order_by(Topico.nome).all()
-
-    # Fallback: se não encontrou com filtro de área, retorna todas as matérias ativas
-    if not materias and area_key:
-        materias = (
-            db.query(Topico)
-            .filter(Topico.nivel == 0, Topico.ativo == True)
-            .order_by(Topico.nome)
-            .all()
-        )
+    area_key = (usuario.area or "fiscal").lower().strip()
+    materias = (
+        db.query(Topico)
+        .filter(Topico.nivel == 0, Topico.ativo == True, func.lower(Topico.area) == area_key)
+        .order_by(Topico.nome)
+        .all()
+    )
 
     resultado = []
     for mat in materias:
@@ -104,14 +97,13 @@ def get_hierarquia_completa(
     from sqlalchemy import func
     from app.models.topico import Topico
 
-    area_key = (usuario.area or "").lower().strip()
-    q = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True)
-    if area_key:
-        q = q.filter(func.lower(Topico.area) == area_key)
-    materias = q.order_by(Topico.nome).all()
-
-    if not materias and area_key:
-        materias = db.query(Topico).filter(Topico.nivel == 0, Topico.ativo == True).order_by(Topico.nome).all()
+    area_key = (usuario.area or "fiscal").lower().strip()
+    materias = (
+        db.query(Topico)
+        .filter(Topico.nivel == 0, Topico.ativo == True, func.lower(Topico.area) == area_key)
+        .order_by(Topico.nome)
+        .all()
+    )
 
     resultado = []
     for mat in materias:
