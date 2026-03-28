@@ -136,11 +136,19 @@ export default function Desempenho() {
       </div>
     )
 
-  if (!data) return <Spinner />
+  if (!data)
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
+          Não foi possível carregar os dados. Tente recarregar a página.
+        </div>
+      </div>
+    )
 
-  const { total_questoes, perc_geral, por_materia } = data
-  const maisForte = por_materia[0] ?? null
-  const maisFraca = por_materia[por_materia.length - 1] ?? null
+  const { total_questoes = 0, perc_geral = 0, por_materia = [] } = data
+  const lista = Array.isArray(por_materia) ? por_materia : []
+  const maisForte = lista[0] ?? null
+  const maisFraca = lista[lista.length - 1] ?? null
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
@@ -152,8 +160,8 @@ export default function Desempenho() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard label="Questões feitas" value={total_questoes.toLocaleString()} color="indigo" />
-        <KpiCard label="Aproveitamento geral" value={`${perc_geral.toFixed(1)}%`} color={perc_geral >= 70 ? 'emerald' : perc_geral >= 50 ? 'amber' : 'red'} />
+        <KpiCard label="Questões feitas" value={(total_questoes ?? 0).toLocaleString()} color="indigo" />
+        <KpiCard label="Aproveitamento geral" value={`${(perc_geral ?? 0).toFixed(1)}%`} color={(perc_geral ?? 0) >= 70 ? 'emerald' : (perc_geral ?? 0) >= 50 ? 'amber' : 'red'} />
         <KpiCard
           label="Mais forte"
           value={maisForte ? `${maisForte.perc.toFixed(1)}%` : '—'}
@@ -180,7 +188,7 @@ export default function Desempenho() {
       </div>
 
       {/* Tabela por matéria */}
-      {por_materia.length === 0 ? (
+      {lista.length === 0 ? (
         <div className="bg-brand-card border border-brand-border rounded-2xl p-8 text-center">
           <p className="text-brand-muted text-sm">Nenhum dado de desempenho ainda. Responda questões para ver suas estatísticas aqui.</p>
         </div>
@@ -190,7 +198,7 @@ export default function Desempenho() {
             <h2 className="text-sm font-semibold text-brand-text">Por matéria</h2>
           </div>
           <div className="divide-y divide-brand-border">
-            {por_materia.map((m) => (
+            {lista.map((m) => (
               <div key={m.materia} className="px-5 py-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-brand-text">{m.materia}</span>
