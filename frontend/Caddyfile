@@ -2,7 +2,7 @@
 
 encode gzip
 
-@api path /auth/* /tasks/* /metas/* /onboarding /onboarding/* /desempenho/* /bateria/* /baterias/* /topicos/* /questoes/* /admin/* /task-conteudo/* /task-videos/* /dev/*
+@api path /auth/* /tasks/* /metas/* /onboarding /onboarding/* /desempenho/* /bateria /bateria/* /baterias /baterias/* /bancas /topicos/* /questoes/* /admin/* /task-conteudo/* /task-videos/* /dev/* /sessoes-estudo /sessoes-estudo/* /mentor/*
 
 handle @api {
 	reverse_proxy https://web-production-4ac23.up.railway.app
