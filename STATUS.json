@@ -1,338 +1,290 @@
 {
-  "concluidas": 23,
+  "concluidas": 24,
   "em_andamento": 0,
-  "total": 55,
+  "total": 47,
   "proxima": 23,
   "tarefas": [
     {
-      "fase": "FASE-0",
+      "fase": "HISTORICO",
       "tarefa": "Importação de questões — backend em lote",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-0",
+      "fase": "HISTORICO",
       "tarefa": "Importação de questões — tela React no painel admin",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-1",
+      "fase": "HISTORICO",
       "tarefa": "Confirmar GET /auth/me retorna campo area",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-1",
+      "fase": "HISTORICO",
       "tarefa": "Expansão do TaskCard por tipo",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-1",
-      "tarefa": "Componente QuestionFlow — resolução de questões",
+      "fase": "HISTORICO",
+      "tarefa": "Componente QuestionFlow",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-1",
+      "fase": "HISTORICO",
       "tarefa": "Sistema de vídeos com cache",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-1",
+      "fase": "HISTORICO",
       "tarefa": "Geração de PDF com cache por task_code",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-2",
+      "fase": "HISTORICO",
       "tarefa": "Página de desempenho — KPIs e por matéria",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-2",
-      "tarefa": "Evolução mensal — gráfico de linha por matéria",
+      "fase": "HISTORICO",
+      "tarefa": "Evolução mensal — gráfico de linha",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-2",
+      "fase": "HISTORICO",
       "tarefa": "Lançamento manual de bateria",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-3",
+      "fase": "HISTORICO",
       "tarefa": "Layout admin + gestão de questões",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-3",
-      "tarefa": "Importação em lote: JSON + PDF TEC Concursos",
+      "fase": "HISTORICO",
+      "tarefa": "Importação em lote: JSON + PDF TEC",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-3",
-      "tarefa": "Gestão de tópicos, subtópicos e configuração por área",
+      "fase": "HISTORICO",
+      "tarefa": "Gestão de tópicos, subtópicos e áreas",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-3",
+      "fase": "HISTORICO",
       "tarefa": "Gestão de usuários + edição de dados",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-3.5",
+      "fase": "HISTORICO",
       "tarefa": "Onboarding: áreas ativas + perfil de uso",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-3.5",
+      "fase": "HISTORICO",
       "tarefa": "Model PlanoBase + geração via IA",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-3.5",
-      "tarefa": "Lógica de avanço de fase + diagnóstico obrigatório",
+      "fase": "HISTORICO",
+      "tarefa": "Lógica de avanço de fase + diagnóstico",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-3.5",
+      "fase": "HISTORICO",
       "tarefa": "Dashboard admin: notificações + revisão PlanoBase",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-4",
+      "fase": "HISTORICO",
       "tarefa": "Painel do mentor — lista e detalhe de alunos",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-5",
+      "fase": "HISTORICO",
       "tarefa": "Segurança antes do deploy",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-5",
+      "fase": "HISTORICO",
       "tarefa": "Deletar Streamlit + routers inativos",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-5",
+      "fase": "HISTORICO",
       "tarefa": "Deploy Railway — www.skolai.com.br no ar",
       "status": "concluida",
       "nota": ""
     },
     {
-      "fase": "FASE-6",
+      "fase": "HISTORICO",
       "tarefa": "Migrar banco de dados local para o Railway",
       "status": "concluida",
       "nota": ""
     },
     {
       "fase": "V1",
-      "tarefa": "V1-T02: Corrigir modelo de IA e acesso admin",
-      "status": "em_andamento",
-      "nota": "Trocar gemini-2.5-flash → gemini-1.5-flash-8b. Reset senha admin."
+      "tarefa": "V1-T01: Limpeza do código morto",
+      "status": "concluida",
+      "nota": "Deletar engine pedagógica, tasks, metas, QuestionFlow, PDF/vídeo IA."
     },
     {
       "fase": "V1",
-      "tarefa": "V1-T03: Corrigir PlanoBase — prompt e parser",
+      "tarefa": "V1-T02: Limpar e repovoar banco de dados",
       "status": "pendente",
-      "nota": "Novo prompt retorna fases[], ordem_subtopicos{}, prerequisitos{}. Parser robusto."
+      "nota": "Seed com 11 matérias fiscais na hierarquia TEC Concursos."
     },
     {
       "fase": "V1",
-      "tarefa": "V1-T04: Corrigir dashboard — Meta 00 e bloqueio diagnóstico",
+      "tarefa": "V1-T03: Simplificar onboarding",
       "status": "pendente",
-      "nota": "Remover banner. Bloquear dashboard até Meta 00 concluída."
+      "nota": "Áreas e funcionalidades inativas com tag Em implementação."
     },
     {
       "fase": "V1",
-      "tarefa": "V1-T05: Corrigir geração de PDF e sugestão de vídeos",
+      "tarefa": "V1-T04: Reformular dashboard como central de análise",
       "status": "pendente",
-      "nota": "Verificar endpoints. Corrigir botões no TaskCard. Cache por subtópico."
+      "nota": "KPIs, ranking de matérias, revisão sugerida, atividade recente."
     },
     {
       "fase": "V1",
-      "tarefa": "V1-T06: Caderno de Questões funcionando",
+      "tarefa": "V1-T05: Implementar registro de sessão de estudo",
       "status": "pendente",
-      "nota": "Renomear rota. Corrigir carregamento de matérias. Bancas reais. Histórico."
+      "nota": "Model SessaoEstudo. Página /registrar-estudo com select hierárquico."
     },
     {
       "fase": "V1",
-      "tarefa": "V1-T07: Página de perfil do usuário",
+      "tarefa": "V1-T06: Implementar Caderno de Questões",
       "status": "pendente",
-      "nota": "Nova rota /perfil. Editar dados, disponibilidade e senha."
+      "nota": "Model BateriaQuestoes. Banco obrigatório, banca opcional. Histórico."
     },
     {
       "fase": "V1",
-      "tarefa": "V1-T08: Monitoramento de custos de IA",
+      "tarefa": "V1-T07: Implementar página de desempenho detalhado",
       "status": "pendente",
-      "nota": "Model LogIA. Interceptar chamadas. Página /admin/financeiro."
+      "nota": "Radar, mapa de calor, evolução, volume, heatmap, por banca, por banco."
+    },
+    {
+      "fase": "V1",
+      "tarefa": "V1-T08: Bugs e melhorias de autenticação",
+      "status": "pendente",
+      "nota": "Bug onboarding, bug redirect login, código de convite, confirmar senha."
+    },
+    {
+      "fase": "V1",
+      "tarefa": "V1-T09: Perfil do usuário",
+      "status": "pendente",
+      "nota": "Página /perfil. Editar dados e senha."
     },
     {
       "fase": "V2",
-      "tarefa": "V2-T01: Mapa de Lacunas",
+      "tarefa": "V2-T01: Exportar relatório de desempenho em PDF",
       "status": "pendente",
-      "nota": "Baseado no Caderno de Questões. Detectar padrões de erro."
+      "nota": ""
     },
     {
       "fase": "V2",
-      "tarefa": "V2-T02: Desempenho detalhado (radar, heatmap, domínio)",
+      "tarefa": "V2-T02: Comparativo de período",
       "status": "pendente",
-      "nota": "Novos gráficos no dashboard de desempenho."
+      "nota": "Semana vs semana, mês vs mês."
     },
     {
       "fase": "V2",
-      "tarefa": "V2-T03: Índice de Prontidão",
+      "tarefa": "V2-T03: Meta de questões semanal",
       "status": "pendente",
-      "nota": "Calcula prontidão por subtópico. Alimenta mapa de calor."
+      "nota": "Configurável pelo aluno."
     },
     {
       "fase": "V2",
-      "tarefa": "V2-T04: Personalização por funcionalidades",
+      "tarefa": "V2-T04: Filtro por banca em todos os gráficos",
       "status": "pendente",
-      "nota": "useFuncionalidades(). Sidebar e componentes condicionais."
+      "nota": ""
     },
     {
       "fase": "V2",
-      "tarefa": "V2-T05: Perfil de uso (com/sem plano externo)",
+      "tarefa": "V2-T05: Histórico completo por subtópico",
       "status": "pendente",
-      "nota": "tem_plano_externo em PerfilEstudo. Dashboard adapta."
+      "nota": ""
     },
     {
       "fase": "V2",
       "tarefa": "V2-T06: Confirmação de email e recuperação de senha",
       "status": "pendente",
-      "nota": "Resend/SendGrid. Token único 1h."
-    },
-    {
-      "fase": "V2",
-      "tarefa": "V2-T07: Horas líquidas de estudo",
-      "status": "pendente",
-      "nota": "Campo ao finalizar task. Comparativo no dashboard."
-    },
-    {
-      "fase": "V2",
-      "tarefa": "V2-T08: Ordem de aparição dos subtópicos",
-      "status": "pendente",
-      "nota": "Campo ordem. Drag-and-drop admin. Sugestão IA por matéria."
+      "nota": "Resend/SendGrid."
     },
     {
       "fase": "V3",
-      "tarefa": "V3-T01: Base de conhecimento com PDFs do admin (RAG)",
+      "tarefa": "V3-T01: Análise de padrão de erro via IA",
       "status": "pendente",
-      "nota": "Upload PDFs brutos. Chunking e indexação. /admin/fontes."
+      "nota": ""
     },
     {
       "fase": "V3",
-      "tarefa": "V3-T02: PDF explicativo usando fontes upadas",
+      "tarefa": "V3-T02: Sugestão inteligente de revisão com justificativa",
       "status": "pendente",
-      "nota": "IA prioriza fontes do admin sobre conhecimento geral."
+      "nota": ""
     },
     {
       "fase": "V3",
-      "tarefa": "V3-T03: Chat com IA contextualizado",
+      "tarefa": "V3-T03: PDF explicativo por subtópico",
       "status": "pendente",
-      "nota": "Contexto automático do subtópico. Ícone flutuante. Limite gratuito."
+      "nota": ""
     },
     {
       "fase": "V3",
-      "tarefa": "V3-T04: Fluxo pós-edital via upload de PDF",
+      "tarefa": "V3-T04: Sugestão de vídeos por subtópico",
       "status": "pendente",
-      "nota": "Gemini extrai edital. NLP Mapper. Admin valida."
-    },
-    {
-      "fase": "V3",
-      "tarefa": "V3-T05: Sistema de reporte de conteúdo incorreto",
-      "status": "pendente",
-      "nota": "Botão reporte. Painel admin de reportes pendentes."
-    },
-    {
-      "fase": "V3",
-      "tarefa": "V3-T06: Seleção de modelo IA por tipo de operação",
-      "status": "pendente",
-      "nota": "Tabela configuracoes_sistema. Admin configura por tipo."
+      "nota": ""
     },
     {
       "fase": "V4",
-      "tarefa": "V4-T01: Banco de questões básico (importação PDF TEC)",
+      "tarefa": "V4-T01: Áreas militares (EAOF-COM, EAOF-SVM, CFOE-COM)",
       "status": "pendente",
-      "nota": "Só se Caderno de Questões não for suficiente após beta."
+      "nota": ""
     },
     {
       "fase": "V4",
-      "tarefa": "V4-T02: QuestionFlow dentro do Skolai",
+      "tarefa": "V4-T02: Legislação Tributária pós-edital",
       "status": "pendente",
-      "nota": "Resolução de questões integrada ao plano de estudo."
+      "nota": ""
     },
     {
       "fase": "V4",
-      "tarefa": "V4-T03: Progressão de dificuldade por exposure_count",
+      "tarefa": "V4-T03: Monetização (planos e gateway)",
       "status": "pendente",
-      "nota": "nivel básico/médio/difícil conforme avanço do aluno."
+      "nota": ""
     },
     {
       "fase": "V4",
-      "tarefa": "V4-T04: Questões geradas por IA como fallback",
+      "tarefa": "V4-T04: Backup PostgreSQL → Google Drive",
       "status": "pendente",
-      "nota": "Pool por subtópico. Threshold 10/30. board=IA."
+      "nota": ""
     },
     {
       "fase": "V4",
-      "tarefa": "V4-T05: Aviso de origem nas questões",
+      "tarefa": "V4-T05: Sentry + auditoria admin",
       "status": "pendente",
-      "nota": "Banca real, IA ou contribuição aluno."
-    },
-    {
-      "fase": "V5",
-      "tarefa": "V5-T01: Áreas militares (COM e SVM)",
-      "status": "pendente",
-      "nota": "Subtópicos EAOF/CFOE. Legislações FAB como fontes."
-    },
-    {
-      "fase": "V5",
-      "tarefa": "V5-T02: Mapa de Concursos",
-      "status": "pendente",
-      "nota": "Calendário + mapa geográfico. Scraping + manual admin."
-    },
-    {
-      "fase": "V5",
-      "tarefa": "V5-T03: Monetização (planos e gateway)",
-      "status": "pendente",
-      "nota": "Baseado nos dados de custo do beta. Pagar.me ou Stripe."
-    },
-    {
-      "fase": "V5",
-      "tarefa": "V5-T04: Backup PostgreSQL → Google Drive",
-      "status": "pendente",
-      "nota": "GitHub Actions. Todo dia às 3h. Retenção 30 dias."
-    },
-    {
-      "fase": "V5",
-      "tarefa": "V5-T05: Sentry + auditoria admin",
-      "status": "pendente",
-      "nota": "Monitoramento erros produção. Log de alterações admin."
-    },
-    {
-      "fase": "V5",
-      "tarefa": "V5-T06: Upload de PDF de prova pelo aluno",
-      "status": "pendente",
-      "nota": "Meio do beta. IA extrai. Fila revisão admin."
+      "nota": ""
     }
   ]
 }

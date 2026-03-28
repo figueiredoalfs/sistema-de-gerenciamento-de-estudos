@@ -15,7 +15,6 @@ import AdminPendencias from './pages/AdminPendencias'
 import AdminConfig from './pages/AdminConfig'
 import AdminConvites from './pages/admin/AdminConvites'
 import MentorAlunos from './pages/MentorAlunos'
-import TaskView from './pages/TaskView'
 import Desempenho from './pages/Desempenho'
 import LancarBateria from './pages/LancarBateria'
 
@@ -179,17 +178,6 @@ export default function App() {
           <ProtectedRoute>
             <AppLayout>
               <LancarBateria />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/tarefa/:taskId"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <TaskView />
             </AppLayout>
           </ProtectedRoute>
         }

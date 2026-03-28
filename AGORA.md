@@ -1,29 +1,29 @@
 # AGORA.md — Skolai
-> Modelo: Desenvolvimento Espiral/Incremental
-> Visão: Gestor inteligente de estudos para concursos públicos
-> O Skolai diz o que estudar, você estuda onde quiser, o Skolai analisa seu desempenho.
-> Atualizado: 23/03/2026 | 22 concluídas | www.skolai.com.br no ar
+> Modelo: Desenvolvimento Espiral
+> Visão: Analisador de desempenho para concursos públicos fiscais
+> O aluno lança o que estudou e o que errou. O Skolai analisa e aponta onde melhorar.
+> Atualizado: 28/03/2026 | www.skolai.com.br no ar
 
 ---
 
-## Visão do produto por volta
+## Visão do produto
 
 ```
-Volta 1 — Gestor de estudos funcional (beta fiscal)
-Volta 2 — Análise e adaptação (lacunas e desempenho)
-Volta 3 — Conteúdo de apoio (IA enriquece o estudo)
-Volta 4 — Questões próprias (se validado pelo beta)
-Volta 5 — Expansão (áreas militares, monetização)
+Entrada:  aluno lança sessões de estudo e baterias de questões
+Processo: algoritmo analisa desempenho por subtópico
+Saída:    métricas, gráficos e sugestões de revisão
 ```
+
+**O que o Skolai NÃO é:** gerador de cronograma, banco de questões, plataforma de resolução.
+**O que o Skolai É:** camada de análise e diagnóstico em cima do estudo que o aluno já faz.
 
 ---
 
 ## Stack
 - Backend: FastAPI + SQLAlchemy + SQLite(dev) / PostgreSQL(prod)
 - Frontend: React 18 + Vite + Tailwind + React Router v6 + Caddy
-- IA: Gemini 1.5 Flash (tier gratuito para o beta)
 - Deploy: Railway — Frontend (Dockerfile+Caddy) + Backend + PostgreSQL
-- Roles: administrador / mentor / estudante
+- IA: sem uso no MVP — tudo via algoritmo
 
 ---
 
@@ -39,7 +39,7 @@ Volta 5 — Expansão (áreas militares, monetização)
 ### Variáveis de ambiente — Backend
 - DATABASE_URL — PostgreSQL Railway (automático, não alterar)
 - SECRET_KEY — chave JWT
-- GEMINI_API_KEY — API Gemini (tier gratuito: 15 req/min, 1M tokens/dia)
+- GEMINI_API_KEY — reservado para futuro uso
 - ALLOWED_ORIGINS — https://www.skolai.com.br
 - ADMIN_EMAIL, ADMIN_NOME, ADMIN_SENHA
 
@@ -62,7 +62,7 @@ Volta 5 — Expansão (áreas militares, monetização)
 - NÃO commitar .env, dev.db ou sisfig.db
 - NÃO remover fix postgres:// → postgresql:// em config.py
 - NÃO alterar ALLOWED_ORIGINS para "*" em produção
-- NÃO usar gemini-2.5-flash — usar gemini-1.5-flash ou gemini-1.5-flash-8b
+- NÃO usar gemini-2.5-flash
 - NÃO remover try_files do Caddyfile
 
 ### Fluxo obrigatório ao mudar schema do banco
@@ -73,7 +73,6 @@ git add alembic/versions/
 git commit && git push                        # Railway faz deploy
 railway run alembic upgrade head              # aplica no PostgreSQL
 ```
-**O último passo é obrigatório — sem ele o backend quebra em produção.**
 
 ---
 
@@ -83,570 +82,1062 @@ railway run alembic upgrade head              # aplica no PostgreSQL
 3. Frontend consome o endpoint confirmado
 4. Só concluir quando funcionar no navegador de ponta a ponta
 5. Contrato quebrado → corrigir backend, nunca adaptar frontend
-6. IA só chamada por ação explícita — nunca em loop automático
-7. Cache agressivo em todo conteúdo gerado por IA — gera uma vez, serve para todos
-8. Modelo IA: gemini-1.5-flash-8b (tarefas simples) / gemini-1.5-flash (PDF e PlanoBase)
+6. Sem IA no MVP — toda lógica via algoritmo puro
+7. Uma task por vez — não avançar sem concluir e testar a atual
 
 ---
 
-## Critérios pedagógicos fixos no código
+## Hierarquia de matérias — Área Fiscal
+> Baseada na estrutura do TEC Concursos.
+> Três níveis: Matéria → Módulo (Tópico) → Subtópico.
+> Esta é a estrutura do seed do banco de dados.
 
-```python
-CRITERIOS_AVANCO = {1: 0.65, 2: 0.70, 3: 0.75, 4: 0.80, 5: 0.85}
-MAX_MATERIAS_FASE_1 = 4
-MAX_MATERIAS_NOVAS_POR_FASE = 3
-LIMIAR_DOMINIO = {"baixa": 0.70, "media": 0.75, "alta": 0.80}
-```
+### 1. Direito Tributário
+**Módulo 1 — Teoria Geral e Espécies**
+- Conceito de Tributo
+- Classificação Doutrinária dos Tributos
+- Natureza Jurídica Específica dos Tributos
+- Impostos (Conceito e Classificações)
+- Taxas (CF/1988 e CTN)
+- Contribuição de Melhoria (CF/1988 e CTN)
+- Empréstimo Compulsório (CF/1988 e CTN)
+- Contribuições Especiais (CF/1988)
+- Questões Mescladas de Espécies de Tributos
 
-A IA do PlanoBase retorna APENAS:
-- `fases[]` — quais matérias entram em cada fase e em que ordem
-- `ordem_subtopicos{}` — sequência pedagógica dos subtópicos por matéria
-- `prerequisitos{}` — dependências diretas entre subtópicos
-Nunca gera critérios de avanço, limiares ou configurações pedagógicas.
+**Módulo 2 — Sistema Tributário Nacional (CF)**
+- Princípios Tributários
+- Imunidades Tributárias
+- Competência para Legislar sobre Direito Tributário
+- Competência Tributária: Conceitos e Características
+- Repartição da Competência Tributária
+- Bitributação e Bis in Idem
+- Repartição Constitucional de Receitas (arts. 157 a 162 da CF)
+
+**Módulo 3 — Normas Gerais (CTN)**
+- Disposições Gerais da Legislação (arts. 96 a 100)
+- Vigência e Aplicação (arts. 101 a 106)
+- Interpretação e Integração (arts. 107 a 112)
+- Espécies Normativas Aplicadas ao Direito Tributário
+- Disposições Gerais da Obrigação Tributária
+- Fato Gerador (arts. 114 a 118)
+- Sujeito Ativo e Passivo (arts. 119 a 123)
+- Solidariedade (arts. 124 e 125)
+- Capacidade Tributária (art. 126)
+- Domicílio Tributário (art. 127)
+- Responsabilidade Tributária (arts. 128 a 138)
+- Disposições Gerais do Crédito Tributário
+- Lançamento e Constituição (arts. 142 a 150)
+- Suspensão da Exigibilidade (arts. 151 a 155-A)
+- Extinção do Crédito Tributário (arts. 156 a 174)
+- Exclusão do Crédito Tributário (arts. 175 a 182)
+- Garantias e Privilégios do Crédito (arts. 183 a 193)
+- Fiscalização Tributária (arts. 194 a 200)
+- Dívida Ativa Tributária (arts. 201 a 204)
+- Certidão Negativa (arts. 205 a 208)
+- Disposições Finais e Transitórias do CTN
+
+**Módulo 4 — Impostos em Espécie e Reforma**
+- II, IE, IR, IPI, IOF, ITR e IGF
+- ICMS, IPVA e ITCMD
+- ISS, IPTU e ITBI
+- IBS, CBS, Comitê Gestor e Imposto Seletivo (Reforma EC 132/2023)
+
+**Módulo 5 — Processo e Temas Especiais**
+- Processo Administrativo Tributário (PAT)
+- Processo Judicial Tributário
+- Lei de Execução Fiscal (Lei 6.830/80)
+- Medida Cautelar Fiscal, Mandado de Segurança e Tutelas
+- Elisão, Evasão e Elusão Fiscal
+- Direito Tributário Internacional
+
+**Módulo 6 — Jurisprudência Tributária**
+- Jurisprudência dos Tribunais Superiores (STF/STJ)
 
 ---
 
-# VOLTA 1 — Gestor de estudos funcional
+### 2. Direito Administrativo
+**Módulo 1 — Fundamentos e Atos Administrativos**
+- Introdução (Origem, Conceito e Fontes)
+- Regime Jurídico Administrativo (Princípios Expressos e Implícitos)
+- Conceito e Mérito Administrativo
+- Elementos (COMFIFORMOB) e Atributos (PATI)
+- Classificação e Espécies de Atos
+- Extinção (Anulação, Revogação e Cassação)
+- Convalidação e Teoria dos Motivos Determinantes
 
-> Meta: um aluno fiscal consegue se cadastrar, receber um plano de estudo,
-> acompanhar seu progresso e registrar seu desempenho sem encontrar erros.
-> IA presente em 3 pontos específicos: PlanoBase, PDF explicativo, sugestão de vídeos.
-> Tudo dentro do tier gratuito do Gemini para o beta.
+**Módulo 2 — Poderes e Organização do Estado**
+- Poderes Vinculado, Discricionário, Regulamentar, Hierárquico e Disciplinar
+- Poder de Polícia (Ciclo e Atributos)
+- Abuso de Poder (Excesso e Desvio de Finalidade)
+- Administração Direta e Indireta
+- Desconcentração e Descentralização
+- Lei 13.303/2016 (Estatuto das Estatais)
+- Terceiro Setor (OS, OSCIP, Sistema S, MROSC)
 
-## O que o aluno consegue fazer na Volta 1
-1. Criar conta e fazer onboarding
-2. Receber um plano de estudo adaptativo (gerado por IA uma vez, cacheado)
-3. Ver no dashboard o que estudar hoje
-4. Pedir um resumo do subtópico (PDF gerado por IA, cacheado)
-5. Ver sugestões de onde estudar (vídeos YouTube por subtópico)
-6. Registrar o que estudou e quantas questões fez (Caderno de Questões)
-7. Ver seu desempenho evoluir semana a semana
-8. Editar seu perfil e disponibilidade
+**Módulo 3 — Agentes Públicos e Lei 8.112/90**
+- Conceito, Classificação e Acessibilidade
+- Acumulação de Cargos e Estabilidade (art. 37 a 41 da CF)
+- Remuneração e Teto Constitucional
+- Provimento e Vacância (Lei 8.112/90)
+- Direitos e Vantagens (Férias, Licenças, Adicionais)
+- Regime Disciplinar (Deveres, Proibições e Sanções)
+- Processo Administrativo Disciplinar (PAD) e Sindicância
 
-## O que o admin consegue fazer na Volta 1
-1. Gerenciar matérias e subtópicos
-2. Gerenciar usuários
-3. Ver quanto o sistema está gastando com IA
+**Módulo 4 — Gestão Pública, Responsabilidade e Controle**
+- Conceito, Princípios e Classificação de Serviços Públicos
+- Concessões e Permissões (Lei 8.987/95)
+- Parcerias Público-Privadas (Lei 11.079/04) e Consórcios (Lei 11.107/05)
+- Teoria Objetiva e Risco Administrativo
+- Responsabilidade por Omissão
+- Excludentes e Direito de Regresso
+- Autotutela, Controle Judicial e Controle Legislativo
+- Desapropriação, Servidão, Requisição, Ocupação, Limitação e Tombamento
+
+**Módulo 5 — Ética, Probidade e Processo**
+- Atos de Improbidade (Enriquecimento, Prejuízo e Princípios)
+- Sanções, Prescrição e ANPC (Lei 8.429/1992)
+- Lei Anticorrupção e Acordo de Leniência (Lei 12.846/2013)
+- Processo Administrativo Federal (Lei 9.784/1999)
+- Lei de Acesso à Informação — Transparência e Sigilo (Lei 12.527/2011)
+
+**Módulo 6 — Licitações e Contratos (Lei 14.133/2021)**
+- Âmbito de Aplicação, Princípios e Fase Preparatória (ETP)
+- Modalidades (incluindo Diálogo Competitivo e Pregão)
+- Contratação Direta (Inexigibilidade e Dispensa)
+- Instrumentos Auxiliares (SRP)
+- Alocação de Riscos, Garantias e Duração dos Contratos
+- Alteração, Equilíbrio Econômico e Extinção
+- Sanções, Recursos e Portal Nacional de Contratações (PNCP)
+- Regulamentação Complementar (Decretos 2022-2024)
+- Legislação Esparsa (Informática, Publicidade e Estatais)
+
+**Módulo 7 — Jurisprudência**
+- Informativos e Súmulas (STF e STJ)
 
 ---
 
-### V1-T01 — Migrar banco de dados local para o Railway
+### 3. Direito Constitucional
+**Módulo 1 — Teoria e Princípios Fundamentais**
+- Conceito, Estrutura e Classificação das Constituições
+- Aplicabilidade e Eficácia das Normas
+- Poder Constituinte (Originário, Derivado e Mutação)
+- Interpretação e Hermenêutica Constitucional
+- Aplicação no Tempo (Recepção e Repristinação)
+- Fundamentos, Objetivos e Princípios Internacionais (arts. 1º ao 4º)
+
+**Módulo 2 — Direitos e Garantias Fundamentais**
+- Direitos em Espécie e Características (art. 5º)
+- Remédios Constitucionais (HC, MS, MI, HD, AP)
+- Direitos Sociais e dos Trabalhadores (arts. 6º a 11)
+- Nacionalidade (Natos/Naturalizados e Perda)
+- Direitos Políticos (Soberania, Inelegibilidades e Perda/Suspensão)
+- Partidos Políticos (art. 17)
+
+**Módulo 3 — Organização do Estado e Administração**
+- Competências da União, Estados, DF e Municípios (arts. 18 a 36)
+- Intervenção Federal e Estadual
+- Disposições Gerais e Servidores Públicos (arts. 37 a 43)
+
+**Módulo 4 — Organização dos Poderes**
+- Congresso Nacional, Atribuições e Imunidades Parlamentares
+- Processo Legislativo (PEC, Leis, MPs e Vetos)
+- Fiscalização Contábil/Financeira — TCU
+- Atribuições e Responsabilidades do Presidente
+- Estatuto da Magistratura, Garantias e Vedações
+- Precatórios, STF, Súmulas Vinculantes, CNJ e STJ
+- Justiças Especializadas (Federal, Trabalho, Eleitoral e Militar)
+- Ministério Público, Advocacia Pública e Defensoria Pública
+
+**Módulo 5 — Defesa do Estado e Tributação**
+- Estado de Defesa, Estado de Sítio e Forças Armadas
+- Segurança Pública
+- Sistema Tributário Nacional (Limitações e Impostos)
+- Finanças Públicas: PPA, LDO e LOA
+
+**Módulo 6 — Ordem Econômica, Social e ADCT**
+- Princípios Econômicos, Atuação do Estado e Sistema Financeiro
+- Seguridade Social (Saúde, Previdência e Assistência)
+- Educação, Cultura, Meio Ambiente, Família e Índios
+- Disposições Finais e Transitórias (ADCT)
+
+**Módulo 7 — Controle de Constitucionalidade e Jurisprudência**
+- Modelos de Controle (Preventivo/Repressivo)
+- Controle Difuso (Incidental)
+- Controle Concentrado (ADI, ADC, ADO e ADPF)
+- Informativos e Temas de Repercussão Geral (STF e STJ)
+
+---
+
+### 4. Contabilidade Geral e Avançada
+**Módulo 1 — Fundamentos e Estrutura Inicial**
+- Conceito, Objeto, Campo de Aplicação e Técnicas Contábeis
+- Teoria das Contas (Natureza Devedora e Credora)
+- CPC 00 (R2): Estrutura Conceitual
+- Atos e Fatos Contábeis (Permutativos, Modificativos e Mistos)
+- Lançamentos Contábeis (1ª, 2ª, 3ª e 4ª Fórmulas)
+- Livros Diário e Razão; Balancete de Verificação
+- Regimes de Competência vs. Caixa
+
+**Módulo 2 — Ciclo Operacional e Ativos**
+- Critérios de Avaliação de Estoques: PEPS e Média Ponderada (CPC 16)
+- Operações com Mercadorias (CMV, RCM e Tributos Recuperáveis)
+- Disponibilidades e Conciliação Bancária
+- Contas a Receber e PECLD
+- Ajuste a Valor Presente (AVP - CPC 12)
+- Investimentos: Avaliação pelo Custo ou MEP
+- Imobilizado: Mensuração e Depreciação
+- Intangível (CPC 04): Ágio (Goodwill)
+- CPC 01 (Impairment): Redução ao Valor Recuperável
+
+**Módulo 3 — Passivo e Patrimônio Líquido**
+- Empréstimos, Financiamentos e Debêntures (CPC 08)
+- CPC 25: Provisões, Passivos e Ativos Contingentes
+- Capital Social (Subscrito, a Realizar e Realizado)
+- Reservas de Lucros e Reservas de Capital
+- Ajuste de Avaliação Patrimonial (AAP)
+
+**Módulo 4 — Demonstrações Contábeis**
+- DRE: Estrutura e apuração do Lucro Líquido
+- DRA: Demonstração de Resultados Abrangentes
+- DFC (CPC 03): Métodos Direto e Indireto
+- DVA (CPC 09): Valor Adicionado
+- DMPL/DLPA: Mutações do PL
+- Notas Explicativas e Consolidação (CPC 36)
+
+**Módulo 5 — Normas Especiais e Contabilidade Digital**
+- CPC 06: Arrendamentos (Direito de Uso)
+- CPC 47: Receita de Contrato com Cliente
+- CPC 24: Eventos Subsequentes
+- ECD e Sistema SPED
+- Dividendos e Juros sobre Capital Próprio (JCP)
+
+---
+
+### 5. Língua Portuguesa
+**Módulo 1 — Bases da Escrita e Sons**
+- Fonemas, Dígrafos e Encontros Vocálicos/Consonantais
+- Separação Silábica
+- Emprego das Letras (X/CH, S/Z, J/G)
+- Acentuação Gráfica (Regras e Novo Acordo)
+- Uso do Hífen
+- Iniciais Maiúsculas e Convenções de Escrita
+
+**Módulo 2 — Morfologia**
+- Estrutura e Formação de Palavras
+- Substantivo, Artigo, Adjetivo, Numeral, Interjeição e Advérbio
+- Conjugação, Reconhecimento e Emprego de Tempos/Modos Verbais
+- Correlação Verbal e Locuções Verbais
+- Pronomes Pessoais, Possessivos, Indefinidos e Interrogativos
+- Pronomes Demonstrativos
+- Pronomes Relativos
+- Conjunções Coordenativas e Subordinativas
+- Preposições
+
+**Módulo 3 — Semântica e Coesão**
+- Sinônimos/Antônimos e Homônimos/Parônimos
+- Denotação vs Conotação e Polissemia
+- Anáfora e Catáfora
+- Ordenação de Parágrafos e Significação de Vocábulos
+
+**Módulo 4 — Sintaxe**
+- Sujeito (Tipos) e Predicado
+- Objetos (Direto/Indireto), Agente da Passiva e Complemento Nominal
+- Adjuntos (Adnominal/Adverbial), Aposto e Vocativo
+- Adjunto Adnominal x Complemento Nominal
+- Orações Coordenadas e Subordinadas
+- Orações Reduzidas
+- Uso da Vírgula (Casos proibidos, obrigatórios e facultativos)
+- Travessão, Aspas, Dois-pontos e Parênteses
+
+**Módulo 5 — Concordância, Regência e Crase**
+- Concordância Verbal e Nominal
+- Regência Verbal e Nominal
+- Crase (Regras e Exceções)
+- Vozes Verbais (Ativa, Passiva e Reflexiva)
+
+**Módulo 6 — Interpretação, Estilo e Partículas Especiais**
+- Partícula "Se" (Apassivadora, Indeterminadora)
+- Vocábulos "Que" e "Como"
+- Interpretação de Textos (Compreensão, Tipologia e Gêneros)
+- Reescrita de Frases
+- Paralelismo Sintático/Semântico
+- Figuras, Vícios e Funções da Linguagem
+
+---
+
+### 6. Auditoria
+**Módulo 1 — Fundamentos e Normas Profissionais**
+- Trabalhos de Asseguração (Razoável vs. Limitada)
+- NBC TA 200: Objetivos Gerais do Auditor
+- Ceticismo e Julgamento Profissional
+- Princípios Éticos e Independência do Auditor
+- NBC TA 220 / NBC PA 01: Controle de Qualidade
+
+**Módulo 2 — Planejamento e Identificação de Riscos**
+- Estratégia Global vs. Plano de Auditoria (NBC TA 300)
+- Risco de Auditoria (Inerente, de Controle e de Detecção)
+- Identificação de Distorções Relevantes (NBC TA 315)
+- Materialidade no Planejamento e Execução (NBC TA 320)
+- Responsabilidade do Auditor e Fraude (NBC TA 240)
+
+**Módulo 3 — Execução e Evidências**
+- Adequação e Suficiência das Provas (NBC TA 500)
+- Procedimentos: Inspeção, Observação, Indagação, Recálculo
+- Procedimentos Analíticos
+- Amostragem Estatística vs. Não Estatística (NBC TA 530)
+- Auditoria de Estimativas Contábeis e Contingências
+- Papéis de Trabalho: Propriedade, Custódia e Sigilo (NBC TA 230)
+
+**Módulo 4 — Conclusão e Relatórios**
+- Tipos de Relatório: Sem Ressalva vs. Modificado
+- Opinião Modificada: Com Ressalva, Adversa e Abstenção
+- Parágrafos de Ênfase e Outros Assuntos
+- Eventos Subsequentes (NBC TA 560)
+- Continuidade Operacional (NBC TA 570)
+- Carta de Responsabilidade da Administração
+
+**Módulo 5 — Auditoria Interna, Governança e Risco**
+- Diferenças entre Auditoria Interna e Externa (NBC TI 01)
+- COSO ICIF (Controle Interno) e COSO ERM (Gestão de Riscos)
+- Lei Sarbanes-Oxley (SOX)
+- Princípios e Governança no Setor Público
+
+**Módulo 6 — Especialidades e Normas Complementares**
+- Perícia Contábil (NBC TP 01 e PP 01)
+- Normas do BACEN e da CVM
+
+---
+
+### 7. Direito Civil
+**Módulo 1 — Lei de Introdução e Parte Geral**
+- Pessoas Naturais: Personalidade, Capacidade e Direitos da Personalidade
+- Pessoas Jurídicas: Disposições Gerais, Associações e Fundações
+- Desconsideração da Personalidade Jurídica
+- Domicílio das Pessoas Naturais e Jurídicas
+- Classificação dos Bens e Bens Públicos
+
+**Módulo 2 — Fatos Jurídicos e Negócio Jurídico**
+- Teoria Geral dos Fatos Jurídicos
+- Classificações e Disposições Gerais do Negócio Jurídico
+- Representação (arts. 115 a 120)
+- Condição, Termo e Encargo
+- Defeitos ou Vícios do Negócio Jurídico
+- Invalidade do Negócio Jurídico
+- Atos Ilícitos
+- Prescrição e Decadência
+- Prova do Negócio Jurídico
+
+**Módulo 3 — Direito das Obrigações**
+- Obrigações de Dar, Fazer e Não Fazer
+- Obrigações Alternativas, Divisíveis e Solidárias
+- Cessão de Crédito e Assunção de Dívida
+- Pagamento e Formas de Extinção da Obrigação
+- Mora, Perdas e Danos, Juros Legais e Cláusula Penal
+
+**Módulo 4 — Contratos**
+- Princípios e Classificação dos Contratos
+- Formação, Vícios Redibitórios e Evicção
+- Extinção dos Contratos
+- Compra e Venda, Doação, Locação, Mandato
+- Seguro, Fiança, Transação e demais espécies
+
+**Módulo 5 — Atos Unilaterais e Responsabilidade Civil**
+- Promessa de Recompensa, Gestão de Negócios
+- Pagamento Indevido e Enriquecimento Sem Causa
+- Responsabilidade Civil: Disposições Gerais
+
+**Módulo 6 — Direito das Coisas**
+- Posse: Teorias, Aquisição, Efeitos e Perda
+- Propriedade: Aquisição, Perda e Direito de Vizinhança
+- Condomínio e Propriedades Especiais
+- Superfície, Servidões, Usufruto, Uso e Habitação
+- Penhor, Hipoteca e Anticrese
+
+**Módulo 7 — Direito de Família e Sucessões**
+- Casamento, Regime de Bens e União Estável
+- Alimentos, Guarda e Parentesco
+- Tutela, Curatela e Tomada de Decisão Apoiada
+- Herança, Vocação Hereditária e Testamentos
+- Inventário e Partilha
+
+**Módulo 8 — Disposições Finais e Transitórias**
+- Regras de Transição e Enfiteuse
+
+---
+
+### 8. Direito Empresarial
+**Módulo 1 — Teoria Geral do Empresário**
+- Conceito, Autonomia, Fontes e Princípios
+- Caracterização e Inscrição do Empresário Individual
+- Capacidade Empresarial
+
+**Módulo 2 — Estabelecimento, Registro e Escrituração**
+- Do Estabelecimento (arts. 1.142 a 1.149 do CC)
+- Do Registro (arts. 1.150 a 1.154 do CC)
+- Nome Empresarial, Prepostos e Escrituração
+
+**Módulo 3 — Direito Societário**
+- Sociedade em Comum e em Conta de Participação
+- Sociedade Simples e em Nome Coletivo
+- Sociedade em Comandita Simples
+- Sociedade Limitada (arts. 1.052 a 1.087)
+- Sociedade Cooperativa
+- Dissolução, Liquidação e Extinção das Sociedades
+- Operações Societárias (Fusão, Cisão, Incorporação)
+
+**Módulo 4 — Sociedade Anônima (Lei 6.404/1976)**
+- Características e Constituição da Companhia
+- Capital Social, Ações, Debêntures e Bônus
+- Governança: Assembleia, Conselhos e Diretoria
+- Dissolução, Liquidação e Extinção das SA
+- Grupos de Sociedades e Consórcio
+
+**Módulo 5 — Títulos de Crédito**
+- Conceito, Características e Princípios
+- Letra de Câmbio e Nota Promissória
+- Cheque (Lei 7.357/1985)
+- Duplicata (Lei 5.474/1968)
+- Protesto e demais espécies
+
+**Módulo 6 — Falência e Recuperação de Empresas (Lei 11.101/2005)**
+- Disposições Comuns à Recuperação e à Falência
+- Recuperação Judicial e Convolação em Falência
+- Da Falência (arts. 75 a 160)
+- Recuperação Extrajudicial
+
+**Módulo 7 — Propriedade Industrial (Lei 9.279/1996)**
+- Patentes, Desenhos Industriais e Marcas
+- Indicações Geográficas e Transferência de Tecnologia
+- Propriedade Intelectual de Software (Lei 9.609/1998)
+
+**Módulo 8 — Contratos Mercantis**
+- Contratos Bancários (Depósito, Mútuo, Desconto)
+- Alienação Fiduciária, Leasing e Factoring
+- Representação, Agência, Franquia (Lei 13.966/2019)
+
+**Módulo 9 — Cooperativismo**
+- História, Conceitos e Princípios
+- Lei 5.764/1971
+
+**Módulo 10 — Jurisprudência**
+- STJ e STF sobre Sociedades, Títulos e Falência
+
+---
+
+### 9. Matemática Financeira
+**Módulo 1 — Conceitos Fundamentais e Juros**
+- Capital, Montante, Taxa e Desconto
+- Juros Simples e Taxas Proporcionais
+- Juros Compostos e Taxas Equivalentes
+- Taxas Efetivas, Nominais e Capitalização Contínua
+- Inflação, Juros Reais e Juros Aparentes
+
+**Módulo 2 — Descontos**
+- Desconto Comercial Simples e Racional Simples
+- Desconto Comercial Composto e Racional Composto
+- Relação entre Desconto Comercial e Racional
+
+**Módulo 3 — Séries de Pagamentos e Fluxo de Caixa**
+- Classificação das Rendas
+- Valor Atual de Uma Série de Pagamentos
+- Valor Futuro de Uma Série de Pagamentos
+- Equivalência de Capitais e Rearranjo do Fluxo
+
+**Módulo 4 — Sistemas de Amortização**
+- Sistema de Amortização Constante (SAC)
+- Sistema de Amortização Francês (Tabela Price)
+- Sistema de Amortização Americano e Alemão
+- Sistemas Mistos de Amortização
+
+**Módulo 5 — Análise de Investimentos**
+- Valor Presente Líquido (VPL)
+- Taxa Interna de Retorno (TIR) e TMA
+- Payback e Payback Descontado
+- Índice de Lucratividade e Taxa de Rentabilidade
+- Títulos com Cupons Periódicos (Bonds)
+
+---
+
+### 10. Raciocínio Lógico
+**Módulo 1 — Lógica Proposicional**
+- Proposições e Operadores Lógicos
+- Ordem de Precedência entre Conectivos
+- Tabela Verdade das Proposições Compostas
+- Tautologia, Contradição e Contingência
+- Equivalências Lógicas e Negação de Proposições
+- Condição Necessária e Suficiente
+
+**Módulo 2 — Lógica de Argumentação**
+- Argumentos e Métodos da Tabela Verdade
+- Raciocínio Crítico
+- Argumentos Indutivos e por Abdução
+- Falácias
+
+**Módulo 3 — Lógica de Primeira Ordem**
+- Lógica de Primeira Ordem e Predicados
+- Diagramas Lógicos e Proposições Categóricas
+- Negação de Quantificadores
+
+**Módulo 4 — Problemas de Lógica**
+- Sequências de Números, Figuras e Letras
+- Associação de Informações
+- Exercícios de Verdade/Mentira
+- Parentesco, Datas e Calendários
+- Problemas com Balança, Palitos e Similares
+
+**Módulo 5 — Lógica Espacial**
+- Planificação de Sólidos e Projeções 3D
+- Orientação no Plano, no Espaço e no Tempo
+
+---
+
+### 11. Tecnologia da Informação
+**Módulo 1 — Organização e Arquitetura de Computadores**
+- Sistemas de Numeração e Operações Lógicas
+- Arquitetura Von Neumann e Harvard, RISC vs CISC
+- Hierarquia de Memória (RAM, ROM, Cache)
+- HD, SSD, RAID e Periféricos
+
+**Módulo 2 — Sistemas Operacionais**
+- Gerência de Processos, Threads e Deadlock
+- Paginação, Memória Virtual e Sistemas de Arquivos
+- Windows (XP ao 11) e Comandos CMD/PowerShell
+- Linux: Kernel, Comandos de Terminal e Shell Script
+- Virtualização, Docker e Kubernetes
+
+**Módulo 3 — Redes de Computadores e Internet**
+- Modelo OSI (7 camadas) e TCP/IP (4 camadas)
+- IP (IPv4, IPv6), Sub-redes, ARP, DHCP e DNS
+- TCP, UDP e Protocolos de Roteamento
+- Ethernet, Wi-Fi 6, Bluetooth e VLANs
+- HTTP/HTTPS, FTP, SSH, VoIP e SNMP
+
+**Módulo 4 — Segurança da Informação**
+- ISO 27001/27002/27005, LGPD e Compliance
+- Criptografia Simétrica, Assimétrica e Hashes
+- Assinatura Digital e Certificados Digitais (ICP-Brasil)
+- Firewall, IDS/IPS, VPN e Zero Trust
+- Malware, Phishing, DoS/DDoS e OWASP Top 10
+- Backup (RPO/RTO), MFA e Controle de Acesso (RBAC)
+
+**Módulo 5 — Engenharia de Software**
+- RUP, Cascata, Espiral, Incremental e Prototipação
+- Scrum, Kanban, XP e SAFe
+- UML (Casos de Uso, Classes, Sequência)
+- Qualidade: ISO 12207, TDD, BDD e Tipos de Testes
+- Git, CI/CD e IaC
+
+**Módulo 6 — Desenvolvimento de Sistemas**
+- Microsserviços, SOA e Arquitetura Hexagonal
+- REST/RESTful, SOAP e gRPC
+- Estruturas de Dados e Princípios SOLID
+- Linguagens: Java, Python, .NET, C#
+
+**Módulo 7 — Banco de Dados**
+- MER, Mapeamento Relacional e Normalização
+- SQL: DDL, DML, DQL, Triggers e Views
+- Transações ACID e Controle de Concorrência
+- NoSQL: Modelos, Teorema CAP e MongoDB
+
+**Módulo 8 — Ciência de Dados e IA**
+- Data Warehouse, ETL e Modelagem Dimensional
+- OLAP (Drill-down, Roll-up, Slice, Dice)
+- Big Data: Hadoop, Data Lake e Apache Spark
+- Machine Learning: Supervisionado e Não Supervisionado
+- Power BI, Tableau e Python (Pandas, Scikit-Learn)
+
+**Módulo 9 — Gestão e Governança de TI**
+- COBIT (4.1, 5, 2019) e ITIL (v3 e v4)
+- BPM, BPMN e Processos de Negócio
+- IN SGD/ME 94/2022 e Guia de PDTIC
+
+**Módulo 10 — Aplicativos e Ferramentas**
+- Microsoft Office (Word, Excel, PowerPoint)
+- LibreOffice e Navegadores
+- Google Workspace e Microsoft Teams
+
+---
+
+## Matéria fora do ciclo básico (inativa — em implementação)
+- **Legislação Tributária** — depende do concurso específico do aluno (ICMS estadual, ISS municipal, RFB federal). Ativar no fluxo pós-edital.
+
+---
+
+## Campos no lançamento de questões
+- **Banco de questões** (obrigatório) — de onde veio a questão: TEC Concursos, Qconcursos, Gran Cursos, Estratégia, CERS, Simulado Próprio, Outro
+- **Banca** (opcional) — CESPE/CEBRASPE, FCC, FGV, VUNESP, AOCP, IDECAN, IBFC, QUADRIX, IADES, UPENET, Outra
+
+---
+
+## Métricas e gráficos do MVP
+
+### Métricas por subtópico
+- Taxa de acerto atual (últimas 20 questões)
+- Taxa de acerto histórica (total)
+- Tendência: melhorando / estável / piorando (comparar últimas 2 semanas)
+- Volume total de questões realizadas
+- Dias desde a última sessão
+- Status de domínio: Dominado (≥70%) / Em progresso (50-69%) / Crítico (<50%) / Não iniciado
+
+### Métricas por matéria
+- Taxa de acerto média ponderada
+- Contagem de subtópicos por status (dominado / em progresso / crítico / não iniciado)
+- Volume total de questões
+- Horas de estudo registradas
+- Evolução semanal da taxa de acerto
+
+### Métricas globais
+- Taxa de acerto geral
+- Meta de 90% — % atingido globalmente e por matéria
+- Total de questões realizadas (semana / mês / total)
+- Horas de estudo registradas (semana / mês / total)
+- Consistência: dias estudados nos últimos 30 dias
+- Sequência atual (streak): dias consecutivos com registro
+- Matérias com registro esta semana
+
+### Gráficos — ordenados por prioridade
+1. **Mapa de calor de subtópicos** — grid matéria × subtópico, cor por taxa de acerto (vermelho <50%, amarelo 50-70%, verde ≥70%)
+2. **Radar de matérias** — teia com % acerto por matéria
+3. **Evolução temporal por matéria** — linha com taxa de acerto por semana
+4. **Volume de questões por semana** — barras empilhadas por matéria, últimas 8 semanas
+5. **Heatmap de consistência** — calendário estilo GitHub, últimos 365 dias
+6. **Ranking de matérias por taxa de acerto** — barras horizontais
+7. **Subtópicos críticos** — lista priorizada por criticidade (taxa baixa × volume alto)
+8. **Taxa de acerto por banca** — quando banca informada
+9. **Taxa de acerto por banco de questões** — comparativo entre plataformas
+
+### Lista de revisão sugerida (algoritmo)
+Subtópicos aparecem na lista quando:
+- Taxa de acerto < 70% E última sessão há mais de 7 dias → urgente
+- Taxa de acerto < 50% independente da data → crítico
+- Mais de 14 dias sem revisão, independente da taxa → revisar
+
+---
+
+## VOLTA 1 — MVP funcional
+
+### V1-T01 — Limpeza do código morto
 ⬜ PENDING
 
-**Leia antes:** `docs/modulos/database.md`
+**Contexto:** O sistema atual tem uma arquitetura complexa de plano de estudos,
+engine pedagógica, tasks, metas e questionário. Tudo isso será removido.
+O produto novo é mais simples — só precisa de autenticação, lançamento e análise.
 
-**Contexto:** O PostgreSQL de produção está vazio. Matérias, subtópicos
-e ciclos estão só no dev.db local. Sem isso o site não tem estrutura nenhuma.
-
-**O que implementar:**
-Criar `scripts/migrar_dev_para_railway.py`:
-
-```python
-# Conecta ao dev.db local E ao PostgreSQL do Railway
-# Migra nesta ordem (respeitar FKs):
-# 1. topicos (nivel=0 matérias, nivel=1 tópicos, nivel=2 subtópicos)
-# 2. ciclo_materias
-# 3. subtopico_area (se existir)
-# NÃO migrar: alunos, tasks, metas, sessões, questões
-
-# Usar upsert para rodar mais de uma vez com segurança:
-# PostgreSQL: INSERT ... ON CONFLICT (id) DO NOTHING
-# Conectar ao Railway via variável DATABASE_URL do ambiente
-```
-
-**Como executar:**
+**O que deletar — arquivos e pastas:**
 ```bash
-railway run python scripts/migrar_dev_para_railway.py
+# Backend — remover completamente:
+app/services/engine_pedagogica.py
+app/services/plano_inicial.py
+app/services/plano_base.py       # ou nome equivalente
+app/routers/tasks.py             # ou study_tasks.py
+app/routers/metas.py
+app/routers/task_conteudo.py
+app/routers/explicacoes.py
+app/routers/conhecimento.py
+app/models/study_task.py
+app/models/meta.py
+app/models/plano_base.py
+
+# Frontend — remover completamente:
+frontend/src/pages/TaskView.jsx
+frontend/src/components/dashboard/TaskCard.jsx
+frontend/src/components/dashboard/TaskHero.jsx
+frontend/src/components/dashboard/VerticalTimeline.jsx
+frontend/src/components/task/QuestionFlow.jsx
+frontend/src/components/task/VideoList.jsx
+frontend/src/components/task/PdfPanel.jsx
 ```
 
-**Como verificar:**
-- https://www.skolai.com.br/admin/topicos → matérias aparecem
-- https://www.skolai.com.br/admin/usuarios → página carrega sem erro
+**O que manter:**
+- app/routers/auth.py
+- app/routers/admin_*.py
+- app/models/aluno.py
+- app/models/topico.py (matérias/módulos/subtópicos)
+- frontend/src/pages/Login.jsx
+- frontend/src/pages/Onboarding.jsx
+- frontend/src/pages/Desempenho.jsx (reformular)
+- frontend/src/components/layout/Sidebar.jsx (simplificar)
 
-**Arquivos:**
-- CRIAR: `scripts/migrar_dev_para_railway.py`
+**Após deletar:**
+- Verificar se o backend ainda sobe sem erros
+- Verificar se não há imports quebrados
+
+**Arquivos:** deletar os listados acima
 
 ---
 
-### V1-T02 — Corrigir modelo de IA e acesso admin
+### V1-T02 — Limpar e repovoar banco de dados
 ⬜ PENDING
 
-**Leia antes:** `docs/modulos/ia.md`
+**Contexto:** O banco tem matérias antigas com estrutura errada.
+Precisa ser limpo e repovoado com a hierarquia TEC Concursos completa
+das 11 matérias fiscais.
 
-**Contexto:** Dois problemas críticos.
-1. O modelo gemini-2.5-flash causou R$47 de custo em um dia de testes
-2. A senha admin com @ não funciona no Railway
+**O que fazer:**
+Criar `scripts/seed_fiscal.py` que:
+1. Deleta todos os registros de topicos, ciclo_materias, subtopico_area
+2. Insere as 11 matérias com seus módulos e subtópicos conforme
+   a hierarquia documentada na seção "Hierarquia de matérias" deste arquivo
+3. Estrutura: nivel=0 (matéria), nivel=1 (módulo/tópico), nivel=2 (subtópico)
+4. Vincula cada subtópico à área "fiscal"
 
-**O que implementar:**
-
-**Parte 1 — Trocar modelo:**
-Em `app/core/ai_provider.py` e em qualquer arquivo que tenha
-"gemini-2.5-flash" hardcoded (buscar com `grep -r "gemini-2.5" app/`):
-```python
-# DE: model="gemini-2.5-flash"
-# PARA: model="gemini-1.5-flash-8b"  (tarefas simples)
-# OU:   model="gemini-1.5-flash"     (PDF e PlanoBase)
-```
-
-Adicionar log de consumo após cada chamada:
-```python
-usage = response.usage_metadata
-print(f"[AI] modelo={model} tipo={tipo} input={usage.prompt_token_count} output={usage.candidates_token_count}")
-```
-
-**Parte 2 — Reset de senha admin:**
-Criar `scripts/reset_admin.py`:
-```python
-from app.core.database import SessionLocal
-from app.models.aluno import Aluno
-from app.core.security import hash_password
-db = SessionLocal()
-admin = db.query(Aluno).filter(Aluno.role == 'administrador').first()
-if admin:
-    admin.senha_hash = hash_password('SkolaiAdmin2026')
-    db.commit()
-    print(f'Senha resetada: {admin.email} / SkolaiAdmin2026')
-db.close()
-```
-Executar: `railway run python scripts/reset_admin.py`
-
-**Como verificar:**
-- Logar em www.skolai.com.br com admin@skolai.com / SkolaiAdmin2026
-- Verificar no console que logs mostram gemini-1.5-flash
-
-**Arquivos:**
-- MODIFICAR: `app/core/ai_provider.py`
-- BUSCAR E MODIFICAR: qualquer arquivo com "gemini-2.5"
-- CRIAR: `scripts/reset_admin.py`
-
----
-
-### V1-T03 — Corrigir PlanoBase: prompt e parser
-⬜ PENDING
-
-**Leia antes:** `docs/modulos/ia.md`
-
-**Contexto:** A geração do PlanoBase retorna "A IA não retornou fases válidas".
-O prompt atual pede critérios de avanço que são fixos no código.
-
-**O que implementar:**
-Localizar o service de geração do PlanoBase com:
 ```bash
-grep -r "plano_base\|PlanoBase\|gerar_plano" app/services/ app/routers/
+railway run python scripts/seed_fiscal.py
 ```
 
-Substituir o prompt por:
-```python
-PROMPT_PLANO_BASE = """
-Você é especialista em pedagogia de concursos públicos brasileiros.
-Analise as matérias e subtópicos e organize um plano progressivo.
+**Verificar:**
+- /admin/topicos → 11 matérias aparecem
+- Cada matéria expande em módulos
+- Cada módulo expande em subtópicos
 
-ÁREA: {area}
-PERFIL: {perfil}
-MATÉRIAS DISPONÍVEIS: {lista_materias_subtopicos}
-
-Retorne SOMENTE JSON válido, sem texto adicional, sem markdown:
-{{
-  "fases": [
-    {{"numero": 1, "nome": "Fundação", "materias": ["Materia1", "Materia2"]}},
-    {{"numero": 2, "nome": "Aprofundamento", "materias_novas": ["Materia3"]}}
-  ],
-  "ordem_subtopicos": {{
-    "Nome da Materia": ["subtopico1", "subtopico2"]
-  }},
-  "prerequisitos": {{
-    "subtopico_avancado": ["subtopico_base"]
-  }}
-}}
-
-REGRAS:
-- Fase 1: máximo 4 matérias independentes e fundamentais
-- Fases seguintes: máximo 3 matérias novas
-- ordem_subtopicos: do mais básico ao mais complexo
-- Listar TODOS os subtópicos de TODAS as matérias
-- NÃO incluir critérios de avanço, percentuais ou limiares
-"""
-```
-
-Corrigir o parser do retorno:
-```python
-# 1. Remover markdown: raw = raw.replace("```json","").replace("```","").strip()
-# 2. Encontrar JSON: inicio = raw.find("{"), fim = raw.rfind("}") + 1
-# 3. Parsear: dados = json.loads(raw[inicio:fim])
-# 4. Validar: assert "fases" in dados and "ordem_subtopicos" in dados
-```
-
-**Como verificar:**
-- Admin → Configurações → gerar PlanoBase fiscal/iniciante
-- Deve gerar sem erro e mostrar fases no editor visual
-
-**Arquivos:**
-- MODIFICAR: service de geração do PlanoBase (localizar com grep)
+**Arquivos a criar:**
+- CRIAR: `scripts/seed_fiscal.py`
 
 ---
 
-### V1-T04 — Corrigir dashboard: Meta 00 e bloqueio de diagnóstico
+### V1-T03 — Simplificar onboarding
 ⬜ PENDING
 
-**Leia antes:** `docs/modulos/tasks.md`
+**Contexto:** O onboarding atual tem muitas etapas e opções.
+Manter a estrutura visual mas desativar o que não está implementado.
 
-**Contexto:** Dois bugs relacionados ao diagnóstico inicial.
-1. Banner "diagnóstico pendente" aparece mesmo após concluído
-2. Alunos não-iniciantes não veem a Meta 00
+**O que fazer:**
+Em `frontend/src/pages/Onboarding.jsx` e componentes relacionados:
+
+Etapa de seleção de área:
+- Área Fiscal → ativa, clicável
+- Todas as outras áreas → aparência desativada (cinza), tooltip "Em implementação"
+
+Etapa de funcionalidades:
+- "Análise de Desempenho" → ativa, selecionada por padrão
+- Todas as outras funcionalidades → desativadas com tag "Em implementação"
+
+Etapa de fase de estudo:
+- "Pré-edital" → ativa
+- "Pós-edital" → desativada com tag "Em implementação"
+
+Manter o fluxo existente para o que está ativo.
+Não remover o código das opções inativas — só desabilitar visualmente.
+
+**Verificar:**
+- Onboarding completo sem erros
+- Áreas inativas não são clicáveis
+- Área Fiscal funciona normalmente
+
+**Arquivos:**
+- MODIFICAR: `frontend/src/pages/Onboarding.jsx` e componentes de etapa
+
+---
+
+### V1-T04 — Reformular dashboard como central de análise
+⬜ PENDING
+
+**Contexto:** O dashboard atual mostra tasks do dia. O novo dashboard
+é a central de análise — mostra o estado atual do desempenho do aluno.
 
 **O que implementar:**
 
-**Parte 1 — Remover banner, implementar bloqueio:**
-Em `frontend/src/pages/Dashboard.jsx`:
-- Remover completamente o banner/aviso de diagnóstico pendente
-- Se `user.diagnostico_pendente === true`, renderizar tela de bloqueio:
-```jsx
-// Em vez do dashboard normal, mostrar:
-<div>
-  <h2>Complete seu diagnóstico inicial</h2>
-  <p>Isso nos ajuda a montar seu plano personalizado</p>
-  <button onClick={() => navigate('/tasks/diagnostico')}>
-    Iniciar Diagnóstico
-  </button>
-</div>
+**Backend — novos endpoints:**
+```
+GET /desempenho/resumo
+  Retorna:
+  - taxa_acerto_geral: float
+  - total_questoes: int
+  - total_horas: float
+  - streak_dias: int
+  - dias_estudados_30d: int
+  - materias: [{ nome, taxa_acerto, total_questoes, status }]
+
+GET /desempenho/subtopicos-criticos?limit=10
+  Retorna lista dos subtópicos com pior desempenho:
+  [{ materia, modulo, subtopico, taxa_acerto, total_questoes, dias_sem_revisar }]
+
+GET /desempenho/sugestoes-revisao
+  Algoritmo:
+  - taxa < 50%: crítico
+  - taxa < 70% + sem revisão > 7 dias: urgente
+  - sem revisão > 14 dias: revisar
+  Retorna lista ordenada por prioridade
 ```
 
-**Parte 2 — Meta 00 visível:**
-Em `app/routers/study_tasks.py`, endpoint `GET /tasks/today`:
-- Se `aluno.diagnostico_pendente == True` E `aluno.experiencia != "iniciante"`:
-  retornar APENAS tasks do tipo `diagnostico` da Meta 00
-- Verificar em `app/services/engine_pedagogica.py` se a Meta 00
-  está sendo gerada corretamente para não-iniciantes
+**Frontend — nova Dashboard.jsx:**
+```
+Seção 1 — KPIs globais (4 cards):
+  Taxa de acerto geral | Total de questões | Dias de estudo | Streak
 
-**Como verificar:**
-- Criar aluno com experiencia="tempo_de_estudo" → ver Meta 00 no dashboard
-- Concluir diagnóstico → dashboard normal aparece sem banner
-- Criar aluno iniciante → não ver diagnóstico, ver dashboard direto
+Seção 2 — Matérias (barras horizontais):
+  Ranking de matérias por taxa de acerto, com cor por status
+
+Seção 3 — Revisão sugerida (lista):
+  Subtópicos que precisam de atenção, com botão "Registrar sessão"
+
+Seção 4 — Atividade recente:
+  Últimas 5 sessões registradas
+```
+
+**Verificar:**
+- Dashboard carrega com dados reais
+- KPIs corretos
+- Lista de revisão aparece quando há subtópicos abaixo de 70%
 
 **Arquivos:**
+- CRIAR/MODIFICAR: `app/routers/desempenho.py`
+- CRIAR: `app/services/analise_desempenho.py`
 - MODIFICAR: `frontend/src/pages/Dashboard.jsx`
-- VERIFICAR/MODIFICAR: `app/routers/study_tasks.py`
-- VERIFICAR: `app/services/engine_pedagogica.py`
 
 ---
 
-### V1-T05 — Corrigir geração de PDF e sugestão de vídeos
+### V1-T05 — Implementar registro de sessão de estudo
 ⬜ PENDING
 
-**Leia antes:** `docs/modulos/tasks.md` e `docs/modulos/ia.md`
-
-**Contexto:** Botões "Gerar PDF" e "Vídeo Aula" nas tasks não funcionam.
-O PDF é o principal recurso de apoio ao estudo da Volta 1.
-Com cache, é gerado uma vez por subtópico e serve para todos os alunos.
+**Contexto:** O aluno registra que estudou um subtópico — com ou sem questões.
+Isso alimenta o heatmap de consistência e o cálculo de "última revisão".
 
 **O que implementar:**
 
-**Parte 1 — Verificar backend:**
-Testar no /docs os endpoints:
-- `POST /task-conteudo/{task_code}/gerar-pdf`
-- `GET /task-conteudo/{task_code}/videos`
-- `POST /task-conteudo/{task_code}/videos/buscar`
-
-Se retornarem erro 500, corrigir o service.
-O PDF deve ser gerado com prompt contextualizado para concursos:
+**Backend:**
+Model `SessaoEstudo`:
 ```python
-prompt = f"""
-Crie um resumo didático sobre '{subtopico}' ({materia})
-para candidatos a concursos públicos fiscais brasileiros.
-Foque no que é cobrado em prova. Máximo 800 palavras.
-Organize em: Conceito, Pontos principais, O que cai em prova, Dicas.
-"""
+id, aluno_id, subtopico_id, tipo ("teoria" | "questoes"),
+data, duracao_min (opcional), created_at
 ```
 
-**Parte 2 — Corrigir frontend:**
-No componente TaskCard expandido
-(localizar em `frontend/src/components/`):
-
-Botão PDF:
-```jsx
-// 1. Mostrar loading "Gerando resumo..." (pode levar ~15s)
-// 2. POST /task-conteudo/{task_code}/gerar-pdf
-// 3. Exibir conteúdo em área expandida ou modal
-// 4. Adicionar abaixo: "⚠️ Gerado por IA — pode conter imprecisões"
-```
-
-Botão Vídeo:
-```jsx
-// 1. GET /task-conteudo/{task_code}/videos
-// 2. Se lista vazia: POST .../videos/buscar (IA busca no YouTube)
-// 3. Exibir cards: thumbnail + título + link para YouTube
-// 4. Não executar o vídeo dentro do Skolai — abrir no YouTube
-```
-
-**Como verificar:**
-- Expandir task de teoria → clicar "Gerar PDF" → resumo aparece em ~15s
-- Clicar "Ver Vídeos" → lista de vídeos do YouTube aparece
-
-**Arquivos:**
-- VERIFICAR/MODIFICAR: `app/routers/task_conteudo.py`
-- MODIFICAR: componente TaskCard (localizar com `find frontend/src -name "TaskCard*"`)
-
----
-
-### V1-T06 — Caderno de Questões funcionando
-⬜ PENDING
-
-**Leia antes:** `docs/modulos/bateria.md`
-
-**Contexto:** O aluno estuda no TEC Concursos ou Qconcursos e registra
-os resultados aqui. O sistema analisa e adapta o plano.
-A tela existe mas a lista de matérias não carrega.
-
-**O que implementar:**
-
-**Parte 1 — Verificar backend:**
-Confirmar que existe endpoint para listar matérias:
-```bash
-# Testar no /docs:
-GET /topicos?nivel=0  # ou GET /topicos/hierarquia
-```
-Se não existir ou retornar vazio, criar/corrigir.
-
-**Parte 2 — Corrigir e renomear frontend:**
-Renomear `LancarBateria.jsx` → `CadernoQuestoes.jsx`
-Atualizar rota de `/lancar-bateria` → `/caderno-questoes`
-Atualizar link na Sidebar e no App.jsx/router.
-
-Na página CadernoQuestoes.jsx:
-```jsx
-// Ao montar: buscar matérias da API e popular select
-useEffect(() => {
-  api.get('/topicos?nivel=0').then(res => setMaterias(res.data))
-}, [])
-
-// Ao selecionar matéria: buscar subtópicos
-const onMateriaSelecionada = (materiaId) => {
-  api.get(`/topicos?parent_id=${materiaId}&nivel=2`)
-    .then(res => setSubtopicos(res.data))
-}
-
-// Bancas disponíveis (hardcoded):
-const BANCAS = [
-  'CESPE/CEBRASPE', 'FCC', 'FGV', 'VUNESP', 'AOCP',
-  'IDECAN', 'IBFC', 'QUADRIX', 'IADES', 'UPENET',
-  'Outra banca', 'Simulado próprio'
-]
-
-// Campos do formulário:
-// - Select matéria (obrigatório)
-// - Select subtópico (obrigatório)
-// - Input acertos (número, obrigatório)
-// - Input total questões (número, obrigatório)
-// - Select banca (obrigatório)
-// - Input data (opcional, default hoje)
-
-// Após salvar com sucesso:
-// - Mostrar "Sessão registrada com sucesso!"
-// - Limpar formulário para registrar outra
-// - Atualizar histórico abaixo
-```
-
-Adicionar seção de histórico:
-```jsx
-// GET /baterias?aluno_id=me&limit=10
-// Mostrar tabela: data | matéria | subtópico | acertos/total | % | banca
-```
-
-**Como verificar:**
-- Acessar /caderno-questoes → matérias carregam no select
-- Selecionar matéria → subtópicos carregam
-- Preencher e salvar → feedback de sucesso
-- Histórico mostra a sessão
-
-**Arquivos:**
-- RENOMEAR: `frontend/src/pages/LancarBateria.jsx` → `CadernoQuestoes.jsx`
-- MODIFICAR: `frontend/src/App.jsx` (rota)
-- MODIFICAR: `frontend/src/components/layout/Sidebar.jsx` (link)
-- VERIFICAR/CRIAR: endpoint de listagem de matérias no backend
-
----
-
-### V1-T07 — Página de perfil do usuário
-⬜ PENDING
-
-**Leia antes:** `docs/modulos/auth.md`
-
-**Contexto:** Não existe página de perfil. O aluno não consegue
-trocar senha ou atualizar disponibilidade de estudo.
-
-**O que implementar:**
-
-**Parte 1 — Backend:**
-Verificar se existem os endpoints. Se não existirem, criar:
-
-`PATCH /auth/me` — atualizar dados:
-```python
-# Body: { nome, email, horas_por_dia, dias_por_semana }
-# Retorna: AlunoResponse atualizado
-```
-
-`POST /auth/alterar-senha`:
-```python
-# Body: { senha_atual, nova_senha, confirmar_senha }
-# Validar senha_atual com verify_password()
-# Se válida: hash(nova_senha) e salvar
-# Se inválida: retornar 400 "Senha atual incorreta"
-```
-
-**Parte 2 — Frontend:**
-Criar `frontend/src/pages/Perfil.jsx` com 4 seções:
-
-```jsx
-// Seção 1 — Dados pessoais
-// Campos: nome, email
-// Botão Salvar → PATCH /auth/me
-
-// Seção 2 — Disponibilidade de estudo
-// Campos: horas por dia (1-12), dias por semana (1-7)
-// Botão Salvar → PATCH /auth/me
-
-// Seção 3 — Alterar senha
-// Campos: senha atual, nova senha, confirmar nova senha
-// Validar: nova === confirmar antes de enviar
-// Botão Salvar → POST /auth/alterar-senha
-
-// Seção 4 — Minha conta (somente leitura)
-// Mostrar: área, experiência, data de cadastro
-// Botão "Refazer onboarding" → navigate('/onboarding')
-```
-
-Adicionar link para /perfil na Sidebar (ícone de usuário, abaixo do logout).
-
-**Como verificar:**
-- Acessar /perfil → dados atuais preenchidos
-- Editar nome → atualiza na sidebar
-- Trocar senha → consegue logar com nova senha
-
-**Arquivos:**
-- CRIAR: `frontend/src/pages/Perfil.jsx`
-- CRIAR/MODIFICAR: endpoints em `app/routers/auth.py`
-- MODIFICAR: `frontend/src/components/layout/Sidebar.jsx`
-- MODIFICAR: `frontend/src/App.jsx` (adicionar rota /perfil)
-
----
-
-### V1-T08 — Monitoramento de custos de IA
-⬜ PENDING
-
-**Leia antes:** `docs/modulos/ia.md`
-
-**Contexto:** Após o episódio dos R$47, precisamos monitorar
-custos antes de abrir para usuários beta.
-Gemini 1.5 Flash tem tier gratuito de 1M tokens/dia.
-Com cache, o beta com 20 usuários provavelmente não paga nada.
-Mas precisamos saber quando cruzar o limite.
-
-**O que implementar:**
-
-**Parte 1 — Model LogIA:**
-Verificar se já existe. Se não existir, criar `app/models/log_ia.py`:
-```python
-class LogIA(Base):
-    __tablename__ = "log_ia"
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    tipo = Column(String(50))       # "pdf", "plano_base", "video", "questao"
-    modelo = Column(String(100))    # "gemini-1.5-flash-8b"
-    tokens_input = Column(Integer, default=0)
-    tokens_output = Column(Integer, default=0)
-    custo_usd = Column(Float, default=0.0)
-    aluno_id = Column(String(36), nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.utcnow())
-```
-Criar migration Alembic para essa tabela.
-
-**Parte 2 — Registrar em ai_provider.py:**
-Após cada `generate()`, salvar no banco:
-```python
-# gemini-1.5-flash-8b: $0.075/1M input, $0.30/1M output
-custo = (tokens_input * 0.000000075) + (tokens_output * 0.0000003)
-# salvar LogIA no banco
-```
-
-**Parte 3 — Endpoint e página admin:**
-`GET /admin/financeiro/custos-ia` retorna:
+Endpoint `POST /sessoes`:
 ```json
 {
-  "total_mes_usd": 0.00,
-  "total_mes_brl": 0.00,
-  "limite_gratuito_tokens_dia": 1000000,
-  "consumido_hoje_tokens": 15000,
-  "por_tipo": {"pdf": 0.00, "plano_base": 0.00, "video": 0.00}
+  "subtopico_id": "uuid",
+  "tipo": "teoria",
+  "data": "2026-03-28",
+  "duracao_min": 45
 }
 ```
 
-Criar `frontend/src/pages/admin/AdminFinanceiro.jsx`:
-- Card "Custo total do mês" (USD e BRL a R$5,70)
-- Card "Tokens consumidos hoje / 1M (gratuito)"
-- Tabela: custo por tipo de operação
-- Aviso em vermelho se consumo > 80% do limite gratuito
+**Frontend:**
+Nova página `/registrar-estudo`:
+- Select hierárquico: Matéria → Módulo → Subtópico
+- Select tipo: Teoria / Questões
+- Input data (default hoje)
+- Input duração em minutos (opcional)
+- Botão Salvar
+- Após salvar: feedback + opção de registrar outro
 
-**Como verificar:**
-- Gerar PDF de uma task
-- Acessar /admin/financeiro → custo aparece (provavelmente $0.00)
-- Tokens consumidos aparecem
+Link na sidebar: "Registrar Estudo"
+
+**Verificar:**
+- Registrar sessão de teoria → aparece no heatmap do dashboard
+- Dados de duração aparecem no resumo de horas estudadas
 
 **Arquivos:**
-- CRIAR: `app/models/log_ia.py`
-- MODIFICAR: `app/core/ai_provider.py`
-- CRIAR: endpoint em novo `app/routers/admin_financeiro.py`
-- CRIAR: `frontend/src/pages/admin/AdminFinanceiro.jsx`
+- CRIAR: `app/models/sessao_estudo.py`
+- CRIAR/MODIFICAR: `app/routers/sessoes.py`
+- CRIAR: `frontend/src/pages/RegistrarEstudo.jsx`
 - Criar migration Alembic
 
 ---
 
-# VOLTA 2 — Análise e adaptação
+### V1-T06 — Implementar Caderno de Questões
+⬜ PENDING
+
+**Contexto:** Centro do produto. O aluno registra baterias de questões
+que fez em plataformas externas (TEC Concursos, Qconcursos, etc.).
+O sistema analisa esses dados.
+
+**O que implementar:**
+
+**Backend:**
+Model `BateriaQuestoes`:
+```python
+id, aluno_id, subtopico_id, data,
+acertos, total, percentual (calculado),
+banco_questoes, banca (nullable), created_at
+```
+
+Endpoint `POST /baterias`:
+```json
+{
+  "subtopico_id": "uuid",
+  "data": "2026-03-28",
+  "acertos": 14,
+  "total": 20,
+  "banco_questoes": "TEC Concursos",
+  "banca": "CESPE"
+}
+```
+
+Endpoint `GET /baterias?aluno_id=me&limit=20`
+
+**Frontend:**
+Página `/caderno-questoes`:
+
+Formulário de registro:
+- Select hierárquico: Matéria → Módulo → Subtópico
+- Input acertos (número)
+- Input total (número, ≥ acertos)
+- Percentual calculado automaticamente e exibido
+- Select banco de questões (obrigatório):
+  TEC Concursos, Qconcursos, Gran Cursos, Estratégia, CERS, Simulado Próprio, Outro
+- Select banca (opcional):
+  CESPE/CEBRASPE, FCC, FGV, VUNESP, AOCP, IDECAN, IBFC, QUADRIX, IADES, UPENET, Outra
+- Input data (default hoje)
+- Botão Salvar
+- Após salvar: "Registrado! X% de acerto em [Subtópico]" + opção de registrar outro
+
+Histórico (abaixo do formulário):
+- Tabela: data | matéria | subtópico | acertos/total | % | banco | banca
+
+**Verificar:**
+- Registrar bateria → aparece no histórico
+- Taxa de acerto calculada corretamente
+- Dados aparecem nos gráficos do dashboard
+
+**Arquivos:**
+- CRIAR: `app/models/bateria_questoes.py`
+- CRIAR/MODIFICAR: `app/routers/baterias.py`
+- CRIAR: `frontend/src/pages/CadernoQuestoes.jsx`
+- Criar migration Alembic
+
+---
+
+### V1-T07 — Implementar página de desempenho detalhado
+⬜ PENDING
+
+**Leia antes:** `docs/modulos/desempenho.md`
+
+**Contexto:** Página com todos os gráficos e métricas detalhadas.
+É aqui que o aluno entende profundamente seu desempenho.
+
+**O que implementar:**
+
+**Backend — endpoints:**
+```
+GET /desempenho/por-materia
+  [{ materia, taxa_acerto, total_questoes, horas, subtopicos_dominados,
+     subtopicos_criticos, evolucao_semanal: [{ semana, taxa }] }]
+
+GET /desempenho/heatmap-subtopicos
+  [{ materia, modulo, subtopico, taxa_acerto, total_questoes, status }]
+
+GET /desempenho/volume-semanal
+  Últimas 8 semanas: [{ semana, total_questoes, por_materia: {...} }]
+
+GET /desempenho/consistencia
+  Últimos 365 dias: [{ data, total_questoes, total_minutos }]
+
+GET /desempenho/por-banca
+  [{ banca, taxa_acerto, total_questoes }]
+
+GET /desempenho/por-banco-questoes
+  [{ banco, taxa_acerto, total_questoes }]
+```
+
+**Frontend — página `/desempenho`:**
+
+Filtro global no topo: período (7d / 30d / 90d / tudo) e matéria
+
+Bloco 1 — Radar de matérias (recharts RadarChart)
+Bloco 2 — Mapa de calor de subtópicos (grid visual com cores)
+Bloco 3 — Evolução temporal por matéria (recharts LineChart)
+Bloco 4 — Volume semanal de questões (recharts BarChart empilhado)
+Bloco 5 — Heatmap de consistência (calendário estilo GitHub)
+Bloco 6 — Desempenho por banca (recharts BarChart horizontal)
+Bloco 7 — Desempenho por banco de questões (recharts BarChart)
+
+**Verificar:**
+- Todos os gráficos carregam com dados reais
+- Filtro de período funciona
+- Mapa de calor mostra cores corretas por taxa de acerto
+
+**Arquivos:**
+- CRIAR/MODIFICAR: `app/routers/desempenho.py`
+- MODIFICAR: `frontend/src/pages/Desempenho.jsx`
+
+---
+
+### V1-T08 — Bugs e melhorias de autenticação
+⬜ PENDING
+
+**Contexto:** Três bugs de autenticação identificados que precisam
+ser corrigidos antes do beta.
+
+**Bug 01 — Onboarding: "Erro ao salvar suas preferências"**
+Verificar logs do Railway para o erro exato.
+Testar POST /onboarding no /docs com os dados do formulário.
+Verificar se todas as migrations foram aplicadas.
+
+**Bug 02 — Usuário logado vai para /login**
+O AuthContext não restaura o token antes do ProtectedRoute redirecionar.
+Corrigir: enquanto loading === true, não redirecionar para nenhum lugar.
+
+**Bug 03 — Cadastro incompleto + código de convite**
+- Adicionar campo "Confirmar senha" com validação
+- Adicionar botão mostrar/ocultar senha no cadastro e no login
+- Validações: senha 8+ caracteres, email formato válido
+- Implementar código de convite:
+  - Campo obrigatório na tela de cadastro
+  - Admin cria códigos no painel com limite de usos
+  - Backend valida antes de criar a conta
+  - Tabela CodigoConvite: codigo, limite_usos, usos_atuais, ativo
+
+**Arquivos:**
+- MODIFICAR: `frontend/src/pages/Login.jsx`
+- MODIFICAR: `frontend/src/context/AuthContext.jsx`
+- CRIAR: `app/models/codigo_convite.py`
+- MODIFICAR: `app/routers/auth.py`
+- Criar migration Alembic para CodigoConvite
+
+---
+
+### V1-T09 — Perfil do usuário
+⬜ PENDING
+
+**Contexto:** Não existe página de perfil. O aluno não consegue
+trocar senha ou atualizar seus dados.
+
+**Backend:**
+- PATCH /auth/me — atualizar nome e email
+- POST /auth/alterar-senha — validar senha atual, salvar nova
+
+**Frontend — `/perfil`:**
+- Seção dados pessoais: nome, email
+- Seção alterar senha: atual + nova + confirmar
+- Seção conta: área, data de cadastro (somente leitura)
+
+**Arquivos:**
+- CRIAR: `frontend/src/pages/Perfil.jsx`
+- CRIAR/MODIFICAR: endpoints em `app/routers/auth.py`
+
+---
+
+## VOLTA 2 — Análise avançada
 > Só iniciar após Volta 1 validada com usuários beta reais.
-> Foco: o sistema aprende com o que o aluno registra no Caderno.
 
-- V2-T01: Mapa de Lacunas (baseado no Caderno de Questões)
-- V2-T02: Desempenho detalhado (radar, heatmap, velocidade de domínio)
-- V2-T03: Índice de Prontidão
-- V2-T04: Personalização por funcionalidades do onboarding
-- V2-T05: Perfil de uso (com plano externo / sem plano externo)
+- V2-T01: Exportar relatório de desempenho em PDF
+- V2-T02: Comparativo de período (semana vs semana, mês vs mês)
+- V2-T03: Meta de questões semanal configurável pelo aluno
+- V2-T04: Filtro por banca em todos os gráficos
+- V2-T05: Histórico completo por subtópico (evolução detalhada)
 - V2-T06: Confirmação de email e recuperação de senha
-- V2-T07: Horas líquidas de estudo
-- V2-T08: Ordem de aparição dos subtópicos
 
 ---
 
-# VOLTA 3 — Conteúdo de apoio
-> Foco: IA enriquece o estudo com fontes confiáveis.
+## VOLTA 3 — IA e conteúdo
+> Só iniciar após Volta 2 validada.
 
-- V3-T01: Base de conhecimento com PDFs do admin (RAG)
-- V3-T02: PDF explicativo usando fontes upadas (mais preciso)
-- V3-T03: Chat com IA contextualizado por subtópico
-- V3-T04: Fluxo pós-edital via upload de PDF
-- V3-T05: Sistema de reporte de conteúdo incorreto
-- V3-T06: Seleção de modelo IA por tipo de operação (admin)
+- V3-T01: Análise de padrão de erro via IA ("você erra questões sobre X")
+- V3-T02: Sugestão inteligente de revisão com justificativa textual
+- V3-T03: PDF explicativo por subtópico (resumo de apoio ao estudo)
+- V3-T04: Sugestão de vídeos por subtópico
 
 ---
 
-# VOLTA 4 — Questões próprias (se validado)
-> Só implementar se o modelo pedagógico estiver validado pelo beta.
-> O Caderno de Questões pode ser suficiente — validar antes de construir.
-
-- V4-T01: Banco de questões básico (importação por PDF TEC)
-- V4-T02: QuestionFlow dentro do Skolai
-- V4-T03: Progressão de dificuldade por exposure_count
-- V4-T04: Questões geradas por IA como fallback
-- V4-T05: Aviso de origem nas questões
-
----
-
-# VOLTA 5 — Expansão
+## VOLTA 4 — Expansão
 > Produto validado, crescimento planejado.
 
-- V5-T01: Áreas militares (COM e SVM)
-- V5-T02: Mapa de Concursos
-- V5-T03: Monetização (planos e gateway)
-- V5-T04: Backup PostgreSQL → Google Drive
-- V5-T05: Sentry + auditoria admin
-- V5-T06: Upload de PDF de prova pelo aluno
+- V4-T01: Áreas militares (EAOF-COM, EAOF-SVM, CFOE-COM)
+- V4-T02: Legislação Tributária pós-edital
+- V4-T03: Monetização (planos e gateway)
+- V4-T04: Backup PostgreSQL → Google Drive
+- V4-T05: Sentry + auditoria admin
 
 ---
 
@@ -655,24 +1146,14 @@ Criar `frontend/src/pages/admin/AdminFinanceiro.jsx`:
 | Rota | Página | Role |
 |---|---|---|
 | /login | Login | público |
-| /onboarding | Onboarding | autenticado sem area |
-| / | Dashboard | estudante |
-| /desempenho | Desempenho | estudante |
+| /onboarding | Onboarding | autenticado sem área |
+| / | Dashboard (análise) | estudante |
+| /registrar-estudo | RegistrarEstudo | estudante |
 | /caderno-questoes | CadernoQuestoes | estudante |
+| /desempenho | Desempenho | estudante |
 | /perfil | Perfil | estudante |
 | /admin | AdminDashboard | administrador |
 | /admin/topicos | AdminTopicos | administrador |
 | /admin/usuarios | AdminUsuarios | administrador |
-| /admin/financeiro | AdminFinanceiro | administrador |
-| /mentor | MentorDashboard | mentor |
-| /mentor/aluno/:id | MentorAlunoDetalhe | mentor |
-
-## Rotas a adicionar nas próximas voltas
-- /mapa-lacunas (Volta 2)
-- /admin/fontes (Volta 3)
-- /admin/questoes (Volta 4)
-- /admin/importar (Volta 4)
-- /admin/reportes (Volta 3)
-- /admin/configuracoes (Volta 3)
-- /mapa-concursos (Volta 5)
+| /admin/convites | AdminConvites | administrador |
 

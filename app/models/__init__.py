@@ -15,18 +15,10 @@ from app.models.topic import Topic
 from app.models.topic_progress import TopicProgress
 from app.models.question_attempt import QuestionAttempt
 from app.models.resposta_questao import RespostaQuestao
-from app.models.study_task import StudyTask
 from app.models.perfil_estudo import PerfilEstudo
 from app.models.ciclo_materia import CicloMateria
-from app.models.explicacao_subtopico import ExplicacaoSubtopico
 from app.models.questao_banco import QuestaoBanco
 from app.models.question_subtopic import QuestionSubtopic
-from app.models.task_conteudo import TaskConteudo
-from app.models.task_video import TaskVideo
-from app.models.task_video_avaliacao import TaskVideoAvaliacao
-from app.models.meta import Meta
-from app.models.subtopico_estado import SubtopicoEstado
-from app.models.plano_base import PlanoBase
 from app.models.banca import Banca
 from app.models.area import Area
 from app.models.question_area import QuestionArea
@@ -51,18 +43,10 @@ __all__ = [
     "TopicProgress",
     "QuestionAttempt",
     "RespostaQuestao",
-    "StudyTask",
     "PerfilEstudo",
     "CicloMateria",
-    "ExplicacaoSubtopico",
     "QuestaoBanco",
     "QuestionSubtopic",
-    "TaskConteudo",
-    "TaskVideo",
-    "TaskVideoAvaliacao",
-    "Meta",
-    "SubtopicoEstado",
-    "PlanoBase",
     "Banca",
     "Area",
     "QuestionArea",

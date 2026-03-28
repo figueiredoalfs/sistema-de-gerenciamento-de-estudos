@@ -10,10 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.aluno import Aluno
-from app.models.meta import Meta
 from app.models.proficiencia import Proficiencia
-from app.models.study_task import StudyTask
-from app.models.subtopico_estado import SubtopicoEstado
 
 router = APIRouter(prefix="/dev", tags=["dev"])
 
@@ -29,13 +26,8 @@ def reset_aluno(
     """
     aluno_id = aluno.id
 
-    # Apaga tasks e metas (tasks têm FK para metas, então tasks primeiro)
-    db.query(StudyTask).filter(StudyTask.aluno_id == aluno_id).delete(synchronize_session=False)
-    db.query(Meta).filter(Meta.aluno_id == aluno_id).delete(synchronize_session=False)
-
-    # Apaga proficiências e estados de subtópico
+    # Apaga proficiências
     db.query(Proficiencia).filter(Proficiencia.aluno_id == aluno_id).delete(synchronize_session=False)
-    db.query(SubtopicoEstado).filter(SubtopicoEstado.aluno_id == aluno_id).delete(synchronize_session=False)
 
     # Apaga o perfil de estudo (vai ser recriado no onboarding)
     from app.models.perfil_estudo import PerfilEstudo

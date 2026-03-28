@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../hooks/useTasks'
 import WeeklyProgressBar from '../components/dashboard/WeeklyProgressBar'
-import TaskHero from '../components/dashboard/TaskHero'
-import VerticalTimeline from '../components/dashboard/VerticalTimeline'
 
 function Spinner() {
   return (
@@ -132,14 +130,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {heroTask && (
-          <TaskHero task={heroTask} onStart={iniciarTask} onComplete={concluirTask} />
-        )}
-
-        {tasks.length > 0 && (
-          <VerticalTimeline tasks={tasks} heroTask={heroTask} onStart={iniciarTask} onComplete={concluirTask} />
-        )}
-
         {todasConcluidas && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center">
             <p className="text-2xl mb-2">🎉</p>
@@ -199,21 +189,6 @@ export default function Dashboard() {
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-amber-400 text-sm">
           {metaError}
         </div>
-      )}
-
-      {/* Task Hero */}
-      {heroTask && (
-        <TaskHero task={heroTask} onStart={iniciarTask} onComplete={concluirTask} />
-      )}
-
-      {/* Timeline */}
-      {tasks.length > 0 && (
-        <VerticalTimeline
-          tasks={tasks}
-          heroTask={heroTask}
-          onStart={iniciarTask}
-          onComplete={concluirTask}
-        />
       )}
 
       {/* Todas concluídas */}

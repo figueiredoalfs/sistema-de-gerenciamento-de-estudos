@@ -11,12 +11,10 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import require_admin, require_mentor, hash_password
 from app.models.aluno import Aluno
-from app.models.meta import Meta
 from app.models.perfil_estudo import PerfilEstudo
 from app.models.proficiencia import Proficiencia
 from app.models.resposta_questao import RespostaQuestao
 from app.models.sessao import Sessao
-from app.models.study_task import StudyTask
 from app.schemas.auth import AlunoAdminResponse, AlunoAdminUpdate, AlunoMentoradoResponse, AtribuirMentorRequest, AlunoAdminCreate
 
 router = APIRouter(tags=["usuários"])
@@ -270,23 +268,7 @@ def resumo_aluno_mentor(
     fase_atual = perfil.fase_atual if perfil else None
     experiencia = perfil.experiencia if perfil else None
 
-    # Meta ativa
-    meta_ativa = db.query(Meta).filter(Meta.aluno_id == aluno_id, Meta.status == "aberta").first()
     meta_info = None
-    if meta_ativa:
-        total_tasks = db.query(sa.func.count(StudyTask.id)).filter(StudyTask.goal_id == meta_ativa.id).scalar() or 0
-        done_tasks = (
-            db.query(sa.func.count(StudyTask.id))
-            .filter(StudyTask.goal_id == meta_ativa.id, StudyTask.status == "completed")
-            .scalar()
-            or 0
-        )
-        meta_info = {
-            "numero_semana": meta_ativa.numero_semana,
-            "tasks_total": total_tasks,
-            "tasks_concluidas": done_tasks,
-            "progresso_pct": perc(done_tasks, total_tasks),
-        }
 
     # Última atividade (última resposta)
     ultima_resposta = (
