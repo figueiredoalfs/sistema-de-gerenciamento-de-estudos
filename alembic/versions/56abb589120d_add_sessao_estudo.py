@@ -36,12 +36,27 @@ def upgrade() -> None:
         batch_op.create_index(batch_op.f('ix_sessoes_estudo_aluno_id'), ['aluno_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_sessoes_estudo_subtopico_id'), ['subtopico_id'], unique=False)
 
+    # Drop na ordem correta: filhos antes dos pais (evita erro de FK/índice dependente)
+    with op.batch_alter_table('task_video_avaliacoes', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_task_video_avaliacoes_aluno_id'))
+        batch_op.drop_index(batch_op.f('ix_task_video_avaliacoes_video_id'))
+
+    op.drop_table('task_video_avaliacoes')
+    with op.batch_alter_table('task_videos', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_task_videos_task_code'))
+
+    op.drop_table('task_videos')
     with op.batch_alter_table('study_tasks', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_study_tasks_aluno_id'))
         batch_op.drop_index(batch_op.f('ix_study_tasks_goal_id'))
         batch_op.drop_index(batch_op.f('ix_study_tasks_task_code'))
 
     op.drop_table('study_tasks')
+    with op.batch_alter_table('task_conteudo', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_task_conteudo_subtopico_id'))
+        batch_op.drop_index(batch_op.f('ix_task_conteudo_task_code'))
+
+    op.drop_table('task_conteudo')
     with op.batch_alter_table('metas', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_metas_aluno_id'))
 
@@ -50,20 +65,6 @@ def upgrade() -> None:
         batch_op.drop_index(batch_op.f('ix_explicacoes_subtopico_topico_id'))
 
     op.drop_table('explicacoes_subtopico')
-    with op.batch_alter_table('task_conteudo', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_task_conteudo_subtopico_id'))
-        batch_op.drop_index(batch_op.f('ix_task_conteudo_task_code'))
-
-    op.drop_table('task_conteudo')
-    with op.batch_alter_table('task_videos', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_task_videos_task_code'))
-
-    op.drop_table('task_videos')
-    with op.batch_alter_table('task_video_avaliacoes', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_task_video_avaliacoes_aluno_id'))
-        batch_op.drop_index(batch_op.f('ix_task_video_avaliacoes_video_id'))
-
-    op.drop_table('task_video_avaliacoes')
     op.drop_table('planos_base')
     with op.batch_alter_table('subtopico_estados', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_subtopico_estados_aluno_id'))
