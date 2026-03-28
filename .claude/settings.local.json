@@ -57,7 +57,8 @@
       "Bash(ls \"c:\\\\Users\\\\Figueiredo\\\\sistema-de-gerenciamento-de-estudos\\\\app\\\\scripts\"\" && ls \"c:UsersFigueiredosistema-de-gerenciamento-de-estudosscripts\"\")",
       "Bash(python -c \"import scripts.seed_fiscal; print\\(''OK''\\)\")",
       "Bash(alembic revision:*)",
-      "Bash(python -c \"import app.main; print\\(''OK''\\)\")"
+      "Bash(python -c \"import app.main; print\\(''OK''\\)\")",
+      "Bash(grep -r figueiredoalfs c:/Users/Figueiredo/sistema-de-gerenciamento-de-estudos --include=*.py --include=*.js --include=*.jsx)"
     ]
   }
 }
