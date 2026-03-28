@@ -22,7 +22,7 @@ client.interceptors.response.use(
   async (error) => {
     const original = error.config
 
-    if (error.response?.status === 401 && !original._retried) {
+    if (error.response?.status === 401 && !original._retried && !original.url?.includes('/auth/login')) {
       const refreshToken = localStorage.getItem('refresh_token')
 
       if (!refreshToken) {
