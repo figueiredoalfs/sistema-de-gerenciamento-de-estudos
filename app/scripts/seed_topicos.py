@@ -16,8 +16,12 @@ Fonte única de dados: config_materias.HIERARQUIA
 import sys
 import uuid
 
+from sqlalchemy import func
+
 from app.core.database import SessionLocal
 from app.models.topico import Topico
+from app.models.proficiencia import Proficiencia
+from app.models.ciclo_materia import CicloMateria
 from app.services.decay import get_decay_rate
 from app.scripts.config_materias import HIERARQUIA
 
@@ -51,6 +55,30 @@ def seed(db=None) -> dict:
         db = SessionLocal()
 
     try:
+        # ── Deduplicar nivel=0 (matérias raiz) ───────────────────────────────
+        dupes_query = (
+            db.query(Topico.nome)
+            .filter(Topico.nivel == 0)
+            .group_by(Topico.nome)
+            .having(func.count(Topico.id) > 1)
+            .all()
+        )
+        for (nome,) in dupes_query:
+            rows = db.query(Topico).filter(Topico.nome == nome, Topico.nivel == 0).all()
+            # Mantém o registro com mais filhos; em empate, usa o mais antigo
+            keeper = max(rows, key=lambda r: db.query(Topico).filter(Topico.parent_id == r.id).count())
+            for r in rows:
+                if r.id == keeper.id:
+                    continue
+                # Re-parenta filhos (módulos nivel=1)
+                db.query(Topico).filter(Topico.parent_id == r.id).update({"parent_id": keeper.id})
+                # Re-aponta proficiências
+                db.query(Proficiencia).filter(Proficiencia.topico_id == r.id).update({"topico_id": keeper.id})
+                # Re-aponta ciclos
+                db.query(CicloMateria).filter(CicloMateria.subject_id == r.id).update({"subject_id": keeper.id})
+                r.ativo = False
+        db.flush()
+
         # Carrega pares (nome, nivel) já existentes para evitar duplicatas
         existentes: set[tuple[str, int]] = {
             (t.nome, t.nivel)
