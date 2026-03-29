@@ -9,3 +9,8 @@ export async function listarSessoes(limit = 20) {
   const { data } = await client.get('/sessoes-estudo', { params: { limit } })
   return data
 }
+
+export async function putSessaoEstudo(id, body) {
+  const { data } = await client.put(`/sessoes-estudo/${id}`, body)
+  return data
+}

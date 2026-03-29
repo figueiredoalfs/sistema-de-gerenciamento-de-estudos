@@ -16,7 +16,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.aluno import Aluno
 from app.models.proficiencia import PESO_POR_FONTE, Proficiencia
-from app.schemas.bateria import BateriaRequest, BateriaResponse, BateriaResumo, ProficienciaOut
+from app.schemas.bateria import BateriaRequest, BateriaResponse, BateriaResumo, BateriaUpdate, BateriaDetalhe, ProficienciaOut
 
 router = APIRouter(tags=["bateria"])
 
@@ -169,6 +169,96 @@ def registrar_bateria(
         total_questoes=sum(q.total for q in body.questoes),
         proficiencias=[ProficienciaOut.model_validate(r) for r in registros],
         mensagem=f"Bateria registrada: {len(registros)} matéria(s), {sum(q.total for q in body.questoes)} questões.",
+    )
+
+
+@router.get("/baterias/{bateria_id}", response_model=BateriaDetalhe)
+def get_bateria(
+    bateria_id: str,
+    db: Session = Depends(get_db),
+    aluno: Aluno = Depends(get_current_user),
+):
+    """Retorna os detalhes de uma bateria para edição."""
+    profs = (
+        db.query(Proficiencia)
+        .filter(
+            Proficiencia.id_bateria == bateria_id,
+            Proficiencia.aluno_id == aluno.id,
+        )
+        .all()
+    )
+    if not profs:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Bateria não encontrada")
+    return BateriaDetalhe(
+        bateria_id=bateria_id,
+        data=profs[0].data,
+        duracao_min=profs[0].duracao_min,
+        banca=profs[0].banca,
+        fonte=profs[0].fonte,
+        proficiencias=[
+            {"id": p.id, "materia": p.materia, "subtopico": p.subtopico,
+             "acertos": p.acertos, "total": p.total}
+            for p in profs
+        ],
+    )
+
+
+@router.put("/baterias/{bateria_id}", response_model=BateriaDetalhe)
+def editar_bateria(
+    bateria_id: str,
+    body: BateriaUpdate,
+    db: Session = Depends(get_db),
+    aluno: Aluno = Depends(get_current_user),
+):
+    """Edita duracao_min, data e banca de toda a bateria, e acertos/total por proficiência."""
+    from fastapi import HTTPException
+    profs = (
+        db.query(Proficiencia)
+        .filter(
+            Proficiencia.id_bateria == bateria_id,
+            Proficiencia.aluno_id == aluno.id,
+        )
+        .all()
+    )
+    if not profs:
+        raise HTTPException(status_code=404, detail="Bateria não encontrada")
+
+    # Mapa id → proficiência para lookup rápido
+    prof_map = {p.id: p for p in profs}
+
+    # Atualiza campos compartilhados
+    for p in profs:
+        if body.duracao_min is not None:
+            p.duracao_min = body.duracao_min
+        if body.data is not None:
+            p.data = body.data
+        if body.banca is not None:
+            p.banca = body.banca
+
+    # Atualiza acertos/total por proficiência
+    for pu in body.proficiencias:
+        p = prof_map.get(pu.id)
+        if p:
+            p.acertos = pu.acertos
+            p.total = pu.total
+            p.percentual = (pu.acertos / pu.total * 100) if pu.total > 0 else 0.0
+
+    db.commit()
+    for p in profs:
+        db.refresh(p)
+
+    return BateriaDetalhe(
+        bateria_id=bateria_id,
+        data=profs[0].data,
+        duracao_min=profs[0].duracao_min,
+        banca=profs[0].banca,
+        fonte=profs[0].fonte,
+        proficiencias=[
+            {"id": p.id, "materia": p.materia, "subtopico": p.subtopico,
+             "acertos": p.acertos, "total": p.total}
+            for p in profs
+        ],
     )
 
 

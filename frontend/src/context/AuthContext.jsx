@@ -5,12 +5,12 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState(() => localStorage.getItem('token'))
+  const [token, setToken] = useState(() => sessionStorage.getItem('token'))
   const [loading, setLoading] = useState(true)
 
   function _saveTokens(accessToken, refreshToken) {
-    localStorage.setItem('token', accessToken)
-    if (refreshToken) localStorage.setItem('refresh_token', refreshToken)
+    sessionStorage.setItem('token', accessToken)
+    if (refreshToken) sessionStorage.setItem('refresh_token', refreshToken)
     setToken(accessToken)
   }
 
@@ -23,8 +23,8 @@ export function AuthProvider({ children }) {
     getMe()
       .then(setUser)
       .catch(() => {
-        localStorage.removeItem('token')
-        localStorage.removeItem('refresh_token')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('refresh_token')
         setToken(null)
       })
       .finally(() => setLoading(false))
@@ -39,8 +39,8 @@ export function AuthProvider({ children }) {
   }, []) // eslint-disable-line
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('refresh_token')
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('refresh_token')
     setToken(null)
     setUser(null)
   }, [])

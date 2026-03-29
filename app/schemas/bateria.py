@@ -47,3 +47,36 @@ class BateriaResumo(BaseModel):
     total_acertos: int
     percentual_geral: float
     materias: List[str]
+
+
+class ProficienciaUpdate(BaseModel):
+    id: str
+    acertos: int
+    total: int
+
+
+class BateriaUpdate(BaseModel):
+    duracao_min: Optional[int] = None
+    data: Optional[datetime] = None
+    banca: Optional[str] = None
+    proficiencias: List[ProficienciaUpdate]
+
+
+class ProficienciaDetalhe(BaseModel):
+    id: str
+    materia: str
+    subtopico: Optional[str] = None
+    acertos: int
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class BateriaDetalhe(BaseModel):
+    bateria_id: str
+    data: datetime
+    duracao_min: Optional[int] = None
+    banca: Optional[str] = None
+    fonte: Optional[str] = None
+    proficiencias: List[ProficienciaDetalhe]

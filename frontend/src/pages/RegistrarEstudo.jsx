@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getHierarquiaCompleta } from '../api/bateria'
-import { postSessaoEstudo } from '../api/sessoes'
+import { postSessaoEstudo, listarSessoes, putSessaoEstudo } from '../api/sessoes'
 
 const inputCls = 'w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2.5 text-sm text-brand-text focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50'
 const selectCls = inputCls
@@ -18,9 +18,76 @@ function hoje() {
   return new Date().toISOString().split('T')[0]
 }
 
+const TIPO_LABEL = { teoria: 'Teoria / Leitura', revisão: 'Revisão' }
+
 let _nextId = 1
 function newSubRow() { return { id: _nextId++, subtopico: '' } }
 function newGroup() { return { id: _nextId++, materia: '', modulo: '', subtopicos: [newSubRow()] } }
+
+function ModalEditar({ sessao, onClose, onSaved }) {
+  const [tipo, setTipo] = useState(sessao.tipo || 'teoria')
+  const [data, setData] = useState(sessao.data || hoje())
+  const [duracao, setDuracao] = useState(sessao.duracao_min != null ? String(sessao.duracao_min) : '')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState(null)
+
+  async function handleSalvar(e) {
+    e.preventDefault()
+    setErro(null)
+    setSalvando(true)
+    try {
+      const updated = await putSessaoEstudo(sessao.id, {
+        tipo,
+        data,
+        duracao_min: duracao ? parseInt(duracao, 10) : null,
+      })
+      onSaved(updated)
+    } catch (err) {
+      setErro(err.response?.data?.detail || err.message || 'Erro ao salvar.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-sm space-y-5 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-brand-text">Editar Sessão</h2>
+          <button onClick={onClose} className="text-brand-muted hover:text-brand-text text-xl leading-none">×</button>
+        </div>
+
+        <form onSubmit={handleSalvar} className="space-y-4">
+          <Campo label="Tipo de estudo">
+            <select className={selectCls} value={tipo} onChange={e => setTipo(e.target.value)}>
+              <option value="teoria">Teoria / Leitura</option>
+              <option value="revisão">Revisão</option>
+            </select>
+          </Campo>
+
+          <Campo label="Data">
+            <input type="date" className={inputCls} value={data} onChange={e => setData(e.target.value)} max={hoje()} required />
+          </Campo>
+
+          <Campo label="Duração (minutos, opcional)">
+            <input type="number" className={inputCls} placeholder="Ex: 45" value={duracao} onChange={e => setDuracao(e.target.value)} min="1" max="480" />
+          </Campo>
+
+          {erro && <p className="text-red-400 text-sm">{erro}</p>}
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-brand-border rounded-xl text-brand-muted text-sm hover:text-brand-text transition-colors">
+              Cancelar
+            </button>
+            <button type="submit" disabled={salvando} className="flex-1 py-2.5 bg-brand-gradient text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-50">
+              {salvando ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
 
 export default function RegistrarEstudo() {
   const [hierarquia, setHierarquia] = useState([])
@@ -36,11 +103,15 @@ export default function RegistrarEstudo() {
   const [sucesso, setSucesso] = useState(null)
   const [erro, setErro] = useState(null)
 
+  const [historico, setHistorico] = useState([])
+  const [editando, setEditando] = useState(null)
+
   useEffect(() => {
     getHierarquiaCompleta()
       .then(data => setHierarquia(Array.isArray(data) ? data : []))
       .catch(() => setErrHier('Não foi possível carregar as matérias.'))
       .finally(() => setLoadingHier(false))
+    listarSessoes(20).then(s => setHistorico(Array.isArray(s) ? s : []))
   }, [])
 
   function updateGroup(gid, field, value) {
@@ -95,6 +166,7 @@ export default function RegistrarEstudo() {
       setSucesso(`${count} sessão(ões) registrada(s)!`)
       setGroups([newGroup()])
       setDuracao('')
+      listarSessoes(20).then(s => setHistorico(Array.isArray(s) ? s : []))
     } catch (err) {
       setErro(err.response?.data?.detail || err.message || 'Erro ao registrar sessão.')
     } finally {
@@ -102,11 +174,16 @@ export default function RegistrarEstudo() {
     }
   }
 
+  function handleSaved(updated) {
+    setHistorico(prev => prev.map(s => s.id === updated.id ? updated : s))
+    setEditando(null)
+  }
+
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-brand-text">Registrar Estudo</h1>
-        <p className="text-brand-muted text-sm mt-1">Registre uma sessão de teoria ou prática</p>
+        <p className="text-brand-muted text-sm mt-1">Registre uma sessão de teoria ou revisão</p>
       </div>
 
       {errHier && (
@@ -191,7 +268,7 @@ export default function RegistrarEstudo() {
         <Campo label="Tipo de estudo">
           <select className={selectCls} value={tipo} onChange={e => setTipo(e.target.value)}>
             <option value="teoria">Teoria / Leitura</option>
-            <option value="questoes">Resolução de questões</option>
+            <option value="revisão">Revisão</option>
           </select>
         </Campo>
 
@@ -235,6 +312,52 @@ export default function RegistrarEstudo() {
           {enviando ? 'Salvando...' : 'Registrar sessão'}
         </button>
       </form>
+
+      {historico.length > 0 && (
+        <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-brand-border">
+            <h2 className="text-sm font-semibold text-brand-text">Histórico</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-brand-border text-xs text-brand-muted">
+                  <th className="text-left px-5 py-3">Data</th>
+                  <th className="text-left px-5 py-3">Tipo</th>
+                  <th className="text-right px-5 py-3">Duração</th>
+                  <th className="text-right px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-border">
+                {historico.map(s => (
+                  <tr key={s.id} className="hover:bg-brand-surface/40 transition-colors">
+                    <td className="px-5 py-3 text-brand-muted">{new Date(s.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                    <td className="px-5 py-3 text-brand-text capitalize">{TIPO_LABEL[s.tipo] || s.tipo}</td>
+                    <td className="px-5 py-3 text-right text-brand-muted">{s.duracao_min != null ? `${s.duracao_min} min` : '—'}</td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        onClick={() => setEditando(s)}
+                        className="text-brand-muted hover:text-indigo-400 transition-colors text-base leading-none"
+                        title="Editar"
+                      >
+                        ✏
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {editando && (
+        <ModalEditar
+          sessao={editando}
+          onClose={() => setEditando(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   )
 }

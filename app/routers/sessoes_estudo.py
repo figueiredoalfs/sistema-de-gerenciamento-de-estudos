@@ -56,6 +56,35 @@ def registrar_sessao(
     return sessao
 
 
+class SessaoEstudoUpdate(BaseModel):
+    subtopico_id: Optional[str] = None
+    tipo: Optional[str] = None
+    data: Optional[date] = None
+    duracao_min: Optional[int] = None
+
+
+@router.put("/{sessao_id}", response_model=SessaoEstudoResponse)
+def atualizar_sessao(
+    sessao_id: str,
+    body: SessaoEstudoUpdate,
+    db: Session = Depends(get_db),
+    aluno: Aluno = Depends(get_current_user),
+):
+    from fastapi import HTTPException
+    sessao = (
+        db.query(SessaoEstudo)
+        .filter(SessaoEstudo.id == sessao_id, SessaoEstudo.aluno_id == aluno.id)
+        .first()
+    )
+    if not sessao:
+        raise HTTPException(status_code=404, detail="Sessão não encontrada")
+    for field, val in body.model_dump(exclude_unset=True).items():
+        setattr(sessao, field, val)
+    db.commit()
+    db.refresh(sessao)
+    return sessao
+
+
 @router.get("", response_model=List[SessaoEstudoResponse])
 def listar_sessoes(
     limit: int = Query(20, ge=1, le=100),

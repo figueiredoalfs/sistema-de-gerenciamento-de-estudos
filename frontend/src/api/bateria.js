@@ -25,3 +25,13 @@ export async function listarBaterias(params = {}) {
   const { data } = await client.get('/baterias', { params })
   return data
 }
+
+export async function getBateriaDetail(bateriaId) {
+  const { data } = await client.get(`/baterias/${bateriaId}`)
+  return data
+}
+
+export async function putBateria(bateriaId, body) {
+  const { data } = await client.put(`/baterias/${bateriaId}`, body)
+  return data
+}

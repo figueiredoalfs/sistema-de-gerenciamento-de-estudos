@@ -7,7 +7,7 @@ const client = axios.create({
 })
 
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = sessionStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -23,10 +23,10 @@ client.interceptors.response.use(
     const original = error.config
 
     if (error.response?.status === 401 && !original._retried && !original.url?.includes('/auth/login')) {
-      const refreshToken = localStorage.getItem('refresh_token')
+      const refreshToken = sessionStorage.getItem('refresh_token')
 
       if (!refreshToken) {
-        localStorage.removeItem('token')
+        sessionStorage.removeItem('token')
         window.location.href = '/login'
         return Promise.reject(error)
       }
@@ -43,8 +43,8 @@ client.interceptors.response.use(
 
       try {
         const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh`, { refresh_token: refreshToken })
-        localStorage.setItem('token', data.access_token)
-        if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
+        sessionStorage.setItem('token', data.access_token)
+        if (data.refresh_token) sessionStorage.setItem('refresh_token', data.refresh_token)
         original.headers.Authorization = `Bearer ${data.access_token}`
 
         // Retenta requisições enfileiradas
@@ -58,8 +58,8 @@ client.interceptors.response.use(
       } catch {
         _refreshQueue.forEach(({ reject }) => reject(error))
         _refreshQueue = []
-        localStorage.removeItem('token')
-        localStorage.removeItem('refresh_token')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('refresh_token')
         window.location.href = '/login'
         return Promise.reject(error)
       } finally {

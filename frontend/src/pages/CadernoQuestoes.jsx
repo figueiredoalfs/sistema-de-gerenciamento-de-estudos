@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getHierarquiaCompleta, getBancas, postBateria, listarBaterias } from '../api/bateria'
+import { getHierarquiaCompleta, getBancas, postBateria, listarBaterias, getBateriaDetail, putBateria } from '../api/bateria'
 
 const inputCls = 'w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2.5 text-sm text-brand-text focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50'
 const selectCls = inputCls
@@ -32,6 +32,132 @@ let _nextId = 1
 function newSubRow() { return { id: _nextId++, subtopico: '', acertos: '', total: '' } }
 function newGroup() { return { id: _nextId++, materia: '', modulo: '', subtopicos: [newSubRow()] } }
 
+function ModalEditarBateria({ bateriaId, bancasDisponiveis, onClose, onSaved }) {
+  const [detalhe, setDetalhe] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [duracao, setDuracao] = useState('')
+  const [banca, setBanca] = useState('')
+  const [data, setData] = useState('')
+  const [rows, setRows] = useState([])
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState(null)
+
+  useEffect(() => {
+    getBateriaDetail(bateriaId)
+      .then(d => {
+        setDetalhe(d)
+        setDuracao(d.duracao_min != null ? String(d.duracao_min) : '')
+        setBanca(d.banca || '')
+        setData(d.data ? d.data.split('T')[0] : hoje())
+        setRows(d.proficiencias.map(p => ({ ...p, acertos: String(p.acertos), total: String(p.total) })))
+      })
+      .catch(() => setErro('Não foi possível carregar os dados.'))
+      .finally(() => setLoading(false))
+  }, [bateriaId])
+
+  function updateRow(id, field, value) {
+    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
+  }
+
+  async function handleSalvar(e) {
+    e.preventDefault()
+    setErro(null)
+    for (const r of rows) {
+      if (parseInt(r.acertos) > parseInt(r.total)) {
+        setErro('Acertos não pode ser maior que o total.')
+        return
+      }
+    }
+    setSalvando(true)
+    try {
+      await putBateria(bateriaId, {
+        duracao_min: duracao ? parseInt(duracao, 10) : null,
+        banca: banca || null,
+        data: data || null,
+        proficiencias: rows.map(r => ({ id: r.id, acertos: parseInt(r.acertos), total: parseInt(r.total) })),
+      })
+      onSaved()
+    } catch (err) {
+      setErro(err.response?.data?.detail || err.message || 'Erro ao salvar.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-lg space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-brand-text">Editar Bateria</h2>
+          <button onClick={onClose} className="text-brand-muted hover:text-brand-text text-xl leading-none">×</button>
+        </div>
+
+        {loading && <p className="text-brand-muted text-sm text-center py-4">Carregando...</p>}
+        {!loading && detalhe && (
+          <form onSubmit={handleSalvar} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Campo label="Data">
+                <input type="date" className={inputCls} value={data} onChange={e => setData(e.target.value)} max={hoje()} required />
+              </Campo>
+              <Campo label="Duração (min)">
+                <input type="number" className={inputCls} placeholder="Ex: 60" value={duracao} onChange={e => setDuracao(e.target.value)} min="1" max="480" />
+              </Campo>
+            </div>
+
+            <Campo label="Banca (opcional)">
+              <select className={inputCls} value={banca} onChange={e => setBanca(e.target.value)}>
+                <option value="">Sem banca</option>
+                {(bancasDisponiveis.length > 0 ? bancasDisponiveis : ['CESPE/CEBRASPE', 'FCC', 'FGV', 'VUNESP', 'AOCP', 'IDECAN', 'IBFC', 'QUADRIX', 'IADES', 'UPENET', 'Outra banca']).map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </Campo>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-brand-muted uppercase tracking-wide">Questões por matéria</p>
+              {rows.map(r => {
+                const pct = r.total > 0 ? Math.round((parseInt(r.acertos || 0) / parseInt(r.total)) * 100) : null
+                return (
+                  <div key={r.id} className="bg-brand-surface rounded-lg p-3 space-y-2">
+                    <p className="text-xs text-brand-text font-medium">{r.materia}{r.subtopico ? ` — ${r.subtopico}` : ''}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Campo label="Acertos">
+                        <input type="number" className={inputCls} min="0" value={r.acertos} onChange={e => updateRow(r.id, 'acertos', e.target.value)} required />
+                      </Campo>
+                      <Campo label="Total">
+                        <input type="number" className={inputCls} min="1" value={r.total} onChange={e => updateRow(r.id, 'total', e.target.value)} required />
+                      </Campo>
+                      <Campo label="%">
+                        <div className={`${inputCls} flex items-center`}>
+                          <span className={`font-semibold ${pct == null ? 'text-brand-muted' : pct >= 70 ? 'text-emerald-400' : pct >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                            {pct != null ? `${pct}%` : '—'}
+                          </span>
+                        </div>
+                      </Campo>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {erro && <p className="text-red-400 text-sm">{erro}</p>}
+
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-brand-border rounded-xl text-brand-muted text-sm hover:text-brand-text transition-colors">
+                Cancelar
+              </button>
+              <button type="submit" disabled={salvando} className="flex-1 py-2.5 bg-brand-gradient text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-50">
+                {salvando ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </form>
+        )}
+        {erro && !detalhe && <p className="text-red-400 text-sm text-center">{erro}</p>}
+      </div>
+    </div>
+  )
+}
+
 export default function CadernoQuestoes() {
   const [hierarquia, setHierarquia] = useState([])
   const [bancasDisponiveis, setBancasDisponiveis] = useState([])
@@ -47,6 +173,7 @@ export default function CadernoQuestoes() {
   const [enviando, setEnviando] = useState(false)
   const [sucesso, setSucesso] = useState(null)
   const [erro, setErro] = useState(null)
+  const [editandoBateria, setEditandoBateria] = useState(null)
 
   useEffect(() => {
     Promise.allSettled([getHierarquiaCompleta(), getBancas(), listarBaterias({ pagina: 1, por_pagina: 20 })])
@@ -295,6 +422,7 @@ export default function CadernoQuestoes() {
                   <th className="text-right px-5 py-3">Questões</th>
                   <th className="text-right px-5 py-3">Acertos</th>
                   <th className="text-right px-5 py-3">%</th>
+                  <th className="px-5 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-border">
@@ -307,12 +435,33 @@ export default function CadernoQuestoes() {
                     <td className={`px-5 py-3 text-right font-semibold ${b.percentual_geral >= 70 ? 'text-emerald-400' : b.percentual_geral >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
                       {b.percentual_geral.toFixed(1)}%
                     </td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        onClick={() => setEditandoBateria(b.bateria_id)}
+                        className="text-brand-muted hover:text-indigo-400 transition-colors text-base leading-none"
+                        title="Editar"
+                      >
+                        ✏
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+
+      {editandoBateria && (
+        <ModalEditarBateria
+          bateriaId={editandoBateria}
+          bancasDisponiveis={bancasDisponiveis}
+          onClose={() => setEditandoBateria(null)}
+          onSaved={() => {
+            setEditandoBateria(null)
+            listarBaterias({ pagina: 1, por_pagina: 20 }).then(b => setBaterias(Array.isArray(b) ? b : []))
+          }}
+        />
       )}
     </div>
   )
