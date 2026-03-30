@@ -5,8 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import Base  # noqa: F401 — importado para Alembic detectar os models
-from app.routers import auth, onboarding, bateria, erro_critico, desempenho, agenda, usuarios, admin_topicos, admin_ciclos, admin_stats, questoes, respostas, admin_importar_questoes, admin_importar_tec, admin_pendencias, admin_bancas, admin_notificacoes, admin_config, admin_convites, dev, sessoes_estudo  # noqa: E501
-from app.modules.conteudo.router import router as conteudo_router
+from app.routers import auth, onboarding, bateria, desempenho, usuarios, admin_topicos, admin_ciclos, admin_stats, questoes, admin_importar_questoes, admin_importar_tec, admin_pendencias, admin_bancas, admin_notificacoes, admin_config, admin_convites, dev, sessoes_estudo  # noqa: E501
 
 # Importar todos os models para o Alembic detectar
 import app.models  # noqa: F401
@@ -22,9 +21,9 @@ async def lifespan(app: FastAPI):
     alembic_cfg = AlembicConfig(_ini_path)
     alembic_command.upgrade(alembic_cfg, "head")
 
-    # Seed de tópicos padrão (idempotente — pula se já existirem)
-    from app.scripts.seed_topicos import seed
-    seed()
+    # Seed canônico da hierarquia fiscal (normaliza nomes, remove duplicatas)
+    from app.scripts.seed_fiscal import seed as seed_fiscal
+    seed_fiscal()
 
     # Seed de ciclos de matérias por área (depende dos tópicos já existirem)
     from app.scripts.seed_ciclos import seed_ciclos
@@ -83,16 +82,12 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(onboarding.router)
 app.include_router(bateria.router)
-app.include_router(erro_critico.router)
 app.include_router(desempenho.router)
-app.include_router(agenda.router)
-app.include_router(conteudo_router)
 app.include_router(usuarios.router)
 app.include_router(admin_topicos.router)
 app.include_router(admin_ciclos.router)
 app.include_router(admin_stats.router)
 app.include_router(questoes.router)
-app.include_router(respostas.router)
 app.include_router(admin_importar_questoes.router)
 app.include_router(admin_importar_tec.router)
 app.include_router(admin_pendencias.router)

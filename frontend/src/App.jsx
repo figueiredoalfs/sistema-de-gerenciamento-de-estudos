@@ -10,13 +10,10 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminQuestoes from './pages/AdminQuestoes'
 import AdminTopicos from './pages/AdminTopicos'
 import AdminUsuarios from './pages/AdminUsuarios'
-import AdminPlanoBase from './pages/AdminPlanoBase'
 import AdminPendencias from './pages/AdminPendencias'
 import AdminConfig from './pages/AdminConfig'
 import AdminConvites from './pages/admin/AdminConvites'
-import MentorAlunos from './pages/MentorAlunos'
 import Desempenho from './pages/Desempenho'
-import LancarBateria from './pages/LancarBateria'
 import RegistrarEstudo from './pages/RegistrarEstudo'
 import CadernoQuestoes from './pages/CadernoQuestoes'
 
@@ -120,17 +117,6 @@ export default function App() {
       />
 
       <Route
-        path="/admin/planos-base"
-        element={
-          <ProtectedRoute requireAdmin>
-            <AppLayout>
-              <AdminPlanoBase />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
         path="/admin/pendencias"
         element={
           <ProtectedRoute requireAdmin>
@@ -169,28 +155,6 @@ export default function App() {
           <ProtectedRoute>
             <AppLayout>
               <Desempenho />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/lancar-bateria"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <LancarBateria />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/mentor/alunos"
-        element={
-          <ProtectedRoute requireMentor>
-            <AppLayout>
-              <MentorAlunos />
             </AppLayout>
           </ProtectedRoute>
         }

@@ -12,8 +12,7 @@ from app.core.database import get_db
 from app.core.security import require_admin
 from app.models.aluno import Aluno
 from app.models.ciclo_materia import CicloMateria
-from app.models.perfil_estudo import PerfilEstudo
-from app.models.sessao import Sessao
+from app.models.sessao_estudo import SessaoEstudo
 from app.models.topico import Topico
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -25,7 +24,7 @@ def get_stats(
     _=Depends(require_admin),
 ):
     total_alunos  = db.query(Aluno).filter(Aluno.role == "aluno").count()
-    total_sessoes = db.query(Sessao).count()
+    total_sessoes = db.query(SessaoEstudo).count()
     total_ciclos  = db.query(CicloMateria).filter(CicloMateria.ativo == True).count()
     total_topicos = db.query(Topico).count()
 
@@ -46,14 +45,12 @@ def listar_alunos(
 
     itens = []
     for a in alunos:
-        perfil = db.query(PerfilEstudo).filter(PerfilEstudo.aluno_id == a.id).first()
-        total_sessoes = db.query(Sessao).filter(Sessao.aluno_id == a.id).count()
+        total_sessoes = db.query(SessaoEstudo).filter(SessaoEstudo.aluno_id == a.id).count()
         itens.append({
-            "id":           a.id,
-            "nome":         a.nome,
-            "email":        a.email,
-            "area":         perfil.area         if perfil else "—",
-            "experiencia":  perfil.experiencia  if perfil else "—",
+            "id":            a.id,
+            "nome":          a.nome,
+            "email":         a.email,
+            "area":          a.area or "—",
             "total_sessoes": total_sessoes,
         })
 

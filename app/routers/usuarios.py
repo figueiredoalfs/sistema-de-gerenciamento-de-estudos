@@ -13,8 +13,7 @@ from app.core.security import require_admin, require_mentor, hash_password
 from app.models.aluno import Aluno
 from app.models.perfil_estudo import PerfilEstudo
 from app.models.proficiencia import Proficiencia
-from app.models.resposta_questao import RespostaQuestao
-from app.models.sessao import Sessao
+from app.models.sessao_estudo import SessaoEstudo
 from app.schemas.auth import AlunoAdminResponse, AlunoAdminUpdate, AlunoMentoradoResponse, AtribuirMentorRequest, AlunoAdminCreate
 
 router = APIRouter(tags=["usuários"])
@@ -159,7 +158,7 @@ def progresso_usuario(
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
     registros = db.query(Proficiencia).filter(Proficiencia.aluno_id == usuario_id).all()
-    total_sessoes = db.query(Sessao).filter(Sessao.aluno_id == usuario_id).count()
+    total_sessoes = db.query(SessaoEstudo).filter(SessaoEstudo.aluno_id == usuario_id).count()
 
     agrup: dict = {}
     for r in registros:
@@ -210,7 +209,7 @@ def progresso_aluno_mentor(
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
 
     registros = db.query(Proficiencia).filter(Proficiencia.aluno_id == aluno_id).all()
-    total_sessoes = db.query(Sessao).filter(Sessao.aluno_id == aluno_id).count()
+    total_sessoes = db.query(SessaoEstudo).filter(SessaoEstudo.aluno_id == aluno_id).count()
 
     agrup: dict = {}
     for r in registros:
@@ -270,14 +269,14 @@ def resumo_aluno_mentor(
 
     meta_info = None
 
-    # Última atividade (última resposta)
-    ultima_resposta = (
-        db.query(RespostaQuestao.respondida_em)
-        .filter(RespostaQuestao.aluno_id == aluno_id)
-        .order_by(RespostaQuestao.respondida_em.desc())
+    # Última atividade (última sessão de estudo)
+    ultima_sessao = (
+        db.query(SessaoEstudo.data)
+        .filter(SessaoEstudo.aluno_id == aluno_id)
+        .order_by(SessaoEstudo.data.desc())
         .first()
     )
-    ultima_atividade = ultima_resposta[0] if ultima_resposta else None
+    ultima_atividade = ultima_sessao[0] if ultima_sessao else None
 
     # Desempenho por matéria via Proficiencia
     registros = db.query(Proficiencia).filter(Proficiencia.aluno_id == aluno_id).all()

@@ -60,7 +60,14 @@
       "Bash(python -c \"import app.main; print\\(''OK''\\)\")",
       "Bash(grep -r figueiredoalfs c:/Users/Figueiredo/sistema-de-gerenciamento-de-estudos --include=*.py --include=*.js --include=*.jsx)",
       "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos -name *.py -path */routers/* -type f)",
-      "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos -type f -name *esempento* -o -name *performance*)"
+      "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos -type f -name *esempento* -o -name *performance*)",
+      "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/frontend/src/components -type f -name \"*.{jsx,js,tsx}\")",
+      "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/frontend/src/pages -type f -name \"*.{jsx,js,tsx}\")",
+      "Bash(find /c/Users/Figueiredo/sistema-de-gerenciamento-de-estudos/frontend/src -maxdepth 1 -type f -name \"*.{jsx,js,tsx}\")",
+      "Bash(rm -f app/routers/agenda.py app/routers/respostas.py app/routers/erro_critico.py)",
+      "Bash(rm -rf app/modules/conteudo)",
+      "Bash(rm -f app/services/decay.py app/services/priorizacao.py app/services/questao_ia.py app/services/sugestao_areas.py app/services/sugestao_subtopicos.py)",
+      "Bash(rm -f app/scripts/migrar_sisfig.py app/scripts/merge_materias_informatica.py app/scripts/seed_sessoes_teste.py)"
     ]
   }
 }
